@@ -40,4 +40,91 @@ body {
 		max-width: 69.5rem;
 		margin: 0 auto;
 	}
+
+	.updatebee-icon {
+		display: inline-block;
+		fill: currentColor;
+		color: currentColor;
+	}
+
+	.updatebee-icon-tab {
+		width: 25px;
+		height: 25px;
+		opacity: 0.7;
+		margin-right: 8px;
+		flex-shrink: 0;
+	}
+
+	.nav-tab-active .updatebee-icon-tab {
+		opacity: 1;
+	}
+}
+
+.updatebee-settings-layout {
+	display: flex;
+	align-items: flex-start;
+	gap: 2rem;
+}
+
+.updatebee-settings-content {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding-top: 0.35rem;
+}
+
+.updatebee-settings-tabs .nav-tab-wrapper {
+	display: flex;
+	flex-direction: column;
+	flex: 0 0 9.375rem;
+	width: 9.375rem;
+	border-bottom: none;
+	padding: 0;
+	margin: 0;
+	line-height: inherit;
+}
+
+.updatebee-settings-tabs .nav-tab-wrapper::after {
+	content: none;
+	display: none;
+}
+
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab {
+	display: flex;
+	align-items: center;
+	float: none;
+	margin: 0 0 0.25rem;
+	padding: 0.55rem 0.75rem;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: transparent;
+	box-shadow: none;
+	white-space: nowrap;
+}
+
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab:hover,
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab:focus {
+	background: #f0f0f1;
+	color: #1d2327;
+}
+
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active,
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:hover,
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:focus,
+.updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:focus:active {
+	background: #f0f0f1;
+	border-color: #c3c4c7;
+	color: #000;
+}
+
+.updatebee-hidden {
+	width: 0;
+	height: 0;
+	opacity: 0;
+	visibility: hidden;
+	position: absolute;
+	top: 0;
+	left: 0;
+	overflow: hidden;
+	pointer-events: none;
+	user-select: none;
 }

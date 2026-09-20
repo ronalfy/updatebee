@@ -17,5 +17,12 @@ class Init {
 	 */
 	public function run(): void {
 		new Dashboard();
+		new Emails();
+		new Cron();
+		new Plugins();
+		new Themes();
+		new Translations();
+		new Logs();
+		new Tools();
 	}
 }

@@ -9,14 +9,22 @@
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js src/js",
 		"lint:css": "wp-scripts lint-css src/scss",
-		"test:js": "wp-scripts test-unit-js --watchAll=false"
+		"test:js": "wp-scripts test-unit-js --watchAll=false",
+		"typecheck": "tsc --noEmit"
 	},
 	"prettier": "@wordpress/prettier-config",
 	"devDependencies": {
-		"@wordpress/scripts": "^30.25.0"
+		"@types/jest": "^29.5.14",
+		"@types/react": "^19.3.0",
+		"@types/react-dom": "^19.3.0",
+		"@wordpress/scripts": "^30.25.0",
+		"typescript": "^5.9.2"
 	},
 	"dependencies": {
+		"@wordpress/components": "^40.1.0",
 		"@wordpress/theme": "^2.1.0",
-		"@wordpress/ui": "^0.22.0"
+		"@wordpress/ui": "^0.22.0",
+		"react": "^19.3.0",
+		"react-dom": "^19.3.0"
 	}
 }

@@ -228,6 +228,7 @@ class Functions {
 		);
 
 		$allowed_tags['use'] = array(
+			'href'       => array(),
 			'xlink:href' => array(),
 		);
 

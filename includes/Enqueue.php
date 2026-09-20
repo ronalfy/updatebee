@@ -40,7 +40,7 @@ class Enqueue {
 			return;
 		}
 
-		$asset_file = Functions::get_plugin_dir( '/build/admin.asset.php' );
+		$asset_file = Functions::get_plugin_dir( '/build/common.asset.php' );
 		$asset      = array(
 			'dependencies' => array(),
 			'version'      => Functions::get_plugin_version(),
@@ -53,22 +53,11 @@ class Enqueue {
 			}
 		}
 
-		$script_path = Functions::get_plugin_dir( '/build/admin.js' );
-		if ( file_exists( $script_path ) ) {
-			wp_enqueue_script(
-				'updatebee-admin',
-				Functions::get_plugin_url( '/build/admin.js' ),
-				is_array( $asset['dependencies'] ) ? $asset['dependencies'] : array(),
-				is_string( $asset['version'] ) ? $asset['version'] : Functions::get_plugin_version(),
-				true
-			);
-		}
-
-		$style_path = Functions::get_plugin_dir( '/build/admin.css' );
+		$style_path = Functions::get_plugin_dir( '/build/common.css' );
 		if ( file_exists( $style_path ) ) {
 			wp_enqueue_style(
 				'updatebee-admin',
-				Functions::get_plugin_url( '/build/admin.css' ),
+				Functions::get_plugin_url( '/build/common.css' ),
 				array(),
 				is_string( $asset['version'] ) ? $asset['version'] : Functions::get_plugin_version(),
 				'all'

@@ -1,10 +1,10 @@
 /**
  * Convert an underscore_separated field to camelCase.
  *
- * @param {string} field Field to convert.
- * @return {string} camelCased field.
+ * @param field Field to convert.
+ * @return camelCased field.
  */
-export default function toCamelCase( field ) {
+export default function toCamelCase( field: string ): string {
 	const words = field
 		.split( '_' )
 		.map( ( word ) => word.charAt( 0 ).toUpperCase() + word.slice( 1 ) )

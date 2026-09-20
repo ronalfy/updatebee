@@ -33,7 +33,8 @@ class Dashboard {
 			'get'    => 'dashboard',
 			'action' => 'updatebee_output_dashboard',
 			'url'    => Functions::get_settings_url( 'dashboard' ),
-			'label'  => _x( 'Dashboard', 'Tab label as Dashboard', 'updatebee' ),
+			'label'  => _x( 'Settings', 'Tab label as Settings', 'updatebee' ),
+			'icon'   => 'icon-settings',
 		);
 
 		return $tabs;

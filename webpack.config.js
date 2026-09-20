@@ -4,6 +4,7 @@ const path = require( 'path' );
 module.exports = {
 	...defaultConfig,
 	entry: {
-		admin: path.resolve( process.cwd(), 'src/js', 'admin.js' ),
+		common: path.resolve( process.cwd(), 'src/js/common.ts' ),
+		dashboard: path.resolve( process.cwd(), 'src/js/react/views/Dashboard/index.tsx' ),
 	},
 };
