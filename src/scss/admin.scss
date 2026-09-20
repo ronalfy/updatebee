@@ -139,3 +139,109 @@ body {
 	pointer-events: none;
 	user-select: none;
 }
+
+#updatebee-admin-container-slot {
+	position: sticky;
+	bottom: 0;
+	left: 0;
+	z-index: 1000;
+}
+
+.updatebee-admin-save-bar {
+	padding: 16px 24px;
+	background: #f6f7f7;
+	border-top: 1px solid #c3c4c7;
+	position: sticky;
+	bottom: 0;
+	left: 0;
+	z-index: 1000;
+}
+
+.updatebee-admin__tabs--content-actions {
+	display: flex;
+	justify-content: space-between;
+	padding: 0;
+	gap: 16px;
+	max-width: calc(69.5rem - 70px);
+	margin: 0 auto;
+	padding: 16px 0;
+
+	&--left {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+}
+
+.updatebee-admin-panel-area {
+	position: relative;
+	background-color: var(--wpds-color-background-interactive-neutral, #fff);
+	border: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #e0e0e0);
+	padding: var(--wpds-dimension-padding-2xl);
+
+	&.is-loading {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+}
+
+h3.updatebee-panel-heading {
+	font-size: 1.8em;
+	font-weight: 700;
+	margin: 0;
+	padding-bottom: 1.1em;
+}
+
+.updatebee-panel-row {
+	margin-bottom: 15px;
+}
+
+.updatebee-dashboard-automatic-updates {
+	h4 {
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		font-size: 1.2em;
+	}
+
+	.updatebee-panel-row-dashboard-options {
+		position: relative;
+		z-index: 20;
+
+		.updatebee-panel-row {
+			padding-bottom: 15px;
+			border-bottom: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #e0e0e0);
+
+			&:last-child {
+				border-bottom: 0;
+			}
+		}
+	}
+}
+
+.updatebee-dashboard-update-toggle {
+	display: flex;
+	align-items: center;
+}
+
+.updatebee-link-row {
+	ul {
+		display: flex;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	li {
+		&::after {
+			content: '|';
+			margin-left: 5px;
+			margin-right: 5px;
+		}
+
+		&:last-child::after {
+			content: '';
+			margin: 0;
+		}
+	}
+}

@@ -41,7 +41,7 @@ class Dashboard {
 	}
 
 	/**
-	 * Output dashboard placeholder content.
+	 * Output dashboard settings content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -58,10 +58,19 @@ class Dashboard {
 			$deps['version'],
 			true
 		);
+		wp_localize_script(
+			'updatebee-dashboard',
+			'updatebeeDashboard',
+			array(
+				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-dashboard-settings' ),
+				'saveNonce'     => wp_create_nonce( 'updatebee-save-dashboard-settings' ),
+				'resetNonce'    => wp_create_nonce( 'updatebee-reset-dashboard-settings' ),
+			)
+		);
 
 		unset( $sub_tab );
 		?>
-		<div id="updatebee-dashboard-container">test</div>
+		<div id="updatebee-dashboard-container"></div>
 		<?php
 	}
 }

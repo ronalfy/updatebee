@@ -128,17 +128,17 @@ class Options {
 			 * @param bool                 $force          Force reload.
 			 */
 			$cached_options = apply_filters( 'updatebee_options_save_pre', $cached_options, $key, $options, $force );
-			$cached_options = wp_parse_args( $cached_options, self::get_defaults() );
+			$cached_options = Functions::parse_args_r( $cached_options, self::get_defaults() );
 			update_site_option( self::$options_key, $cached_options );
 		} elseif ( is_array( $options ) && empty( $key ) ) {
-			$cached_options = wp_parse_args( $options, $cached_options );
+			$cached_options = Functions::parse_args_r( $options, $cached_options );
 			$cached_options = apply_filters( 'updatebee_options_save_pre', $cached_options, $key, $options, $force );
-			$cached_options = wp_parse_args( $cached_options, self::get_defaults() );
+			$cached_options = Functions::parse_args_r( $cached_options, self::get_defaults() );
 			update_site_option( self::$options_key, $cached_options );
 		} elseif ( is_array( $options ) && array_key_exists( $key, $cached_options ) ) {
 			$cached_options[ $key ] = $options;
 			$cached_options         = apply_filters( 'updatebee_options_save_pre', $cached_options, $key, $options, $force );
-			$cached_options         = wp_parse_args( $cached_options, self::get_defaults() );
+			$cached_options         = Functions::parse_args_r( $cached_options, self::get_defaults() );
 			update_site_option( self::$options_key, $cached_options );
 		} else {
 			return null;

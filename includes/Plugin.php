@@ -7,6 +7,7 @@
 
 namespace UpdateBee;
 
+use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
 
@@ -42,6 +43,13 @@ class Plugin {
 	 * @var Enqueue
 	 */
 	private Enqueue $enqueue;
+
+	/**
+	 * Ajax handlers.
+	 *
+	 * @var Ajax
+	 */
+	private Ajax $ajax;
 
 	/**
 	 * Return a class instance.
@@ -87,5 +95,8 @@ class Plugin {
 
 		$this->enqueue = new Enqueue();
 		$this->enqueue->run();
+
+		$this->ajax = new Ajax();
+		$this->ajax->run();
 	}
 }

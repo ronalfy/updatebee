@@ -93,6 +93,33 @@ class Functions {
 	}
 
 	/**
+	 * Recursive argument parsing
+	 *
+	 * This acts like a multi-dimensional version of wp_parse_args() (minus
+	 * the querystring parsing - you must pass arrays).
+	 *
+	 * @since 1.0.0
+	 * @param array $a Array of arguments.
+	 * @param array $b Array of arguments.
+	 * @return array Array of arguments.
+	 */
+	public static function parse_args_r( array &$a, array $b ): array {
+		$a = (array) $a;
+		$b = (array) $b;
+		$r = $b;
+
+		foreach ( $a as $k => &$v ) {
+			if ( is_array( $v ) && isset( $r[ $k ] ) ) {
+				$r[ $k ] = self::parse_args_r( $v, $r[ $k ] );
+			} else {
+				$r[ $k ] = $v;
+			}
+		}
+
+		return $r;
+	}
+
+	/**
 	 * Return the plugin slug.
 	 *
 	 * @return string Plugin slug.
