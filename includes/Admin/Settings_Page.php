@@ -21,7 +21,7 @@ class Settings_Page {
 	 */
 	public static function settings_page(): void {
 		?>
-		<div class="updatebee-wrap updatebee-settings-header">
+		<div class="updatebee-settings-header-wrapper">
 			<?php
 			self::get_settings_header();
 			?>
@@ -40,9 +40,9 @@ class Settings_Page {
 	 */
 	public static function get_settings_header(): void {
 		?>
-		<header class="updatebee-settings-header">
+		<header class="updatebee-settings-header updatebee-wrap">
 			<h1 class="updatebee-settings-header__title">
-				<a href="<?php echo esc_url( admin_url( 'admin.php?page=updatebee' ) ); ?>">
+				<a href="<?php echo esc_url( Functions::get_settings_url() ); ?>">
 					<img src="<?php echo esc_url( Functions::get_plugin_url( '/assets/logo.png' ) ); ?>" alt="<?php echo esc_attr( Functions::get_plugin_name() ); ?>" />
 				</a>
 			</h1>

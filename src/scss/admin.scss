@@ -18,6 +18,12 @@ body {
 		background-color: var(--wpds-color-background-interactive-neutral, #FFFFFF);
 	}
 
+	.updatebee-settings-header-wrapper {
+		background-color: var(--wpds-color-background-interactive-neutral, #FFFFFF);
+		border-bottom: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #E0E0E0);
+		margin-bottom: var(--wpds-dimension-size-md, 2rem);
+	}
+
 	#wpbody-content {
 		padding: 0;
 		margin: 0;
@@ -29,15 +35,14 @@ body {
 	}
 
 	.updatebee-settings-header {
+		padding-top: var(--wpds-dimension-size-xs, 1rem);
+		padding-bottom: var(--wpds-dimension-size-xs, 1rem);
+
 		&__title img {
 			width: 100%;
 			height: auto;
 			max-width: 450px;
 		}
-	}
-
-	header {
-		padding-bottom: var(--wpds-dimension-size-sm, 2rem);
 	}
 
 	.updatebee-wrap {
