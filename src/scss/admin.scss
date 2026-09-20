@@ -1,4 +1,5 @@
 @use '@wordpress/theme/design-tokens.css';
+@use '@mediaron/react-spinners/spinner.css';
 
 @layer wp-ui, updatebee;
 
@@ -194,7 +195,15 @@ h3.updatebee-panel-heading {
 }
 
 .updatebee-panel-row {
-	margin-bottom: 15px;
+	margin-bottom: var(--wpds-dimension-padding-lg);
+
+	p {
+		margin-bottom: var(--wpds-dimension-padding-sm);
+	}
+
+	h4 {
+		margin: var(--wpds-dimension-padding-lg) 0;
+	}
 }
 
 .updatebee-dashboard-automatic-updates {
@@ -243,5 +252,16 @@ h3.updatebee-panel-heading {
 			content: '';
 			margin: 0;
 		}
+	}
+}
+
+.updatebee-loader {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	gap: var(--wpds-dimension-gap-md);
+
+	p {
+		font-size: var(--wpds-typography-font-size-xl);
 	}
 }

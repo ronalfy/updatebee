@@ -1,12 +1,13 @@
 /**
  * Dashboard automatic-update toggles.
  */
-import { Button, Spinner, ToggleControl } from '@wordpress/components';
+import { Button, ToggleControl } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Controller, useFormContext } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import { optionToBool } from '../../utils/bool';
+import Loader from '../../components/Loader';
 
 export type DashboardSettingsForm = {
 	majorUpdates: boolean;
@@ -71,10 +72,7 @@ const DashboardUpdateOptions = () => {
 
 	if (loading) {
 		return (
-			<div className="updatebee-admin-panel-area is-loading">
-				<Spinner />
-				<p>{__('Loading…', 'updatebee')}</p>
-			</div>
+			<Loader />
 		);
 	}
 

@@ -2,7 +2,7 @@
  * Dashboard settings view.
  */
 import { FormProvider, useForm } from 'react-hook-form';
-import { Fill } from '@wordpress/components';
+import { useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import DashboardUpdateOptions, {
 	dashboardSettingsDefaults,
 	type DashboardSettingsForm,
@@ -13,6 +13,7 @@ const Dashboard = () => {
 	const methods = useForm< DashboardSettingsForm >( {
 		defaultValues: dashboardSettingsDefaults,
 	} );
+	useEnableWpCompatOverlaySlot();
 
 	return (
 		<FormProvider { ...methods }>
