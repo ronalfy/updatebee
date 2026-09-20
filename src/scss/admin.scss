@@ -1,0 +1,43 @@
+@use '@wordpress/theme/design-tokens.css';
+
+@layer wp-ui, updatebee;
+
+:root {
+	isolation: isolate;
+}
+
+body {
+	position: relative;
+}
+
+@layer updatebee {
+
+	#wpcontent {
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+		background-color: #FFFFFF;
+	}
+
+	#wpbody-content {
+		padding: 0;
+		margin: 0;
+	}
+
+	body.alerts-dlx-body .notice,
+	body.alerts-dlx-body .updated {
+		display: none !important;
+	}
+
+	.updatebee-settings-header {
+		&__title img {
+			width: 100%;
+			height: auto;
+			max-width: 450px;
+		}
+	}
+
+	.updatebee-wrap {
+		max-width: 69.5rem;
+		margin: 0 auto;
+	}
+}

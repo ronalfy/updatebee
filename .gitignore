@@ -141,3 +141,15 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Composer
+/vendor/
+
+# Built assets
+/build/
+
+# PHPUnit / PHPStan
+.phpunit.result.cache
+.phpunit.cache
+/.phpstan.cache
+
