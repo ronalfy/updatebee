@@ -293,6 +293,7 @@ class Settings_Page {
 				</symbol>
 			</defs>
 			</svg>
+			<div id="updatebee-admin-container-slot"></div>
 		<?php
 	}
 }

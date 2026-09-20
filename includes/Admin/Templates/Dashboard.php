@@ -50,12 +50,18 @@ class Dashboard {
 		if ( 'dashboard' !== $tab ) {
 			return;
 		}
+		$deps = require Functions::get_plugin_dir( 'build/dashboard.asset.php' );
+		wp_enqueue_script(
+			'updatebee-dashboard',
+			Functions::get_plugin_url( 'build/dashboard.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
 
 		unset( $sub_tab );
 		?>
-		<div class="updatebee-dashboard-placeholder">
-			<p><?php esc_html_e( 'Welcome to UpdateBee. Automatic update controls will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-dashboard-container">test</div>
 		<?php
 	}
 }

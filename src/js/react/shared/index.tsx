@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
  */
 export const commonFill = ( domId: string, children: ReactNode ): void => {
 	const container = document.getElementById( domId );
-	const slotContainer = document.getElementById( domId + '-slot' );
+	const slotContainer = document.getElementById( 'updatebee-admin-container-slot' );
 
 	if ( container ) {
 		container.innerHTML = '';
