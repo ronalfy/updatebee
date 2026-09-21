@@ -233,6 +233,20 @@ h3.updatebee-panel-heading {
 	align-items: center;
 }
 
+.updatebee-dashboard-configure-options {
+	display: flex;
+	align-items: center;
+	gap: var(--wpds-dimension-gap-md);
+	margin-top: var(--wpds-dimension-padding-lg, 0.5rem);
+	position: relative;
+	z-index: 20;
+}
+
+.updatebee-dashboard-configure-summary {
+	color: var(--wpds-color-background-thumb-neutral-weak, #646970);
+	font-size: 13px;
+}
+
 .updatebee-link-row {
 	ul {
 		display: flex;
@@ -268,4 +282,9 @@ h3.updatebee-panel-heading {
 
 .updatebee-error-fallback__actions {
 	margin-top: var(--wpds-dimension-padding-sm);
+}
+
+.updatebee-dashboard-configure-options-trigger-button.components-button.is-tertiary {
+	background: var(--wpds-color-background-interactive-neutral-active);
+	border-color: var(--wpds-color-background-interactive-neutral-strong);
 }

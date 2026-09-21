@@ -4,12 +4,15 @@
 import { Button, ToggleControl } from '@wordpress/components';
 import { useEffect, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Menu } from '@wordpress/ui';
 import { Controller, useFormContext } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import Loader from '../../components/Loader';
 import { boolToOption, optionToBool } from '../../utils/bool';
+import PluginUpdateConfigure, {
+	applyPluginAutoUpdatesDisabledAll,
+	applyPluginAutoUpdatesEnabled,
+} from './PluginUpdateConfigure';
 
 export type DashboardSettingsForm = {
 	majorAutoUpdates: boolean;
@@ -36,7 +39,7 @@ export const dashboardSettingsDefaults: DashboardSettingsForm = {
 	pluginAutoUpdates: false,
 	pluginAutoUpdatesCustom: false,
 	pluginUpdatesDisabled: false,
-	pluginManualUpdatesOnly: false,
+	pluginManualUpdatesOnly: true,
 	pluginAutoUpdatesPatchesOnly: false,
 	themeAutoUpdates: false,
 	themeAutoUpdatesCustom: false,
@@ -69,6 +72,32 @@ export type DashboardOptionsPayload = {
 };
 
 /**
+ * Keep plugin flags consistent with the auto-update toggle.
+ *
+ * @param values Form values.
+ * @return Normalized form values.
+ */
+export const normalizePluginSettings = (
+	values: DashboardSettingsForm
+): DashboardSettingsForm => {
+	if ( values.pluginAutoUpdates ) {
+		return {
+			...values,
+			pluginUpdatesDisabled: false,
+			pluginManualUpdatesOnly: false,
+		};
+	}
+
+	return {
+		...values,
+		pluginAutoUpdatesCustom: false,
+		pluginAutoUpdatesPatchesOnly: false,
+		pluginUpdatesDisabled: values.pluginUpdatesDisabled,
+		pluginManualUpdatesOnly: ! values.pluginUpdatesDisabled,
+	};
+};
+
+/**
  * Map camelCase form values to option keys.
  *
  * @param values Form values.
@@ -77,19 +106,23 @@ export type DashboardOptionsPayload = {
 export const formToOptions = (
 	values: DashboardSettingsForm
 ): DashboardOptionsPayload => {
+	const pluginValues = normalizePluginSettings( values );
+
 	return {
-		major_auto_updates: boolToOption( values.majorAutoUpdates ),
-		minor_auto_updates: boolToOption( values.minorAutoUpdates ),
-		plugin_auto_updates: boolToOption( values.pluginAutoUpdates ),
+		major_auto_updates: boolToOption( pluginValues.majorAutoUpdates ),
+		minor_auto_updates: boolToOption( pluginValues.minorAutoUpdates ),
+		plugin_auto_updates: boolToOption( pluginValues.pluginAutoUpdates ),
 		plugin_auto_updates_custom: boolToOption(
-			values.pluginAutoUpdatesCustom
+			pluginValues.pluginAutoUpdatesCustom
 		),
-		plugin_updates_disabled: boolToOption( values.pluginUpdatesDisabled ),
+		plugin_updates_disabled: boolToOption(
+			pluginValues.pluginUpdatesDisabled
+		),
 		plugin_manual_updates_only: boolToOption(
-			values.pluginManualUpdatesOnly
+			pluginValues.pluginManualUpdatesOnly
 		),
 		plugin_auto_updates_patches_only: boolToOption(
-			values.pluginAutoUpdatesPatchesOnly
+			pluginValues.pluginAutoUpdatesPatchesOnly
 		),
 		theme_auto_updates: boolToOption( values.themeAutoUpdates ),
 		theme_auto_updates_custom: boolToOption(
@@ -128,7 +161,7 @@ export const optionsToForm = (
 		return dashboardSettingsDefaults;
 	}
 
-	return {
+	return normalizePluginSettings( {
 		majorAutoUpdates: optionToBool( data.major_auto_updates ),
 		minorAutoUpdates: optionToBool( data.minor_auto_updates ),
 		pluginAutoUpdates: optionToBool( data.plugin_auto_updates ),
@@ -159,11 +192,11 @@ export const optionsToForm = (
 		translationManualUpdatesOnly: optionToBool(
 			data.translation_manual_updates_only
 		),
-	};
+	} );
 };
 
 const DashboardUpdateOptions = () => {
-	const { control, reset, setValue } =
+	const { control, getValues, reset, setValue } =
 		useFormContext< DashboardSettingsForm >();
 	const [ loading, setLoading ] = useState( true );
 	const [ loadError, setLoadError ] = useState( false );
@@ -212,9 +245,15 @@ const DashboardUpdateOptions = () => {
 	const setAll = ( enabled: boolean ) => {
 		setValue( 'majorAutoUpdates', enabled, { shouldDirty: true } );
 		setValue( 'minorAutoUpdates', enabled, { shouldDirty: true } );
-		setValue( 'pluginAutoUpdates', enabled, { shouldDirty: true } );
 		setValue( 'themeAutoUpdates', enabled, { shouldDirty: true } );
 		setValue( 'translationAutoUpdates', enabled, { shouldDirty: true } );
+
+		if ( enabled ) {
+			applyPluginAutoUpdatesEnabled( setValue, getValues, true );
+			return;
+		}
+
+		applyPluginAutoUpdatesDisabledAll( setValue );
 	};
 
 	if ( loading ) {
@@ -328,39 +367,6 @@ const DashboardUpdateOptions = () => {
 				</div>
 				<div className="updatebee-panel-row">
 					<h4>{ __( 'WordPress Plugin Updates', 'updatebee' ) }</h4>
-					<Menu.Root>
-						<Menu.Trigger>Configure</Menu.Trigger>
-						<Menu.Popup>
-							<Controller
-								name="pluginUpdatesDisabled"
-								control={ control }
-								render={ ( { field: { value, onChange } } ) => {
-									return (
-										<Menu.RadioGroup
-											value={ value ? 'on' : 'off' }
-											onValueChange={ ( nextValue ) =>
-												onChange( 'on' === nextValue )
-											}
-										>
-											<Menu.GroupLabel>
-												Disable Plugin Updates
-											</Menu.GroupLabel>
-											<Menu.RadioItem value="on">
-												<Menu.ItemLabel>
-													Plugin Updates Allowed
-												</Menu.ItemLabel>
-											</Menu.RadioItem>
-											<Menu.RadioItem value="off">
-												<Menu.ItemLabel>
-													Plugin Updates Disabled
-												</Menu.ItemLabel>
-											</Menu.RadioItem>
-										</Menu.RadioGroup>
-									);
-								} }
-							/>
-						</Menu.Popup>
-					</Menu.Root>
 					<p className="description">
 						{ __(
 							'Plugin updates present their own risk, but it is very important to keep these up-to-date. If configured, you can still update only selected plugins.',
@@ -371,10 +377,16 @@ const DashboardUpdateOptions = () => {
 						<Controller
 							name="pluginAutoUpdates"
 							control={ control }
-							render={ ( { field: { value, onChange } } ) => (
+							render={ ( { field: { value } } ) => (
 								<ToggleControl
 									checked={ value }
-									onChange={ onChange }
+									onChange={ ( checked ) => {
+										applyPluginAutoUpdatesEnabled(
+											setValue,
+											getValues,
+											checked
+										);
+									} }
 									label={ __(
 										'Enable plugin auto-updates',
 										'updatebee'
@@ -383,6 +395,7 @@ const DashboardUpdateOptions = () => {
 							) }
 						/>
 					</div>
+					<PluginUpdateConfigure />
 				</div>
 				<div className="updatebee-panel-row">
 					<h4>{ __( 'WordPress Theme Updates', 'updatebee' ) }</h4>
