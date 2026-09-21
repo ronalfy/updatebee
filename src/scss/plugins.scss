@@ -44,7 +44,12 @@
 		}
 
 		th {
-			padding: 4px 0;
+			padding: 0;
+		}
+
+		tr {
+			display: block;
+			margin-bottom: var(--wpds-dimension-padding-md, 1rem);
 		}
 	}
 
