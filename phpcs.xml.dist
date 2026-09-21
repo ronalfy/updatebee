@@ -19,10 +19,22 @@
 	<config name="text_domain" value="updatebee"/>
 	<config name="minimum_supported_wp_version" value="6.0"/>
 
+	<!--
+		PSR-4 uses Plugin.php, not class-plugin.php.
+		Sniff: WordPress.Files.FileName.
+		Codes: NotHyphenatedLowercase, InvalidClassFileName, InvalidTemplateTagFileName.
+		composer phpcs loads this file automatically.
+		Cursor/VS Code must set phpsab.standard (and phpcs.standard) to this file.
+		A user setting of WordPress-Extra skips auto-discovery of phpcs.xml.dist.
+	-->
 	<rule ref="WordPress">
+		<exclude name="WordPress.Files.FileName"/>
 		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
 		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
-		<exclude name="WordPress.Files.FileName"/>
+		<exclude name="WordPress.Files.FileName.InvalidTemplateTagFileName"/>
+	</rule>
+	<rule ref="WordPress.Files.FileName">
+		<severity>0</severity>
 	</rule>
 	<rule ref="Squiz.Commenting.FileComment.Missing">
 		<exclude-pattern>*/tests/php/bootstrap.php</exclude-pattern>

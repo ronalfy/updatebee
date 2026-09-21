@@ -18,7 +18,7 @@ class Plugins {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_plugins_tab' ), 4 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_plugins_tab' ), 2 );
 		add_action( 'updatebee_output_plugins', array( $this, 'output_plugins_content' ), 1, 2 );
 	}
 

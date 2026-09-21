@@ -18,7 +18,7 @@ class Cron {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_cron_tab' ), 3 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_cron_tab' ), 7 );
 		add_action( 'updatebee_output_cron', array( $this, 'output_cron_content' ), 1, 2 );
 	}
 

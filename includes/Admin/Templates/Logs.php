@@ -18,7 +18,7 @@ class Logs {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_logs_tab' ), 7 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_logs_tab' ), 5 );
 		add_action( 'updatebee_output_logs', array( $this, 'output_logs_content' ), 1, 2 );
 	}
 

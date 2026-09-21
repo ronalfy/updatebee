@@ -18,7 +18,7 @@ class Themes {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_themes_tab' ), 5 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_themes_tab' ), 3 );
 		add_action( 'updatebee_output_themes', array( $this, 'output_themes_content' ), 1, 2 );
 	}
 

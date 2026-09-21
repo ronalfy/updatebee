@@ -18,7 +18,7 @@ class Emails {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_emails_tab' ), 2 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_emails_tab' ), 6 );
 		add_action( 'updatebee_output_emails', array( $this, 'output_emails_content' ), 1, 2 );
 	}
 

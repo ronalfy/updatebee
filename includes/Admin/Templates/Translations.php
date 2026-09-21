@@ -18,7 +18,7 @@ class Translations {
 	 * Constructor.
 	 */
 	public function __construct() {
-		add_filter( 'updatebee_admin_tabs', array( $this, 'add_translations_tab' ), 6 );
+		add_filter( 'updatebee_admin_tabs', array( $this, 'add_translations_tab' ), 4 );
 		add_action( 'updatebee_output_translations', array( $this, 'output_translations_content' ), 1, 2 );
 	}
 
