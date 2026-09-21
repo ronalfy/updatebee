@@ -2,7 +2,9 @@
  * Dashboard settings view.
  */
 import { FormProvider, useForm } from 'react-hook-form';
+import { __ } from '@wordpress/i18n';
 import { useEnableWpCompatOverlaySlot } from '@wordpress/ui';
+import ErrorBoundary from '../../components/ErrorBoundary';
 import DashboardUpdateOptions, {
 	dashboardSettingsDefaults,
 	type DashboardSettingsForm,
@@ -17,7 +19,15 @@ const Dashboard = () => {
 
 	return (
 		<FormProvider { ...methods }>
-			<DashboardUpdateOptions />
+			<ErrorBoundary
+				heading={ __( 'Automatic Updates', 'updatebee' ) }
+				message={ __(
+					'These settings could not be displayed. Try again or reload the page.',
+					'updatebee'
+				) }
+			>
+				<DashboardUpdateOptions />
+			</ErrorBoundary>
 			<DashboardFooter />
 		</FormProvider>
 	);

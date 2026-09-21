@@ -16,7 +16,6 @@ body {
 	#wpcontent {
 		padding-left: 0 !important;
 		padding-right: 0 !important;
-		background-color: var(--wpds-color-background-interactive-neutral, #FFFFFF);
 	}
 
 	.updatebee-settings-header-wrapper {
@@ -114,15 +113,16 @@ body {
 
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab:hover,
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab:focus {
-	background: var(--wpds-color-background-interactive-brand-strong-disabled, #f0f0f1);
+	background: var(--wpds-color-background-surface-neutral, #f0f0f1);
 	color: var(--wpds-color-background-interactive-neutral-strong-active);
+	border-color: var(--wpds-color-background-interactive-neutral-strong-active);
 }
 
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active,
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:hover,
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:focus,
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab-active:focus:active {
-	background: var(--wpds-color-background-interactive-brand-strong-disabled, #f0f0f1);
+	background: var(--wpds-color-background-interactive-neutral, #FFFFFF);
 	border-color: var(--wpds-color-background-interactive-neutral-strong-active);
 	color: var(--wpds-color-background-interactive-neutral-strong-active);
 	transition: background-color 0.4s ease-in-out;
@@ -264,4 +264,8 @@ h3.updatebee-panel-heading {
 	p {
 		font-size: var(--wpds-typography-font-size-xl);
 	}
+}
+
+.updatebee-error-fallback__actions {
+	margin-top: var(--wpds-dimension-padding-sm);
 }
