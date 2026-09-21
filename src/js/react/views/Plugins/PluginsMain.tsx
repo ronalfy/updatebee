@@ -57,11 +57,11 @@ export type PluginItem = {
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
 
 type PluginsPayload = {
-	plugins?: Record< string, PluginItem >;
+	plugins?: Record<string, PluginItem>;
 	auto_updates_enabled?: AutoUpdatesStatus;
 };
 
-export type PluginsFormValues = Record< string, boolean >;
+export type PluginsFormValues = Record<string, boolean>;
 
 type PluginField =
 	| 'auto_update'
@@ -78,7 +78,7 @@ type PluginField =
 export const getPluginFieldKey = (
 	plugin: PluginItem,
 	field: PluginField
-): string => `${ plugin.File }_${ field }`;
+): string => `${plugin.File}_${field}`;
 
 const dirty = {
 	shouldDirty: true,
@@ -88,26 +88,26 @@ const noop = (): void => {
 	// Save is out of scope for this pass.
 };
 
-const isDotOrgPlugin = ( plugin: PluginItem ): boolean => {
-	if ( ! plugin.id ) {
+const isDotOrgPlugin = (plugin: PluginItem): boolean => {
+	if (!plugin.id) {
 		return false;
 	}
 
-	return /w\.org/i.test( plugin.id );
+	return /w\.org/i.test(plugin.id);
 };
 
-const getPluginIconPath = ( plugin: PluginItem ): string => {
-	if ( ! plugin.icons ) {
+const getPluginIconPath = (plugin: PluginItem): string => {
+	if (!plugin.icons) {
 		return '';
 	}
 
-	return plugin.icons[ '2x' ] || plugin.icons[ '1x' ] || '';
+	return plugin.icons['2x'] || plugin.icons['1x'] || '';
 };
 
 const getStatusNotice = (
 	status: AutoUpdatesStatus
 ): { message: string; status: 'success' | 'warning' | 'error' | 'info' } => {
-	if ( 'enabled' === status ) {
+	if ('enabled' === status) {
 		return {
 			status: 'success',
 			message: __(
@@ -117,7 +117,7 @@ const getStatusNotice = (
 		};
 	}
 
-	if ( 'custom' === status ) {
+	if ('custom' === status) {
 		return {
 			status: 'info',
 			message: __(
@@ -127,7 +127,7 @@ const getStatusNotice = (
 		};
 	}
 
-	if ( 'blocked' === status ) {
+	if ('blocked' === status) {
 		return {
 			status: 'error',
 			message: __(
@@ -146,15 +146,15 @@ const getStatusNotice = (
 	};
 };
 
-const PluginsList = ( props: {
+const PluginsList = (props: {
 	plugins: PluginItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
-} ) => {
+}) => {
 	const { plugins, autoUpdatesStatus } = props;
 	const { control, watch, getValues, setValue } =
-		useFormContext< PluginsFormValues >();
-	const [ search, setSearch ] = useState( '' );
-	const [ filter, setFilter ] = useState<
+		useFormContext<PluginsFormValues>();
+	const [search, setSearch] = useState('');
+	const [filter, setFilter] = useState<
 		| ''
 		| 'all'
 		| 'activated'
@@ -166,58 +166,58 @@ const PluginsList = ( props: {
 		| 'patches-only'
 		| 'third-party'
 		| 'org-plugin'
-	>( '' );
-	const [ bulkAction, setBulkAction ] = useState<
+	>('');
+	const [bulkAction, setBulkAction] = useState<
 		'' | 'enable' | 'disable' | 'block' | 'unblock' | 'patches'
-	>( '' );
-	const notice = getStatusNotice( autoUpdatesStatus );
+	>('');
+	const notice = getStatusNotice(autoUpdatesStatus);
 
-	const visiblePlugins = useMemo( () => {
-		return plugins.filter( ( plugin ) => {
-			if ( filter && 'all' !== filter ) {
-				switch ( filter ) {
+	const visiblePlugins = useMemo(() => {
+		return plugins.filter((plugin) => {
+			if (filter && 'all' !== filter) {
+				switch (filter) {
 					case 'activated':
-						if ( ! plugin.Active ) {
+						if (!plugin.Active) {
 							return false;
 						}
 						break;
 					case 'deactivated':
-						if ( plugin.Active ) {
+						if (plugin.Active) {
 							return false;
 						}
 						break;
 					case 'auto-updates-enabled':
-						if ( ! plugin.Autoupdates ) {
+						if (!plugin.Autoupdates) {
 							return false;
 						}
 						break;
 					case 'auto-updates-disabled':
-						if ( plugin.Autoupdates ) {
+						if (plugin.Autoupdates) {
 							return false;
 						}
 						break;
 					case 'blocked':
-						if ( ! plugin.Blocked ) {
+						if (!plugin.Blocked) {
 							return false;
 						}
 						break;
 					case 'unblocked':
-						if ( plugin.Blocked ) {
+						if (plugin.Blocked) {
 							return false;
 						}
 						break;
 					case 'patches-only':
-						if ( ! plugin.PatchesOnly ) {
+						if (!plugin.PatchesOnly) {
 							return false;
 						}
 						break;
 					case 'third-party':
-						if ( isDotOrgPlugin( plugin ) ) {
+						if (isDotOrgPlugin(plugin)) {
 							return false;
 						}
 						break;
 					case 'org-plugin':
-						if ( ! isDotOrgPlugin( plugin ) ) {
+						if (!isDotOrgPlugin(plugin)) {
 							return false;
 						}
 						break;
@@ -228,24 +228,24 @@ const PluginsList = ( props: {
 
 			if (
 				search &&
-				! plugin.Name.toLowerCase().includes( search.toLowerCase() )
+				!plugin.Name.toLowerCase().includes(search.toLowerCase())
 			) {
 				return false;
 			}
 
 			return true;
-		} );
-	}, [ plugins, search, filter ] );
+		});
+	}, [plugins, search, filter]);
 
-	const actions = useMemo< Action< PluginItem >[] >( () => {
-		const isBlocked = ( plugin: PluginItem ): boolean =>
+	const actions = useMemo<Action<PluginItem>[]>(() => {
+		const isBlocked = (plugin: PluginItem): boolean =>
 			Boolean(
-				getValues( getPluginFieldKey( plugin, 'block_updates' ) )
+				getValues(getPluginFieldKey(plugin, 'block_updates'))
 			);
-		const hasAutoUpdates = ( plugin: PluginItem ): boolean =>
-			Boolean( getValues( getPluginFieldKey( plugin, 'auto_update' ) ) );
-		const hasPatchesOnly = ( plugin: PluginItem ): boolean =>
-			Boolean( getValues( getPluginFieldKey( plugin, 'patches_only' ) ) );
+		const hasAutoUpdates = (plugin: PluginItem): boolean =>
+			Boolean(getValues(getPluginFieldKey(plugin, 'auto_update')));
+		const hasPatchesOnly = (plugin: PluginItem): boolean =>
+			Boolean(getValues(getPluginFieldKey(plugin, 'patches_only')));
 
 		const getCountLabel = (
 			label: string,
@@ -253,264 +253,180 @@ const PluginsList = ( props: {
 		): string =>
 			sprintf(
 				/* translators: 1: Action label. 2: Number of eligible plugins. */
-				__( '%1$s (%2$d)', 'updatebee' ),
+				__('%1$s (%2$d)', 'updatebee'),
 				label,
 				selectedPlugins.length
 			);
 
-		const canEnable = ( plugin: PluginItem ): boolean =>
-			! isBlocked( plugin ) && ! hasAutoUpdates( plugin );
-		const canDisable = ( plugin: PluginItem ): boolean =>
-			! isBlocked( plugin ) && hasAutoUpdates( plugin );
-		const canBlock = ( plugin: PluginItem ): boolean =>
-			! isBlocked( plugin );
-		const canUnblock = ( plugin: PluginItem ): boolean =>
-			isBlocked( plugin );
-		const canEnablePatches = ( plugin: PluginItem ): boolean =>
-			! isBlocked( plugin ) && ! hasPatchesOnly( plugin );
+		const canEnable = (plugin: PluginItem): boolean =>
+			!isBlocked(plugin) && !hasAutoUpdates(plugin);
+		const canDisable = (plugin: PluginItem): boolean =>
+			!isBlocked(plugin) && hasAutoUpdates(plugin);
+		const canBlock = (plugin: PluginItem): boolean =>
+			!isBlocked(plugin);
+		const canUnblock = (plugin: PluginItem): boolean =>
+			isBlocked(plugin);
+		const canEnablePatches = (plugin: PluginItem): boolean =>
+			!isBlocked(plugin) && !hasPatchesOnly(plugin);
 
 		return [
 			{
 				id: 'enable',
-				label: __( 'Enable Automatic Updates', 'updatebee' ),
+				label: __('Enable Automatic Updates', 'updatebee'),
 				icon: UpdateIcon,
 				isDestructive: false,
 				isEligible: canEnable,
-				getLabel: ( selectedPlugins ) =>
+				getLabel: (selectedPlugins) =>
 					getCountLabel(
-						__( 'Enable Automatic Updates', 'updatebee' ),
+						__('Enable Automatic Updates', 'updatebee'),
 						selectedPlugins
 					),
-				callback: ( selectedPlugins ) => {
-					selectedPlugins.forEach( ( plugin ) => {
+				callback: (selectedPlugins) => {
+					selectedPlugins.forEach((plugin) => {
 						setValue(
-							getPluginFieldKey( plugin, 'auto_update' ),
+							getPluginFieldKey(plugin, 'auto_update'),
 							true,
 							dirty
 						);
-					} );
+					});
 				},
 			},
 			{
 				id: 'disable',
-				label: __( 'Disable Automatic Updates', 'updatebee' ),
+				label: __('Disable Automatic Updates', 'updatebee'),
 				icon: CancelCircleFilledIcon,
 				isDestructive: false,
 				isEligible: canDisable,
-				getLabel: ( selectedPlugins ) =>
+				getLabel: (selectedPlugins) =>
 					getCountLabel(
-						__( 'Disable Automatic Updates', 'updatebee' ),
+						__('Disable Automatic Updates', 'updatebee'),
 						selectedPlugins
 					),
-				callback: ( selectedPlugins ) => {
-					selectedPlugins.forEach( ( plugin ) => {
+				callback: (selectedPlugins) => {
+					selectedPlugins.forEach((plugin) => {
 						setValue(
-							getPluginFieldKey( plugin, 'auto_update' ),
+							getPluginFieldKey(plugin, 'auto_update'),
 							false,
 							dirty
 						);
 						setValue(
-							getPluginFieldKey( plugin, 'patches_only' ),
+							getPluginFieldKey(plugin, 'patches_only'),
 							false,
 							dirty
 						);
-					} );
+					});
 				},
 			},
 			{
 				id: 'block',
-				label: __( 'Block Selected Plugins', 'updatebee' ),
+				label: __('Block Selected Plugins', 'updatebee'),
 				icon: LockIcon,
 				isDestructive: true,
 				isEligible: canBlock,
-				getLabel: ( selectedPlugins ) =>
+				getLabel: (selectedPlugins) =>
 					getCountLabel(
-						__( 'Block Selected Plugins', 'updatebee' ),
+						__('Block Selected Plugins', 'updatebee'),
 						selectedPlugins
 					),
-				callback: ( selectedPlugins ) => {
-					selectedPlugins.forEach( ( plugin ) => {
+				callback: (selectedPlugins) => {
+					selectedPlugins.forEach((plugin) => {
 						setValue(
-							getPluginFieldKey( plugin, 'block_updates' ),
+							getPluginFieldKey(plugin, 'block_updates'),
 							true,
 							dirty
 						);
-					} );
+					});
 				},
 			},
 			{
 				id: 'unblock',
-				label: __( 'Unblock Selected Plugins', 'updatebee' ),
+				label: __('Unblock Selected Plugins', 'updatebee'),
 				icon: UnlockIcon,
 				isDestructive: false,
 				isEligible: canUnblock,
-				getLabel: ( selectedPlugins ) =>
+				getLabel: (selectedPlugins) =>
 					getCountLabel(
-						__( 'Unblock Selected Plugins', 'updatebee' ),
+						__('Unblock Selected Plugins', 'updatebee'),
 						selectedPlugins
 					),
-				callback: ( selectedPlugins ) => {
-					selectedPlugins.forEach( ( plugin ) => {
+				callback: (selectedPlugins) => {
+					selectedPlugins.forEach((plugin) => {
 						setValue(
-							getPluginFieldKey( plugin, 'block_updates' ),
+							getPluginFieldKey(plugin, 'block_updates'),
 							false,
 							dirty
 						);
-					} );
+					});
 				},
 			},
 			{
 				id: 'patches',
-				label: __( 'Enable Patches Only', 'updatebee' ),
+				label: __('Enable Patches Only', 'updatebee'),
 				icon: BackupIcon,
 				isDestructive: false,
 				isEligible: canEnablePatches,
-				getLabel: ( selectedPlugins ) =>
+				getLabel: (selectedPlugins) =>
 					getCountLabel(
-						__( 'Enable Patches Only', 'updatebee' ),
+						__('Enable Patches Only', 'updatebee'),
 						selectedPlugins
 					),
-				callback: ( selectedPlugins ) => {
-					selectedPlugins.forEach( ( plugin ) => {
+				callback: (selectedPlugins) => {
+					selectedPlugins.forEach((plugin) => {
 						setValue(
-							getPluginFieldKey( plugin, 'auto_update' ),
+							getPluginFieldKey(plugin, 'auto_update'),
 							true,
 							dirty
 						);
 						setValue(
-							getPluginFieldKey( plugin, 'patches_only' ),
+							getPluginFieldKey(plugin, 'patches_only'),
 							true,
 							dirty
 						);
-					} );
+					});
 				},
 			},
 		];
-	}, [ getValues, setValue ] );
+	}, [getValues, setValue]);
 
 	// Portal outside the plugins wrap so the bar can pin to the viewport.
 	const footerSlot = document.getElementById(
 		'updatebee-admin-container-slot'
 	);
 	const bulkActions = (
-		<BulkActions plugins={ visiblePlugins } actions={ actions } />
+		<BulkActions plugins={visiblePlugins} actions={actions} />
 	);
 
 	return (
 		<>
 			<div className="updatebee-plugins-main">
-				<h1>{ __( 'Plugins', 'updatebee' ) }</h1>
+				<h1>{__('Plugins', 'updatebee')}</h1>
 				<Notice
 					className="updatebee-plugin-notice"
-					status={ notice.status }
-					isDismissible={ false }
+					status={notice.status}
+					isDismissible={false}
 				>
-					{ notice.message }
+					{notice.message}
 				</Notice>
-				<div className="updatebee-link-row">
-					<ul>
-						<li>
-							<Button variant="link" onClick={ noop }>
-								{ __( 'Enable All', 'updatebee' ) }
-							</Button>
-						</li>
-						<li>
-							<Button variant="link" onClick={ noop }>
-								{ __( 'Disable All', 'updatebee' ) }
-							</Button>
-						</li>
-						<li>
-							<Button variant="link" onClick={ noop }>
-								{ __( 'Block All', 'updatebee' ) }
-							</Button>
-						</li>
-						<li>
-							<Button variant="link" onClick={ noop }>
-								{ __( 'Unblock All', 'updatebee' ) }
-							</Button>
-						</li>
-					</ul>
-				</div>
 				<div className="updatebee-bulk-row">
-					<div className="updatebee-bulk-actions">
-						<SelectControl
-							label={ __( 'Bulk Actions', 'updatebee' ) }
-							value={ bulkAction }
-							options={ [
-								{
-									label: __(
-										'Select an Action',
-										'updatebee'
-									),
-									value: '',
-								},
-								{
-									label: __(
-										'Enable Automatic Updates',
-										'updatebee'
-									),
-									value: 'enable',
-								},
-								{
-									label: __(
-										'Disable Automatic Updates',
-										'updatebee'
-									),
-									value: 'disable',
-								},
-								{
-									label: __(
-										'Block Selected Plugins',
-										'updatebee'
-									),
-									value: 'block',
-								},
-								{
-									label: __(
-										'Unblock Selected Plugins',
-										'updatebee'
-									),
-									value: 'unblock',
-								},
-								{
-									label: __(
-										'Enable Patches Only',
-										'updatebee'
-									),
-									value: 'patches',
-								},
-							] }
-							onChange={ ( value ) => {
-								setBulkAction( value );
-							} }
-						/>
-						<Button
-							variant="secondary"
-							onClick={ noop }
-							disabled={ '' === bulkAction }
-						>
-							{ __( 'Apply', 'updatebee' ) }
-						</Button>
-					</div>
 					<div className="updatebee-filter-actions">
 						<SelectControl
-							label={ __( 'Filter', 'updatebee' ) }
-							value={ filter }
-							options={ [
+							label={__('Filter', 'updatebee')}
+							value={filter}
+							options={[
 								{
-									label: __( 'Select a Filter', 'updatebee' ),
+									label: __('Select a Filter', 'updatebee'),
 									value: '',
 								},
 								{
-									label: __( 'All', 'updatebee' ),
+									label: __('All', 'updatebee'),
 									value: 'all',
 								},
 								{
-									label: __( 'Activated', 'updatebee' ),
+									label: __('Activated', 'updatebee'),
 									value: 'activated',
 								},
 								{
-									label: __( 'Deactivated', 'updatebee' ),
+									label: __('Deactivated', 'updatebee'),
 									value: 'deactivated',
 								},
 								{
@@ -528,15 +444,15 @@ const PluginsList = ( props: {
 									value: 'auto-updates-disabled',
 								},
 								{
-									label: __( 'Blocked', 'updatebee' ),
+									label: __('Blocked', 'updatebee'),
 									value: 'blocked',
 								},
 								{
-									label: __( 'Unblocked', 'updatebee' ),
+									label: __('Unblocked', 'updatebee'),
 									value: 'unblocked',
 								},
 								{
-									label: __( 'Patches Only', 'updatebee' ),
+									label: __('Patches Only', 'updatebee'),
 									value: 'patches-only',
 								},
 								{
@@ -553,27 +469,27 @@ const PluginsList = ( props: {
 									),
 									value: 'org-plugin',
 								},
-							] }
-							onChange={ ( value ) => {
-								setFilter( value );
-							} }
+							]}
+							onChange={(value) => {
+								setFilter(value);
+							}}
 						/>
 					</div>
 					<div className="updatebee-plugin-list-search">
 						<TextControl
-							label={ __( 'Search Plugins', 'updatebee' ) }
-							value={ search }
-							onChange={ ( value ) => {
-								setSearch( value );
-							} }
+							label={__('Search Plugins', 'updatebee')}
+							value={search}
+							onChange={(value) => {
+								setSearch(value);
+							}}
 						/>
 					</div>
 				</div>
 				<div className="updatebee-plugin-list-wrapper">
-					{ visiblePlugins.map( ( plugin ) => {
-						const iconPath = getPluginIconPath( plugin );
+					{visiblePlugins.map((plugin) => {
+						const iconPath = getPluginIconPath(plugin);
 						const hasIcon = '' !== iconPath;
-						const isDotOrg = isDotOrgPlugin( plugin );
+						const isDotOrg = isDotOrgPlugin(plugin);
 						const autoKey = getPluginFieldKey(
 							plugin,
 							'auto_update'
@@ -590,77 +506,77 @@ const PluginsList = ( props: {
 							plugin,
 							'selected'
 						);
-						const isBlocked = Boolean( watch( blockKey ) );
-						const autoEnabled = Boolean( watch( autoKey ) );
+						const isBlocked = Boolean(watch(blockKey));
+						const autoEnabled = Boolean(watch(autoKey));
 
 						return (
 							<div
-								key={ plugin.File }
-								className={ [
+								key={plugin.File}
+								className={[
 									'updatebee-plugin-item',
 									hasIcon
 										? 'updatebee-plugin-has-icon'
 										: 'updatebee-plugin-has-svg-icon',
-								].join( ' ' ) }
+								].join(' ')}
 							>
 								<div className="updatebee-plugin-column updatebee-plugin-column-checkbox">
 									<Controller
-										name={ selectedKey }
-										control={ control }
-										render={ ( {
+										name={selectedKey}
+										control={control}
+										render={({
 											field: { value, onChange },
-										} ) => (
+										}) => (
 											<CheckboxControl
-												checked={ Boolean( value ) }
-												onChange={ onChange }
+												checked={Boolean(value)}
+												onChange={onChange}
 												label=""
 											/>
-										) }
+										)}
 									/>
 								</div>
 								<div className="updatebee-plugin-column updatebee-plugin-column-icon">
-									{ hasIcon && (
+									{hasIcon && (
 										<img
 											className="updatebee-plugin-icon"
-											src={ iconPath }
-											alt={ plugin.Name }
-											width={ 128 }
-											height={ 128 }
+											src={iconPath}
+											alt={plugin.Name}
+											width={128}
+											height={128}
 										/>
-									) }
-									{ ! hasIcon && (
+									)}
+									{!hasIcon && (
 										<svg
 											className="updatebee-plugin-icon updatebee-icon-svg"
 											aria-hidden="true"
 										>
 											<use href="#icon-plug" />
 										</svg>
-									) }
+									)}
 								</div>
 								<div className="updatebee-plugin-column updatebee-plugin-column-main">
 									<h2 className="updatebee-plugin-title">
-										{ plugin.Name }
+										{plugin.Name}
 									</h2>
 									<h3 className="updatebee-plugin-slug">
-										{ plugin.Slug }
+										{plugin.Slug}
 									</h3>
-									{ plugin.Description && (
+									{plugin.Description && (
 										<p className="updatebee-plugin-description">
-											{ plugin.Description }
+											{plugin.Description}
 										</p>
-									) }
+									)}
 									<table className="form-table">
 										<tbody>
-											{ plugin.AuthorName && (
+											{plugin.AuthorName && (
 												<tr>
 													<th scope="row">
-														{ __(
+														{__(
 															'By:',
 															'updatebee'
-														) }
+														)}
 													</th>
 													<td>
-														{ plugin.AuthorURI ? (
+														{plugin.AuthorURI ? (
 															<a
 																href={
 																	plugin.AuthorURI
@@ -678,13 +594,13 @@ const PluginsList = ( props: {
 																	plugin.AuthorName
 																}
 															</span>
-														) }
-														{ isDotOrg &&
+														)}
+														{isDotOrg &&
 															plugin.Details && (
 																<>
 																	<span>
-																		{ ' ' }
-																		|{ ' ' }
+																		{' '}
+																		|{' '}
 																	</span>
 																	<a
 																		href={
@@ -694,23 +610,23 @@ const PluginsList = ( props: {
 																		data-title={
 																			plugin.Name
 																		}
-																		aria-label={ sprintf(
+																		aria-label={sprintf(
 																			/* translators: %s: Plugin name. */
 																			__(
 																				'More information about %s',
 																				'updatebee'
 																			),
 																			plugin.Name
-																		) }
+																		)}
 																	>
-																		{ __(
+																		{__(
 																			'Plugin Details',
 																			'updatebee'
-																		) }
+																		)}
 																	</a>
 																</>
-															) }
-														{ plugin.PluginURI && (
+															)}
+														{plugin.PluginURI && (
 															<>
 																<span> | </span>
 																<a
@@ -720,114 +636,114 @@ const PluginsList = ( props: {
 																	target="_blank"
 																	rel="noopener noreferrer"
 																>
-																	{ __(
+																	{__(
 																		'Plugin Homepage',
 																		'updatebee'
-																	) }
+																	)}
 																</a>
 															</>
-														) }
+														)}
 													</td>
 												</tr>
-											) }
+											)}
 											<tr>
 												<th scope="row">
-													{ __(
+													{__(
 														'Last Updated:',
 														'updatebee'
-													) }
+													)}
 												</th>
-												<td>{ plugin.LastUpdated }</td>
+												<td>{plugin.LastUpdated}</td>
 											</tr>
 											<tr>
 												<th scope="row">
-													{ __(
+													{__(
 														'Update Method:',
 														'updatebee'
-													) }
+													)}
 												</th>
 												<td>
-													{ plugin.Autoupdates &&
+													{plugin.Autoupdates &&
 														plugin.PatchesOnly &&
-														! plugin.Blocked &&
+														!plugin.Blocked &&
 														__(
 															'Patches only',
 															'updatebee'
-														) }
-													{ plugin.Autoupdates &&
-														! plugin.PatchesOnly &&
-														! plugin.Blocked &&
+														)}
+													{plugin.Autoupdates &&
+														!plugin.PatchesOnly &&
+														!plugin.Blocked &&
 														__(
 															'Automatic',
 															'updatebee'
-														) }
-													{ ! plugin.Autoupdates &&
-														! plugin.Blocked &&
+														)}
+													{!plugin.Autoupdates &&
+														!plugin.Blocked &&
 														__(
 															'Manual',
 															'updatebee'
-														) }
-													{ plugin.Blocked &&
+														)}
+													{plugin.Blocked &&
 														__(
 															'Blocked',
 															'updatebee'
-														) }
+														)}
 												</td>
 											</tr>
 											<tr>
 												<th scope="row">
-													{ __(
+													{__(
 														'Hosted:',
 														'updatebee'
-													) }
+													)}
 												</th>
 												<td>
-													{ isDotOrg && plugin.url ? (
+													{isDotOrg && plugin.url ? (
 														<a
-															href={ plugin.url }
+															href={plugin.url}
 															target="_blank"
 															rel="noopener noreferrer"
 														>
-															{ __(
+															{__(
 																'WordPress Plugin Directory',
 																'updatebee'
-															) }
+															)}
 														</a>
 													) : (
 														__(
 															'Third-party Plugin',
 															'updatebee'
 														)
-													) }
+													)}
 												</td>
 											</tr>
 											<tr>
 												<th scope="row">
-													{ __(
+													{__(
 														'Activation Status:',
 														'updatebee'
-													) }
+													)}
 												</th>
 												<td>
-													{ plugin.Active
+													{plugin.Active
 														? __(
-																'Activated',
-																'updatebee'
-														  )
+															'Activated',
+															'updatebee'
+														)
 														: __(
-																'Deactivated',
-																'updatebee'
-														  ) }
+															'Deactivated',
+															'updatebee'
+														)}
 												</td>
 											</tr>
 											<tr>
 												<th scope="row">
-													{ __(
+													{__(
 														'Version:',
 														'updatebee'
-													) }
+													)}
 												</th>
-												<td>{ plugin.Version }</td>
+												<td>{plugin.Version}</td>
 											</tr>
 										</tbody>
 									</table>
@@ -836,70 +752,77 @@ const PluginsList = ( props: {
 								<div className="updatebee-plugin-column updatebee-plugin-column-info">
 									<div className="updatebee-plugin-actions">
 										<Controller
-											name={ autoKey }
-											control={ control }
-											render={ ( {
+											name={autoKey}
+											control={control}
+											render={({
 												field: { value, onChange },
-											} ) => (
+											}) => (
 												<ToggleControl
-													label={ __(
+													label={__(
 														'Enable Automatic Updates',
 														'updatebee'
-													) }
-													checked={ Boolean( value ) }
-													onChange={ onChange }
-													help={ __(
+													)}
+													checked={Boolean(value)}
+													onChange={onChange}
+													help={__(
 														'Enable automatic updates for this plugin.',
 														'updatebee'
-													) }
-													disabled={ isBlocked }
-												/>
-											) }
-										/>
-										<Controller
-											name={ patchesKey }
-											control={ control }
-											render={ ( {
-												field: { value, onChange },
-											} ) => (
-												<ToggleControl
-													label={ __(
-														'Patches Only',
-														'updatebee'
-													) }
-													checked={ Boolean( value ) }
-													onChange={ onChange }
-													help={ __(
-														'Limit automatic updates for this plugin to patch releases.',
-														'updatebee'
-													) }
+													)}
 													disabled={
 														isBlocked ||
-														! autoEnabled
+														!autoEnabled
 													}
 												/>
-											) }
+											)}
 										/>
 										<Controller
-											name={ blockKey }
-											control={ control }
-											render={ ( {
+											name={patchesKey}
+											control={control}
+											render={({
 												field: { value, onChange },
-											} ) => (
+											}) => (
 												<ToggleControl
-													label={ __(
-														'Block All Updates',
+													label={__(
+														'Patches Only',
 														'updatebee'
-													) }
-													checked={ Boolean( value ) }
-													onChange={ onChange }
-													help={ __(
-														'Blocking plugins helps prevent the plugin from being manually or automatically updated.',
+													)}
+													checked={Boolean(value)}
+													onChange={onChange}
+													help={__(
+														'Limit automatic updates for this plugin to patch releases.',
 														'updatebee'
-													) }
+													)}
+													disabled={
+														isBlocked ||
+														!autoEnabled
+													}
 												/>
-											) }
+											)}
 										/>
+										{ 'blocked' !== autoUpdatesStatus &&
+											<>
+												<Controller
+													name={blockKey}
+													control={control}
+													render={({
+														field: { value, onChange },
+													}) => (
+														<ToggleControl
+															label={__(
+																'Block All Updates',
+																'updatebee'
+															)}
+															checked={Boolean(value)}
+															onChange={onChange}
+															help={__(
+																'Blocking plugins helps prevent the plugin from being manually or automatically updated.',
+																'updatebee'
+															)}
+														/>
+													)}
+												/>
+											</>
+										}
 									</div>
 								</div>
 
@@ -909,103 +832,103 @@ const PluginsList = ( props: {
 								></div>
 							</div>
 						);
-					} ) }
+					})}
 				</div>
 			</div>
-			{ footerSlot
-				? createPortal( bulkActions, footerSlot )
-				: bulkActions }
+			{footerSlot
+				? createPortal(bulkActions, footerSlot)
+				: bulkActions}
 		</>
 	);
 };
 
 const PluginsMain = () => {
-	const methods = useForm< PluginsFormValues >( {
+	const methods = useForm<PluginsFormValues>({
 		defaultValues: {},
-	} );
+	});
 	const { reset } = methods;
-	const [ loading, setLoading ] = useState( true );
-	const [ loadError, setLoadError ] = useState( false );
-	const [ loadAttempt, setLoadAttempt ] = useState( 0 );
-	const [ plugins, setPlugins ] = useState< PluginItem[] >( [] );
-	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
-		useState< AutoUpdatesStatus >( 'disabled' );
+	const [loading, setLoading] = useState(true);
+	const [loadError, setLoadError] = useState(false);
+	const [loadAttempt, setLoadAttempt] = useState(0);
+	const [plugins, setPlugins] = useState<PluginItem[]>([]);
+	const [autoUpdatesStatus, setAutoUpdatesStatus] =
+		useState<AutoUpdatesStatus>('disabled');
 
-	useEffect( () => {
+	useEffect(() => {
 		let cancelled = false;
 
-		setLoading( true );
-		setLoadError( false );
+		setLoading(true);
+		setLoadError(false);
 
-		sendCommand< PluginsPayload >( 'updatebee_retrieve_plugins', {
+		sendCommand<PluginsPayload>('updatebee_retrieve_plugins', {
 			nonce: updatebeePlugins.retrieveNonce,
-		} )
-			.then( ( response ) => {
+		})
+			.then((response) => {
 				const data = response.data?.data;
-				if ( ! data?.plugins ) {
-					throw new Error( 'Invalid response.' );
+				if (!data?.plugins) {
+					throw new Error('Invalid response.');
 				}
 
-				if ( cancelled ) {
+				if (cancelled) {
 					return;
 				}
 
-				const pluginItems = Object.values( data.plugins );
+				const pluginItems = Object.values(data.plugins);
 				const values: PluginsFormValues = {};
-				pluginItems.forEach( ( plugin ) => {
-					values[ getPluginFieldKey( plugin, 'auto_update' ) ] =
-						Boolean( plugin.Autoupdates );
-					values[ getPluginFieldKey( plugin, 'patches_only' ) ] =
-						Boolean( plugin.PatchesOnly );
-					values[ getPluginFieldKey( plugin, 'block_updates' ) ] =
-						Boolean( plugin.Blocked );
-					values[ getPluginFieldKey( plugin, 'selected' ) ] = false;
-				} );
+				pluginItems.forEach((plugin) => {
+					values[getPluginFieldKey(plugin, 'auto_update')] =
+						Boolean(plugin.Autoupdates);
+					values[getPluginFieldKey(plugin, 'patches_only')] =
+						Boolean(plugin.PatchesOnly);
+					values[getPluginFieldKey(plugin, 'block_updates')] =
+						Boolean(plugin.Blocked);
+					values[getPluginFieldKey(plugin, 'selected')] = false;
+				});
 
-				setPlugins( pluginItems );
-				setAutoUpdatesStatus( data.auto_updates_enabled || 'disabled' );
-				reset( values );
-			} )
-			.catch( () => {
-				if ( ! cancelled ) {
-					setLoadError( true );
+				setPlugins(pluginItems);
+				setAutoUpdatesStatus(data.auto_updates_enabled || 'disabled');
+				reset(values);
+			})
+			.catch(() => {
+				if (!cancelled) {
+					setLoadError(true);
 				}
-			} )
-			.finally( () => {
-				if ( ! cancelled ) {
-					setLoading( false );
+			})
+			.finally(() => {
+				if (!cancelled) {
+					setLoading(false);
 				}
-			} );
+			});
 
 		return () => {
 			cancelled = true;
 		};
-	}, [ loadAttempt, reset ] );
+	}, [loadAttempt, reset]);
 
-	if ( loading ) {
+	if (loading) {
 		return <Loader />;
 	}
 
-	if ( loadError ) {
+	if (loadError) {
 		return (
 			<ErrorFallback
-				heading={ __( 'Plugins', 'updatebee' ) }
-				message={ __(
+				heading={__('Plugins', 'updatebee')}
+				message={__(
 					'Plugins could not be loaded. Try again or reload the page.',
 					'updatebee'
-				) }
-				onRetry={ () => {
-					setLoadAttempt( ( attempt ) => attempt + 1 );
-				} }
+				)}
+				onRetry={() => {
+					setLoadAttempt((attempt) => attempt + 1);
+				}}
 			/>
 		);
 	}
 
 	return (
-		<FormProvider { ...methods }>
+		<FormProvider {...methods}>
 			<PluginsList
-				plugins={ plugins }
-				autoUpdatesStatus={ autoUpdatesStatus }
+				plugins={plugins}
+				autoUpdatesStatus={autoUpdatesStatus}
 			/>
 		</FormProvider>
 	);
