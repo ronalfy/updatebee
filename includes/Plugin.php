@@ -10,6 +10,10 @@ namespace UpdateBee;
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
+use UpdateBee\Tables\{
+	Tables,
+	Table_Plugins,
+};
 
 /**
  * Plugin singleton.
@@ -76,11 +80,11 @@ class Plugin {
 	 * Fired when the init action for WordPress is triggered.
 	 */
 	public function init(): void {
-		load_plugin_textdomain(
-			'updatebee',
-			false,
-			dirname( plugin_basename( UPDATEBEE_FILE ) ) . '/languages/'
-		);
+
+		// Initialize tables.
+		Tables::register_table( Table_Plugins::class );
+		// Initialize tables.
+		Tables::init_tables();
 	}
 
 	/**
