@@ -8,6 +8,7 @@ import {
 	TextControl,
 	ToggleControl,
 } from '@wordpress/components';
+import { Badge } from '@wordpress/ui';
 import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 import { _n, __, sprintf } from '@wordpress/i18n';
 import {
@@ -662,6 +663,32 @@ const PluginsList = ( props: {
 		snapshotPluginFields,
 	] );
 
+	/**
+	 * Get the activation badge for a plugin.
+	 *
+	 * @param plugin The plugin.
+	 * @return The activation badge.
+	 */
+	const getActivationBadge = ( plugin: PluginItem ): React.ReactNode => {
+		if ( updatebeePlugins.isNetworkAdmin && ! plugin.Active ) {
+			return null;
+		}
+		let intent: React.ComponentProps< typeof Badge >[ 'intent' ] = 'stable';
+		let label: string = __( 'Activated', 'updatebee' );
+		if ( ! plugin.Active ) {
+			intent = 'high';
+			label = __( 'Deactivated', 'updatebee' );
+		} else if ( updatebeePlugins.isNetworkAdmin && plugin.Active ) {
+			intent = 'stable';
+			label = __( 'Network Activated', 'updatebee' );
+		}
+		return (
+			<div className="updatebee-plugin-badge">
+				<Badge intent={ intent }>{ label }</Badge>
+			</div>
+		);
+	};
+
 	return (
 		<>
 			<div className="updatebee-plugins-main">
@@ -752,6 +779,11 @@ const PluginsList = ( props: {
 					</div>
 				</div>
 				<div className="updatebee-plugin-list-wrapper">
+					{ visiblePlugins.length === 0 &&
+						<div className="updatebee-plugin-list-empty">
+							{ __( 'No plugins found matching your filters or search.', 'updatebee' ) }
+						</div>
+					}
 					{ visiblePlugins.map( ( plugin ) => {
 						const iconPath = getPluginIconPath( plugin );
 						const hasIcon = '' !== iconPath;
@@ -990,25 +1022,6 @@ const PluginsList = ( props: {
 											<tr>
 												<th scope="row">
 													{ __(
-														'Activation Status:',
-														'updatebee'
-													) }
-												</th>
-												<td>
-													{ plugin.Active
-														? __(
-																'Activated',
-																'updatebee'
-														  )
-														: __(
-																'Deactivated',
-																'updatebee'
-														  ) }
-												</td>
-											</tr>
-											<tr>
-												<th scope="row">
-													{ __(
 														'Version:',
 														'updatebee'
 													) }
@@ -1020,6 +1033,7 @@ const PluginsList = ( props: {
 								</div>
 								<div></div>
 								<div className="updatebee-plugin-column updatebee-plugin-column-info">
+									{ getActivationBadge( plugin ) }
 									<div className="updatebee-plugin-actions">
 										<Controller
 											name={ autoKey }
