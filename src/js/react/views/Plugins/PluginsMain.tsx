@@ -28,10 +28,13 @@ import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import Loader from '../../components/Loader';
 import { type Action } from './bulk-actions';
+import { getPluginFieldKey } from './plugin-fields';
 import PluginsFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './PluginsFooter';
+
+export { getPluginFieldKey };
 
 type PluginIcons = {
 	'1x'?: string;
@@ -70,12 +73,6 @@ type PluginsPayload = {
 
 export type PluginsFormValues = Record< string, boolean >;
 
-type PluginField =
-	| 'auto_update'
-	| 'patches_only'
-	| 'block_updates'
-	| 'selected';
-
 type PluginToggleSnapshot = {
 	auto_update: boolean;
 	patches_only: boolean;
@@ -83,17 +80,6 @@ type PluginToggleSnapshot = {
 };
 
 type BulkActionId = 'enable' | 'disable' | 'block' | 'unblock' | 'patches';
-
-/**
- * Form key used for a plugin row field.
- *
- * @param plugin Plugin row.
- * @param field  Field suffix.
- */
-export const getPluginFieldKey = (
-	plugin: PluginItem,
-	field: PluginField
-): string => `${ plugin.File }_${ field }`;
 
 const dirty = {
 	shouldDirty: true,
@@ -233,9 +219,10 @@ const PluginsList = ( props: {
 	autoUpdatesStatus: AutoUpdatesStatus;
 } ) => {
 	const { plugins, autoUpdatesStatus } = props;
-	const { control, watch, getValues, setValue } =
+	const { control, getValues, setValue } =
 		useFormContext< PluginsFormValues >();
-	const formValues = useWatch( { control } );
+	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
+	useWatch( { control } );
 	const [ search, setSearch ] = useState( '' );
 	const [ filter, setFilter ] = useState<
 		| ''
@@ -356,90 +343,78 @@ const PluginsList = ( props: {
 		[ setValue ]
 	);
 
-	const visiblePlugins = useMemo( () => {
-		return plugins.filter( ( plugin ) => {
-			if ( filter && 'all' !== filter ) {
-				switch ( filter ) {
-					case 'activated':
-						if ( ! plugin.Active ) {
-							return false;
-						}
-						break;
-					case 'deactivated':
-						if ( plugin.Active ) {
-							return false;
-						}
-						break;
-					case 'auto-updates-enabled':
-						if (
-							! formValues[
-								getPluginFieldKey( plugin, 'auto_update' )
-							]
-						) {
-							return false;
-						}
-						break;
-					case 'auto-updates-disabled':
-						if (
-							formValues[
-								getPluginFieldKey( plugin, 'auto_update' )
-							]
-						) {
-							return false;
-						}
-						break;
-					case 'blocked':
-						if (
-							! formValues[
-								getPluginFieldKey( plugin, 'block_updates' )
-							]
-						) {
-							return false;
-						}
-						break;
-					case 'unblocked':
-						if (
-							formValues[
-								getPluginFieldKey( plugin, 'block_updates' )
-							]
-						) {
-							return false;
-						}
-						break;
-					case 'patches-only':
-						if (
-							! formValues[
-								getPluginFieldKey( plugin, 'patches_only' )
-							]
-						) {
-							return false;
-						}
-						break;
-					case 'third-party':
-						if ( isDotOrgPlugin( plugin ) ) {
-							return false;
-						}
-						break;
-					case 'org-plugin':
-						if ( ! isDotOrgPlugin( plugin ) ) {
-							return false;
-						}
-						break;
-					default:
+	const visiblePlugins = plugins.filter( ( plugin ) => {
+		if ( filter && 'all' !== filter ) {
+			const autoUpdate = Boolean(
+				getValues( getPluginFieldKey( plugin, 'auto_update' ) )
+			);
+			const blocked = Boolean(
+				getValues( getPluginFieldKey( plugin, 'block_updates' ) )
+			);
+			const patchesOnly = Boolean(
+				getValues( getPluginFieldKey( plugin, 'patches_only' ) )
+			);
+
+			switch ( filter ) {
+				case 'activated':
+					if ( ! plugin.Active ) {
 						return false;
-				}
+					}
+					break;
+				case 'deactivated':
+					if ( plugin.Active ) {
+						return false;
+					}
+					break;
+				case 'auto-updates-enabled':
+					if ( ! autoUpdate ) {
+						return false;
+					}
+					break;
+				case 'auto-updates-disabled':
+					if ( autoUpdate ) {
+						return false;
+					}
+					break;
+				case 'blocked':
+					if ( ! blocked ) {
+						return false;
+					}
+					break;
+				case 'unblocked':
+					if ( blocked ) {
+						return false;
+					}
+					break;
+				case 'patches-only':
+					if ( ! patchesOnly ) {
+						return false;
+					}
+					break;
+				case 'third-party':
+					if ( isDotOrgPlugin( plugin ) ) {
+						return false;
+					}
+					break;
+				case 'org-plugin':
+					if ( ! isDotOrgPlugin( plugin ) ) {
+						return false;
+					}
+					break;
+				default:
+					return false;
 			}
+		}
 
-			if (
-				search &&
-				! plugin.Name.toLowerCase().includes( search.toLowerCase() )
-			) {
-				return false;
-			}
+		if (
+			search &&
+			! plugin.Name.toLowerCase().includes( search.toLowerCase() )
+		) {
+			return false;
+		}
 
-			return true;
-		} );
-	}, [ plugins, search, filter, formValues ] );
+		return true;
+	} );
 
 	/**
 	 * Persist a bulk action and revert on failure.
@@ -797,9 +772,9 @@ const PluginsList = ( props: {
 							plugin,
 							'selected'
 						);
-						const isBlocked = Boolean( watch( blockKey ) );
-						const autoEnabled = Boolean( watch( autoKey ) );
-						const patchesOnly = Boolean( watch( patchesKey ) );
+						const isBlocked = Boolean( getValues( blockKey ) );
+						const autoEnabled = Boolean( getValues( autoKey ) );
+						const patchesOnly = Boolean( getValues( patchesKey ) );
 						const isBusy =
 							bulkBusy || Boolean( busyPlugins[ plugin.File ] );
 

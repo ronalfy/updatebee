@@ -10,6 +10,7 @@ import {
 	type UseFormGetValues,
 	type UseFormSetValue,
 } from 'react-hook-form';
+import { getPluginFieldKey } from './plugin-fields';
 
 type PluginRow = {
 	File: string;
@@ -42,7 +43,7 @@ type BulkActionsProps< TPlugin extends PluginRow > = {
  * @param plugin Plugin row.
  */
 const getPluginSelectedKey = ( plugin: PluginRow ): string =>
-	`${ plugin.File }_selected`;
+	getPluginFieldKey( plugin, 'selected' );
 
 const BulkActions = < TPlugin extends PluginRow >(
 	props: BulkActionsProps< TPlugin >
