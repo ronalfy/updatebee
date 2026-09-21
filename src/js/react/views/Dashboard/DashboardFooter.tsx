@@ -9,7 +9,9 @@ import sendCommand from '../../../utils/SendCommand';
 import SaveBar from '../../components/SaveBar';
 import Snackbar from '../../components/Snackbar';
 import {
-	dashboardSettingsDefaults,
+	formToOptions,
+	optionsToForm,
+	type DashboardOptionsPayload,
 	type DashboardSettingsForm,
 } from './DashboardUpdateOptions';
 
@@ -19,55 +21,6 @@ type SnackbarState = {
 	isVisible: boolean;
 	message: string;
 	type: SnackbarType;
-};
-
-type DashboardOptionsPayload = {
-	major_updates?: string;
-	minor_updates?: string;
-	plugin_updates?: string;
-	theme_updates?: string;
-	translation_updates?: string;
-};
-
-import { boolToOption, optionToBool } from '../../utils/bool';
-/**
- * Map camelCase form values to option keys.
- *
- * @param values Form values.
- * @return Option payload.
- */
-const formToOptions = (
-	values: DashboardSettingsForm
-): DashboardOptionsPayload => {
-	return {
-		major_updates: boolToOption( values.majorUpdates ),
-		minor_updates: boolToOption( values.minorUpdates ),
-		plugin_updates: boolToOption( values.pluginUpdates ),
-		theme_updates: boolToOption( values.themeUpdates ),
-		translation_updates: boolToOption( values.translationUpdates ),
-	};
-};
-
-/**
- * Map option keys back to camelCase form values.
- *
- * @param data Option payload.
- * @return Form values.
- */
-const optionsToForm = (
-	data?: DashboardOptionsPayload
-): DashboardSettingsForm => {
-	if ( ! data ) {
-		return dashboardSettingsDefaults;
-	}
-
-	return {
-		majorUpdates: optionToBool( data.major_updates ),
-		minorUpdates: optionToBool( data.minor_updates ),
-		pluginUpdates: optionToBool( data.plugin_updates ),
-		themeUpdates: optionToBool( data.theme_updates ),
-		translationUpdates: optionToBool( data.translation_updates ),
-	};
 };
 
 const DashboardFooter = () => {

@@ -72,15 +72,7 @@ class Ajax {
 		check_ajax_referer( 'updatebee-reset-dashboard-settings', 'nonce' );
 
 		// Match Options defaults for the dashboard toggles only.
-		$defaults = array(
-			'major_updates'       => 'off',
-			'minor_updates'       => 'on',
-			'plugin_updates'      => 'off',
-			'theme_updates'       => 'off',
-			'translation_updates' => 'on',
-		);
-
-		$updated = Options::update_options( '', $defaults );
+		$updated = Options::update_options( '', $this->get_dashboard_option_defaults() );
 		if ( null === $updated ) {
 			wp_send_json_error();
 		}
@@ -89,18 +81,38 @@ class Ajax {
 	}
 
 	/**
+	 * Default values for dashboard automatic-update options.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_dashboard_option_defaults(): array {
+		return array(
+			'major_auto_updates'               => 'off',
+			'minor_auto_updates'               => 'on',
+			'plugin_auto_updates'              => 'off',
+			'plugin_auto_updates_custom'       => 'off',
+			'plugin_updates_disabled'          => 'off',
+			'plugin_manual_updates_only'       => 'off',
+			'plugin_auto_updates_patches_only' => 'off',
+			'theme_auto_updates'               => 'off',
+			'theme_auto_updates_custom'        => 'off',
+			'theme_updates_disabled'           => 'off',
+			'theme_manual_updates_only'        => 'off',
+			'theme_auto_updates_patches_only'  => 'off',
+			'translation_auto_updates'         => 'on',
+			'translation_auto_updates_custom'  => 'off',
+			'translation_updates_disabled'     => 'off',
+			'translation_manual_updates_only'  => 'off',
+		);
+	}
+
+	/**
 	 * Allowed dashboard automatic-update option keys.
 	 *
 	 * @return array<int, string>
 	 */
 	private function get_dashboard_option_keys(): array {
-		return array(
-			'major_updates',
-			'minor_updates',
-			'plugin_updates',
-			'theme_updates',
-			'translation_updates',
-		);
+		return array_keys( $this->get_dashboard_option_defaults() );
 	}
 
 	/**

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin options helper.
  *
@@ -35,28 +34,29 @@ class Options {
 	 */
 	private static function get_defaults(): array {
 		$defaults = array(
-			'major_updates'                   => 'off',
-			'minor_updates'                   => 'on',
-			'plugin_updates'                  => 'off',
-			'plugin_custom'                   => 'off', /* choose per plugin */
-			'plugin_manual_updates_only'      => 'off',
-			'plugin_patches_only'             => 'off',
-			'plugin_updates_disabled'         => 'off', /* all plugin updates disabled */
-			'theme_updates'                   => 'off',
-			'theme_custom'                    => 'off', /* choose per theme */
-			'theme_manual_updates_only'       => 'off',
-			'theme_patches_only'              => 'off',
-			'theme_updates_disabled'          => 'off', /* all theme updates disabled */
-			'translation_updates'             => 'on',
-			'translation_custom'              => 'off', /* choose per translation */
-			'translation_manual_updates_only' => 'off',
-			'auto_update_plugins'             => array(),
-			'blocked_plugins'                 => array(),
-			'auto_update_themes'              => array(),
-			'blocked_themes'                  => array(),
-			'auto_update_translations'        => array(),
-			'blocked_translations'            => array(),
-			'enable_core_emails'              => true,
+			'major_auto_updates'               => 'off',
+			'minor_auto_updates'               => 'on',
+			'plugin_auto_updates'              => 'off',
+			'plugin_auto_updates_custom'       => 'off', /* choose per plugin */
+			'plugin_manual_updates_only'       => 'off',
+			'plugin_auto_updates_patches_only' => 'off',
+			'plugin_updates_disabled'          => 'off', /* all plugin updates disabled */
+			'theme_auto_updates'               => 'off',
+			'theme_auto_updates_custom'        => 'off', /* choose per theme */
+			'theme_manual_updates_only'        => 'off',
+			'theme_auto_updates_patches_only'  => 'off',
+			'theme_updates_disabled'           => 'off', /* all theme updates disabled */
+			'translation_auto_updates'         => 'on',
+			'translation_auto_updates_custom'  => 'off', /* choose per translation */
+			'translation_manual_updates_only'  => 'off',
+			'translation_updates_disabled'     => 'off', /* all translation updates disabled */
+			'auto_update_plugins'              => array(),
+			'blocked_plugins'                  => array(),
+			'auto_update_themes'               => array(),
+			'blocked_themes'                   => array(),
+			'auto_update_translations'         => array(),
+			'blocked_translations'             => array(),
+			'enable_core_emails'               => true,
 		);
 
 		/**
