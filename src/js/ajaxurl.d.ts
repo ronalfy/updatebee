@@ -7,3 +7,9 @@ interface UpdateBeeDashboard {
 }
 
 declare const updatebeeDashboard: UpdateBeeDashboard;
+
+interface UpdateBeePlugins {
+	retrieveNonce: string;
+}
+
+declare const updatebeePlugins: UpdateBeePlugins;

@@ -1,0 +1,94 @@
+/**
+ * Plugin list screen styles.
+ */
+
+.updatebee-plugin-list-wrapper {
+	.updatebee-plugin-item {
+		display: grid;
+		grid-template-columns: 24px auto 4fr 2px 6fr;
+		column-gap: 16px;
+		border: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #c3c4c7);
+		background: var(--wpds-color-background-interactive-neutral, #FFF);
+		box-shadow: 3px 2px 5px -3px rgba(0, 0, 0, 0.4);
+		padding: 45px 20px;
+		margin-bottom: 25px;
+		margin-top: 25px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	.updatebee-plugin-icon {
+		width: 64px;
+		height: 64px;
+		color: currentColor;
+		fill: currentColor;
+	}
+
+	.updatebee-plugin-title {
+		font-size: 18px;
+		margin: 0;
+		padding: 0;
+	}
+
+	.updatebee-plugin-slug {
+		font-size: 13px;
+		margin: 0;
+		padding: 0;
+	}
+
+	.updatebee-plugin-column .form-table {
+		td {
+			padding: 0;
+		}
+
+		th {
+			padding: 4px 0;
+		}
+	}
+
+	.updatebee-plugin-column-separator {
+		background: var(--wpds-color-background-interactive-brand-weak-active, #f0f0f1);
+	}
+}
+
+.updatebee-bulk-row {
+	display: grid;
+	grid-template-columns: 2fr 2fr 6fr;
+	column-gap: 10px;
+	align-items: end;
+	margin-bottom: 1rem;
+
+	.updatebee-bulk-actions,
+	.updatebee-filter-actions {
+		display: flex;
+		align-items: flex-end;
+
+		select {
+			width: 90%;
+		}
+
+		button {
+			max-height: 30px;
+			margin-left: 8px;
+		}
+	}
+
+	.components-base-control__field {
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	.updatebee-plugin-list-search {
+		justify-self: end;
+	}
+}
+
+.updatebee-plugin-notice {
+	margin: 1rem 0;
+}
+
+.form-table th {
+	max-width: 140px;
+}

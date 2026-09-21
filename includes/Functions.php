@@ -827,6 +827,48 @@ class Functions {
 	}
 
 	/**
+	 * Checks whether an asset is limited to patch auto-updates.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $path Path to the asset.
+	 * @param string $type Asset type. Values (plugin|theme).
+	 * @return bool True if patches only.
+	 */
+	public static function auto_updates_patches_only( $path, $type = 'plugin' ): bool {
+		$path    = sanitize_text_field( $path );
+		$options = Options::get_options();
+
+		if ( 'plugin' === $type ) {
+			if ( isset( $options['plugin_auto_updates_patches_only'] ) && 'on' === $options['plugin_auto_updates_patches_only'] ) {
+				return true;
+			}
+
+			$patches = array();
+			if ( isset( $options['auto_update_plugins_patches'] ) && is_array( $options['auto_update_plugins_patches'] ) ) {
+				$patches = $options['auto_update_plugins_patches'];
+			}
+
+			return in_array( $path, $patches, true );
+		}
+
+		if ( 'theme' === $type ) {
+			if ( isset( $options['theme_auto_updates_patches_only'] ) && 'on' === $options['theme_auto_updates_patches_only'] ) {
+				return true;
+			}
+
+			$patches = array();
+			if ( isset( $options['auto_update_themes_patches'] ) && is_array( $options['auto_update_themes_patches'] ) ) {
+				$patches = $options['auto_update_themes_patches'];
+			}
+
+			return in_array( $path, $patches, true );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Take a _ separated field and convert to camelcase.
 	 *
 	 * @param string $field Field to convert to camelcase.

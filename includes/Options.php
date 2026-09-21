@@ -51,8 +51,10 @@ class Options {
 			'translation_manual_updates_only'  => 'off',
 			'translation_updates_disabled'     => 'off', /* all translation updates disabled */
 			'auto_update_plugins'              => array(),
+			'auto_update_plugins_patches'      => array(), /* plugin files limited to patch auto-updates. */
 			'blocked_plugins'                  => array(),
 			'auto_update_themes'               => array(),
+			'auto_update_themes_patches'       => array(), /* theme slugs limited to patch auto-updates. */
 			'blocked_themes'                   => array(),
 			'auto_update_translations'         => array(),
 			'blocked_translations'             => array(),

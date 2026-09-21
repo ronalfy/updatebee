@@ -52,6 +52,22 @@ class Translations {
 		}
 
 		unset( $sub_tab );
+
+		$asset_file = Functions::get_plugin_dir( 'build/translations.asset.php' );
+		$version    = Functions::get_plugin_version();
+		if ( file_exists( $asset_file ) ) {
+			$loaded = require $asset_file;
+			if ( is_array( $loaded ) && isset( $loaded['version'] ) && is_string( $loaded['version'] ) ) {
+				$version = $loaded['version'];
+			}
+		}
+
+		wp_enqueue_style(
+			'updatebee-translations',
+			Functions::get_plugin_url( 'build/translations.css' ),
+			array( 'updatebee-admin' ),
+			$version
+		);
 		?>
 		<div class="updatebee-translations-placeholder">
 			<p><?php esc_html_e( 'Translation update controls will appear here.', 'updatebee' ); ?></p>
