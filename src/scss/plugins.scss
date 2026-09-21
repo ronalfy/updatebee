@@ -2,13 +2,19 @@
  * Plugin list screen styles.
  */
 
+.updatebee-plugins-main {
+	/* Keep the last plugin card clear of the sticky bulk bar. */
+	padding-bottom: 96px;
+}
+
 .updatebee-plugin-list-wrapper {
 	.updatebee-plugin-item {
 		display: grid;
 		grid-template-columns: 24px auto 4fr 2px 6fr;
 		column-gap: 16px;
-		border: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #c3c4c7);
-		background: var(--wpds-color-background-interactive-neutral, #FFF);
+		border: 1px solid
+			var(--wpds-color-background-interactive-brand-weak-active, #c3c4c7);
+		background: var(--wpds-color-background-interactive-neutral, #fff);
 		box-shadow: 3px 2px 5px -3px rgba(0, 0, 0, 0.4);
 		padding: 45px 20px;
 		margin-bottom: 25px;
@@ -54,7 +60,10 @@
 	}
 
 	.updatebee-plugin-column-separator {
-		background: var(--wpds-color-background-interactive-brand-weak-active, #f0f0f1);
+		background: var(
+			--wpds-color-background-interactive-brand-weak-active,
+			#f0f0f1
+		);
 	}
 }
 
@@ -88,6 +97,64 @@
 	.updatebee-plugin-list-search {
 		justify-self: end;
 	}
+}
+
+.updatebee-bulk-actions-container {
+	align-items: center;
+	background: #f6f7f7;
+	border-top: 1px solid #c3c4c7;
+	bottom: 0;
+	box-sizing: border-box;
+	display: flex;
+	justify-content: space-between;
+	left: 0;
+	padding: 16px 24px;
+	position: sticky;
+	right: 0;
+	width: 100%;
+	z-index: 1000;
+
+	.components-base-control__field {
+		margin-bottom: 0;
+	}
+}
+
+/* Pin the footer slot to the viewport when it hosts the bulk bar. */
+#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+	bottom: 0;
+	left: 160px;
+	position: fixed;
+	right: 0;
+	width: auto;
+	z-index: 1000;
+}
+
+.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+	left: 36px;
+}
+
+@media screen and (max-width: 960px) {
+	.auto-fold
+		#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+		left: 36px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
+	.folded
+		#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
+	.auto-fold
+		#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+		left: 0;
+	}
+}
+
+.updatebee-bulk-actions-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 }
 
 .updatebee-plugin-notice {
