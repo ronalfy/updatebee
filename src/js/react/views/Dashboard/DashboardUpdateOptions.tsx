@@ -9,10 +9,11 @@ import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import Loader from '../../components/Loader';
 import { boolToOption, optionToBool } from '../../utils/bool';
-import PluginUpdateConfigure, {
-	applyPluginAutoUpdatesDisabledAll,
-	applyPluginAutoUpdatesEnabled,
-} from './PluginUpdateConfigure';
+import AssetUpdateConfigure, {
+	applyAssetAutoUpdatesDisabledAll,
+	applyAssetAutoUpdatesEnabled,
+	normalizeDashboardSettings,
+} from './AssetUpdateConfigure';
 
 export type DashboardSettingsForm = {
 	majorAutoUpdates: boolean;
@@ -44,7 +45,7 @@ export const dashboardSettingsDefaults: DashboardSettingsForm = {
 	themeAutoUpdates: false,
 	themeAutoUpdatesCustom: false,
 	themeUpdatesDisabled: false,
-	themeManualUpdatesOnly: false,
+	themeManualUpdatesOnly: true,
 	themeAutoUpdatesPatchesOnly: false,
 	translationAutoUpdates: true,
 	translationUpdatesDisabled: false,
@@ -72,7 +73,7 @@ export type DashboardOptionsPayload = {
 };
 
 /**
- * Keep plugin flags consistent with the auto-update toggle.
+ * Keep plugin, theme, and translation flags consistent with each auto-update toggle.
  *
  * @param values Form values.
  * @return Normalized form values.
@@ -80,21 +81,7 @@ export type DashboardOptionsPayload = {
 export const normalizePluginSettings = (
 	values: DashboardSettingsForm
 ): DashboardSettingsForm => {
-	if ( values.pluginAutoUpdates ) {
-		return {
-			...values,
-			pluginUpdatesDisabled: false,
-			pluginManualUpdatesOnly: false,
-		};
-	}
-
-	return {
-		...values,
-		pluginAutoUpdatesCustom: false,
-		pluginAutoUpdatesPatchesOnly: false,
-		pluginUpdatesDisabled: values.pluginUpdatesDisabled,
-		pluginManualUpdatesOnly: ! values.pluginUpdatesDisabled,
-	};
+	return normalizeDashboardSettings( values );
 };
 
 /**
@@ -106,44 +93,46 @@ export const normalizePluginSettings = (
 export const formToOptions = (
 	values: DashboardSettingsForm
 ): DashboardOptionsPayload => {
-	const pluginValues = normalizePluginSettings( values );
+	const normalized = normalizePluginSettings( values );
 
 	return {
-		major_auto_updates: boolToOption( pluginValues.majorAutoUpdates ),
-		minor_auto_updates: boolToOption( pluginValues.minorAutoUpdates ),
-		plugin_auto_updates: boolToOption( pluginValues.pluginAutoUpdates ),
+		major_auto_updates: boolToOption( normalized.majorAutoUpdates ),
+		minor_auto_updates: boolToOption( normalized.minorAutoUpdates ),
+		plugin_auto_updates: boolToOption( normalized.pluginAutoUpdates ),
 		plugin_auto_updates_custom: boolToOption(
-			pluginValues.pluginAutoUpdatesCustom
+			normalized.pluginAutoUpdatesCustom
 		),
 		plugin_updates_disabled: boolToOption(
-			pluginValues.pluginUpdatesDisabled
+			normalized.pluginUpdatesDisabled
 		),
 		plugin_manual_updates_only: boolToOption(
-			pluginValues.pluginManualUpdatesOnly
+			normalized.pluginManualUpdatesOnly
 		),
 		plugin_auto_updates_patches_only: boolToOption(
-			pluginValues.pluginAutoUpdatesPatchesOnly
+			normalized.pluginAutoUpdatesPatchesOnly
 		),
-		theme_auto_updates: boolToOption( values.themeAutoUpdates ),
+		theme_auto_updates: boolToOption( normalized.themeAutoUpdates ),
 		theme_auto_updates_custom: boolToOption(
-			values.themeAutoUpdatesCustom
+			normalized.themeAutoUpdatesCustom
 		),
-		theme_updates_disabled: boolToOption( values.themeUpdatesDisabled ),
+		theme_updates_disabled: boolToOption( normalized.themeUpdatesDisabled ),
 		theme_manual_updates_only: boolToOption(
-			values.themeManualUpdatesOnly
+			normalized.themeManualUpdatesOnly
 		),
 		theme_auto_updates_patches_only: boolToOption(
-			values.themeAutoUpdatesPatchesOnly
+			normalized.themeAutoUpdatesPatchesOnly
 		),
-		translation_auto_updates: boolToOption( values.translationAutoUpdates ),
+		translation_auto_updates: boolToOption(
+			normalized.translationAutoUpdates
+		),
 		translation_auto_updates_custom: boolToOption(
-			values.translationAutoUpdatesCustom
+			normalized.translationAutoUpdatesCustom
 		),
 		translation_updates_disabled: boolToOption(
-			values.translationUpdatesDisabled
+			normalized.translationUpdatesDisabled
 		),
 		translation_manual_updates_only: boolToOption(
-			values.translationManualUpdatesOnly
+			normalized.translationManualUpdatesOnly
 		),
 	};
 };
@@ -245,15 +234,22 @@ const DashboardUpdateOptions = () => {
 	const setAll = ( enabled: boolean ) => {
 		setValue( 'majorAutoUpdates', enabled, { shouldDirty: true } );
 		setValue( 'minorAutoUpdates', enabled, { shouldDirty: true } );
-		setValue( 'themeAutoUpdates', enabled, { shouldDirty: true } );
-		setValue( 'translationAutoUpdates', enabled, { shouldDirty: true } );
 
 		if ( enabled ) {
-			applyPluginAutoUpdatesEnabled( setValue, getValues, true );
+			applyAssetAutoUpdatesEnabled( 'plugin', setValue, getValues, true );
+			applyAssetAutoUpdatesEnabled( 'theme', setValue, getValues, true );
+			applyAssetAutoUpdatesEnabled(
+				'translation',
+				setValue,
+				getValues,
+				true
+			);
 			return;
 		}
 
-		applyPluginAutoUpdatesDisabledAll( setValue );
+		applyAssetAutoUpdatesDisabledAll( 'plugin', setValue );
+		applyAssetAutoUpdatesDisabledAll( 'theme', setValue );
+		applyAssetAutoUpdatesDisabledAll( 'translation', setValue );
 	};
 
 	if ( loading ) {
@@ -381,7 +377,8 @@ const DashboardUpdateOptions = () => {
 								<ToggleControl
 									checked={ value }
 									onChange={ ( checked ) => {
-										applyPluginAutoUpdatesEnabled(
+										applyAssetAutoUpdatesEnabled(
+											'plugin',
 											setValue,
 											getValues,
 											checked
@@ -395,7 +392,7 @@ const DashboardUpdateOptions = () => {
 							) }
 						/>
 					</div>
-					<PluginUpdateConfigure />
+					<AssetUpdateConfigure kind="plugin" />
 				</div>
 				<div className="updatebee-panel-row">
 					<h4>{ __( 'WordPress Theme Updates', 'updatebee' ) }</h4>
@@ -409,10 +406,17 @@ const DashboardUpdateOptions = () => {
 						<Controller
 							name="themeAutoUpdates"
 							control={ control }
-							render={ ( { field: { value, onChange } } ) => (
+							render={ ( { field: { value } } ) => (
 								<ToggleControl
 									checked={ value }
-									onChange={ onChange }
+									onChange={ ( checked ) => {
+										applyAssetAutoUpdatesEnabled(
+											'theme',
+											setValue,
+											getValues,
+											checked
+										);
+									} }
 									label={ __(
 										'Enable theme auto-updates',
 										'updatebee'
@@ -421,6 +425,7 @@ const DashboardUpdateOptions = () => {
 							) }
 						/>
 					</div>
+					<AssetUpdateConfigure kind="theme" />
 				</div>
 				<div className="updatebee-panel-row">
 					<h4>
@@ -436,10 +441,17 @@ const DashboardUpdateOptions = () => {
 						<Controller
 							name="translationAutoUpdates"
 							control={ control }
-							render={ ( { field: { value, onChange } } ) => (
+							render={ ( { field: { value } } ) => (
 								<ToggleControl
 									checked={ value }
-									onChange={ onChange }
+									onChange={ ( checked ) => {
+										applyAssetAutoUpdatesEnabled(
+											'translation',
+											setValue,
+											getValues,
+											checked
+										);
+									} }
 									label={ __(
 										'Enable translation auto-updates',
 										'updatebee'
@@ -448,6 +460,7 @@ const DashboardUpdateOptions = () => {
 							) }
 						/>
 					</div>
+					<AssetUpdateConfigure kind="translation" />
 				</div>
 			</div>
 		</div>
