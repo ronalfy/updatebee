@@ -20,6 +20,8 @@
 	<config name="minimum_supported_wp_version" value="6.0"/>
 
 	<rule ref="WordPress">
+		<exclude name="WordPress.Files.FileName.NotHyphenatedLowercase"/>
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
 		<exclude name="WordPress.Files.FileName"/>
 	</rule>
 	<rule ref="Squiz.Commenting.FileComment.Missing">
