@@ -151,6 +151,21 @@
 	}
 }
 
+.updatebee-plugins-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+
+	.updatebee-snackbar {
+		margin: 0 24px 8px;
+	}
+
+	.updatebee-bulk-actions-container {
+		width: 100%;
+	}
+}
+
 .updatebee-bulk-actions-buttons {
 	display: flex;
 	flex-wrap: wrap;

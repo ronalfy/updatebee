@@ -10,6 +10,7 @@ declare const updatebeeDashboard: UpdateBeeDashboard;
 
 interface UpdateBeePlugins {
 	retrieveNonce: string;
+	bulkNonce: string;
 }
 
 declare const updatebeePlugins: UpdateBeePlugins;

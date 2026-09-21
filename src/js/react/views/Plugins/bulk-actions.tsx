@@ -4,7 +4,12 @@
 import { _n, __, sprintf } from '@wordpress/i18n';
 import { CheckboxControl, Button, type IconType } from '@wordpress/components';
 import { closeSmall as CloseSmallIcon } from '@wordpress/icons';
-import { useFormContext, useWatch } from 'react-hook-form';
+import {
+	useWatch,
+	type Control,
+	type UseFormGetValues,
+	type UseFormSetValue,
+} from 'react-hook-form';
 
 type PluginRow = {
 	File: string;
@@ -20,9 +25,15 @@ export type Action< TPlugin extends PluginRow = PluginRow > = {
 	callback: ( selectedPlugins: TPlugin[] ) => void;
 };
 
+type BulkFormValues = Record< string, boolean >;
+
 type BulkActionsProps< TPlugin extends PluginRow > = {
 	plugins: TPlugin[];
 	actions: Action< TPlugin >[];
+	isBusy?: boolean;
+	control: Control< BulkFormValues >;
+	getValues: UseFormGetValues< BulkFormValues >;
+	setValue: UseFormSetValue< BulkFormValues >;
 };
 
 /**
@@ -36,9 +47,14 @@ const getPluginSelectedKey = ( plugin: PluginRow ): string =>
 const BulkActions = < TPlugin extends PluginRow >(
 	props: BulkActionsProps< TPlugin >
 ) => {
-	const { plugins, actions } = props;
-	const { getValues, setValue, control } =
-		useFormContext< Record< string, boolean > >();
+	const {
+		plugins,
+		actions,
+		isBusy = false,
+		control,
+		getValues,
+		setValue,
+	} = props;
 
 	// Re-render when form values change so counts and eligibility stay current.
 	useWatch( { control } );
@@ -71,6 +87,7 @@ const BulkActions = < TPlugin extends PluginRow >(
 							label={ buttonLabel }
 							isDestructive={ action.isDestructive }
 							variant="secondary"
+							disabled={ isBusy }
 							onClick={ () => {
 								action.callback( eligiblePlugins );
 							} }
@@ -84,6 +101,7 @@ const BulkActions = < TPlugin extends PluginRow >(
 						variant="tertiary"
 						icon={ CloseSmallIcon }
 						label={ __( 'Cancel', 'updatebee' ) }
+						disabled={ isBusy }
 						onClick={ () => {
 							plugins.forEach( ( plugin ) => {
 								setValue(
@@ -114,6 +132,7 @@ const BulkActions = < TPlugin extends PluginRow >(
 				checked={
 					0 < pluginsCount && pluginsSelectedCount === pluginsCount
 				}
+				disabled={ isBusy }
 				onChange={ ( boolValue ) => {
 					plugins.forEach( ( plugin ) => {
 						setValue( getPluginSelectedKey( plugin ), boolValue );

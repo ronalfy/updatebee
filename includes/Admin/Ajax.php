@@ -23,6 +23,10 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_save_dashboard_settings', array( $this, 'save_dashboard_settings' ) );
 		add_action( 'wp_ajax_updatebee_reset_dashboard_settings', array( $this, 'reset_dashboard_settings' ) );
 		add_action( 'wp_ajax_updatebee_retrieve_plugins', array( $this, 'retrieve_plugins' ) );
+		add_action( 'wp_ajax_updatebee_toggle_plugin_auto_updates', array( $this, 'toggle_plugin_auto_updates' ) );
+		add_action( 'wp_ajax_updatebee_toggle_plugin_block_updates', array( $this, 'toggle_plugin_block_updates' ) );
+		add_action( 'wp_ajax_updatebee_toggle_plugin_patches', array( $this, 'toggle_plugin_patches' ) );
+		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
 	}
 
 	/**
@@ -155,11 +159,6 @@ class Ajax {
 			$auto_updated_plugins = array();
 		}
 
-		$blocked_plugins = Options::get_options( 'blocked_plugins' );
-		if ( ! is_array( $blocked_plugins ) ) {
-			$blocked_plugins = array();
-		}
-
 		foreach ( $all_plugins as $file => $plugin ) {
 			if ( ! is_string( $file ) ) {
 				continue;
@@ -176,7 +175,7 @@ class Ajax {
 			$plugin['PatchNonce']  = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
 			$plugin['Active']      = in_array( $file, $active_plugin_slugs, true );
 			$plugin['Autoupdates'] = isset( $auto_updated_plugins[ $file ] );
-			$plugin['Blocked']     = in_array( dirname( $file ), $blocked_plugins, true );
+			$plugin['Blocked']     = Functions::auto_updates_blocked( $file, 'plugin' );
 			$plugin['PatchesOnly'] = Functions::auto_updates_patches_only( $file, 'plugin' );
 
 			$plugin_file_path = WP_PLUGIN_DIR . '/' . $file;
@@ -255,5 +254,188 @@ class Ajax {
 				'auto_updates_enabled' => $status,
 			)
 		);
+	}
+
+	/**
+	 * Enable or disable auto-updates for a single plugin.
+	 */
+	public function toggle_plugin_auto_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-enable-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) || ! Functions::plugin_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_plugin_auto_update( $file, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Block or unblock updates for a single plugin.
+	 */
+	public function toggle_plugin_block_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-block-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) || Functions::plugin_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_plugin_blocked( $file, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Enable or disable patches-only auto-updates for a single plugin.
+	 */
+	public function toggle_plugin_patches(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-patches-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) || ! Functions::plugin_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_plugin_patches_only( $file, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Apply a bulk action to selected plugin files.
+	 */
+	public function bulk_plugin_action(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-plugin-bulk', 'nonce' );
+
+		$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
+		$allowed     = array( 'enable', 'disable', 'block', 'unblock', 'patches' );
+		if ( ! in_array( $bulk_action, $allowed, true ) ) {
+			wp_send_json_error();
+		}
+
+		$needs_auto_updates = in_array( $bulk_action, array( 'enable', 'disable', 'patches' ), true );
+		if ( $needs_auto_updates && ! Functions::plugin_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$is_block_action = in_array( $bulk_action, array( 'block', 'unblock' ), true );
+		if ( $is_block_action && Functions::plugin_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$files = $this->get_posted_plugin_files();
+		foreach ( $files as $file ) {
+			switch ( $bulk_action ) {
+				case 'enable':
+					Functions::set_plugin_auto_update( $file, true );
+					break;
+				case 'disable':
+					Functions::set_plugin_auto_update( $file, false );
+					break;
+				case 'block':
+					Functions::set_plugin_blocked( $file, true );
+					break;
+				case 'unblock':
+					Functions::set_plugin_blocked( $file, false );
+					break;
+				case 'patches':
+					Functions::set_plugin_patches_only( $file, true );
+					break;
+			}
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Sanitize a posted plugin file path.
+	 *
+	 * @return string Plugin basename path.
+	 */
+	private function get_posted_plugin_file(): string {
+		// File is required to verify the per-plugin nonce in the caller.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$file = isset( $_POST['file'] ) ? sanitize_text_field( wp_unslash( $_POST['file'] ) ) : '';
+
+		return sanitize_text_field( urldecode( $file ) );
+	}
+
+	/**
+	 * Sanitize posted plugin files for a bulk action.
+	 *
+	 * @return array<int, string> Installed plugin files.
+	 */
+	private function get_posted_plugin_files(): array {
+		// Callers verify `updatebee-plugin-bulk` before reading files.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$files = isset( $_POST['files'] ) ? Functions::sanitize_array_recursive( wp_unslash( $_POST['files'] ) ) : array();
+		if ( ! is_array( $files ) ) {
+			return array();
+		}
+
+		$sanitized = array();
+		foreach ( $files as $file ) {
+			if ( ! is_string( $file ) ) {
+				continue;
+			}
+
+			$file = sanitize_text_field( urldecode( $file ) );
+			if ( ! Functions::plugin_file_exists( $file ) ) {
+				continue;
+			}
+
+			$sanitized[] = $file;
+		}
+
+		return array_values( array_unique( $sanitized ) );
+	}
+
+	/**
+	 * Sanitize a posted enabled flag.
+	 *
+	 * @return bool True when enabled.
+	 */
+	private function get_posted_enabled(): bool {
+		// Callers verify a nonce before reading the enabled flag.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST['enabled'] ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$value = wp_unslash( $_POST['enabled'] );
+		if ( is_array( $value ) ) {
+			return false;
+		}
+
+		return (bool) rest_sanitize_boolean( $value );
 	}
 }

@@ -37,6 +37,45 @@ class Functions {
 	}
 
 	/**
+	 * Array data that must be sanitized.
+	 *
+	 * @param array $data Data to be sanitized.
+	 *
+	 * @return array Sanitized data.
+	 */
+	public static function sanitize_array_recursive( array $data ) {
+		$sanitized_data = array();
+		foreach ( $data as $key => $value ) {
+			if ( '0' === $value ) {
+				$value = 0;
+			}
+			if ( 'true' === $value ) {
+				$value = true;
+			} elseif ( 'false' === $value ) {
+				$value = false;
+			}
+			if ( is_array( $value ) ) {
+				$value                  = self::sanitize_array_recursive( $value );
+				$sanitized_data[ $key ] = $value;
+				continue;
+			}
+			if ( is_bool( $value ) ) {
+				$sanitized_data[ $key ] = (bool) $value;
+				continue;
+			}
+			if ( is_int( $value ) ) {
+				$sanitized_data[ $key ] = (int) $value;
+				continue;
+			}
+			if ( is_string( $value ) ) {
+				$sanitized_data[ $key ] = sanitize_text_field( $value );
+				continue;
+			}
+		}
+		return $sanitized_data;
+	}
+
+	/**
 	 * Return the URL to the admin screen.
 	 *
 	 * @param string $tab     Tab path to load.
@@ -738,7 +777,6 @@ class Functions {
 			case 'plugin':
 				$plugin_auto_updates_enabled = isset( $options['plugin_auto_updates'] ) ? $options['plugin_auto_updates'] : 'off';
 				$plugin_auto_updates_custom  = isset( $options['plugin_auto_updates_custom'] ) ? $options['plugin_auto_updates_custom'] : 'off';
-				$blocked_plugins             = isset( $options['blocked_plugins'] ) ? $options['blocked_plugins'] : array();
 				$is_active_update            = in_array( $path, $options['auto_update_plugins'], true );
 
 				// Make sure plugin auto-updates are enabled or not.
@@ -747,7 +785,7 @@ class Functions {
 				}
 
 				// If plugin is blocked, return false.
-				if ( in_array( $path, $blocked_plugins, true ) ) {
+				if ( ! $skip_blocked && self::auto_updates_blocked( $path, 'plugin' ) ) {
 					return false;
 				}
 
@@ -866,6 +904,153 @@ class Functions {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether all plugin updates are blocked from the dashboard.
+	 *
+	 * @return bool True when plugin updates are fully blocked.
+	 */
+	public static function plugin_updates_fully_blocked(): bool {
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['plugin_updates_disabled'] ) && 'on' === $options['plugin_updates_disabled'];
+	}
+
+	/**
+	 * Whether the dashboard allows plugin auto-updates.
+	 *
+	 * @return bool True when auto-updates are on and not fully blocked.
+	 */
+	public static function plugin_auto_updates_available(): bool {
+		if ( self::plugin_updates_fully_blocked() ) {
+			return false;
+		}
+
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['plugin_auto_updates'] ) && 'on' === $options['plugin_auto_updates'];
+	}
+
+	/**
+	 * Installed plugin data keyed by plugin file.
+	 *
+	 * @return array<string, mixed> Plugin data.
+	 */
+	public static function get_installed_plugin_files(): array {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$all_plugins = apply_filters( 'all_plugins', get_plugins() );
+		if ( ! is_array( $all_plugins ) ) {
+			return array();
+		}
+
+		return $all_plugins;
+	}
+
+	/**
+	 * Whether a plugin file is installed.
+	 *
+	 * @param string $file Plugin basename path.
+	 * @return bool True when the plugin exists.
+	 */
+	public static function plugin_file_exists( string $file ): bool {
+		$all_plugins = self::get_installed_plugin_files();
+
+		return isset( $all_plugins[ $file ] );
+	}
+
+	/**
+	 * Add or remove an item from a stored options list.
+	 *
+	 * @param string $option_key Option array key.
+	 * @param string $item       Item to add or remove.
+	 * @param bool   $enabled    True to add, false to remove.
+	 * @return array<int, mixed>|null Updated list or null on failure.
+	 */
+	public static function update_option_list( string $option_key, string $item, bool $enabled ) {
+		if ( '' === $item ) {
+			return null;
+		}
+
+		$list = Options::get_options( $option_key );
+		if ( ! is_array( $list ) ) {
+			$list = array();
+		}
+
+		$list = array_values( array_unique( $list ) );
+
+		if ( $enabled ) {
+			$list[] = $item;
+			$list   = array_values( array_unique( $list ) );
+		} else {
+			$key = array_search( $item, $list, true );
+			if ( false !== $key ) {
+				unset( $list[ $key ] );
+				$list = array_values( $list );
+			}
+		}
+
+		$updated = Options::update_options( $option_key, $list );
+		if ( null === $updated ) {
+			return null;
+		}
+
+		$saved = Options::get_options( $option_key );
+
+		return is_array( $saved ) ? $saved : array();
+	}
+
+	/**
+	 * Enable or disable auto-updates for a plugin file.
+	 *
+	 * @param string $file    Plugin basename path.
+	 * @param bool   $enabled True to enable auto-updates.
+	 * @return array<int, mixed>|null Updated auto-update list or null on failure.
+	 */
+	public static function set_plugin_auto_update( string $file, bool $enabled ) {
+		$result = self::update_option_list( 'auto_update_plugins', $file, $enabled );
+		if ( ! $enabled ) {
+			self::update_option_list( 'auto_update_plugins_patches', $file, false );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Enable or disable patches-only auto-updates for a plugin file.
+	 *
+	 * @param string $file    Plugin basename path.
+	 * @param bool   $enabled True to limit the plugin to patch auto-updates.
+	 * @return array<int, mixed>|null Updated patches list or null on failure.
+	 */
+	public static function set_plugin_patches_only( string $file, bool $enabled ) {
+		if ( $enabled ) {
+			self::update_option_list( 'auto_update_plugins', $file, true );
+		}
+
+		return self::update_option_list( 'auto_update_plugins_patches', $file, $enabled );
+	}
+
+	/**
+	 * Block or unblock a plugin from updates.
+	 *
+	 * @param string $file    Plugin basename path.
+	 * @param bool   $blocked True to block updates.
+	 * @return array<int, mixed>|null Updated blocked list or null on failure.
+	 */
+	public static function set_plugin_blocked( string $file, bool $blocked ) {
+		$block_id = sanitize_title( dirname( $file ) );
+
+		return self::update_option_list( 'blocked_plugins', $block_id, $blocked );
 	}
 
 	/**

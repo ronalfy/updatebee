@@ -84,6 +84,7 @@ class Plugins {
 			'updatebeePlugins',
 			array(
 				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-plugins' ),
+				'bulkNonce'     => wp_create_nonce( 'updatebee-plugin-bulk' ),
 			)
 		);
 
