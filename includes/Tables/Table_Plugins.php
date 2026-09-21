@@ -15,9 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class for Todoist collaborators table.
+ * Class for the plugins notes table.
  *
- * @package GF_Todoist
+ * @package UpdateBee
  */
 class Table_Plugins extends Tables {
 
@@ -54,7 +54,7 @@ class Table_Plugins extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_version = '1.0.1';
+	protected static $table_version = '1.0.2';
 
 	/**
 	 * Table columns and their schema.
@@ -62,7 +62,7 @@ class Table_Plugins extends Tables {
 	 * @var array
 	 */
 	protected static $columns = array(
-		'id'         => array(
+		'id'          => array(
 			'name'           => 'id',
 			'schema'         => 'INT(11) NOT NULL AUTO_INCREMENT',
 			'sanitize'       => 'absint',
@@ -71,25 +71,25 @@ class Table_Plugins extends Tables {
 			'primary_key'    => true,
 			'mapped_column'  => null,
 		),
-		'user_id'    => array(
+		'user_id'     => array(
 			'name'           => 'user_id',
 			'schema'         => 'VARCHAR(255) NOT NULL',
 			'sanitize'       => 'sanitize_text_field',
 			'validate'       => 'is_string',
 			'prepare_symbol' => '%s',
 			'index'          => true,
-			'mapped_column'  => 'id',
+			'mapped_column'  => null,
 		),
 		'plugin_slug' => array(
 			'name'           => 'plugin_slug',
-			'schema'         => 'VARCHAR(255) NOT NULL',
-			'sanitize'       => 'sanitize_title',
+			'schema'         => 'VARCHAR(255) NOT NULL UNIQUE',
+			'sanitize'       => 'sanitize_text_field',
 			'validate'       => 'is_string',
 			'prepare_symbol' => '%s',
 			'index'          => true,
-			'mapped_column'  => 'id',
+			'mapped_column'  => null,
 		),
-		'notes' => array(
+		'notes'       => array(
 			'name'           => 'notes',
 			'schema'         => 'TEXT NOT NULL',
 			'sanitize'       => 'sanitize_textarea_field',
@@ -97,7 +97,6 @@ class Table_Plugins extends Tables {
 			'prepare_symbol' => '%s',
 			'mapped_column'  => null,
 		),
-		
 	);
 
 	/**
@@ -124,29 +123,165 @@ class Table_Plugins extends Tables {
 	}
 
 	/**
-	 * Get notes for a specific plugin.
+	 * Sanitize a plugin file used as the notes table key.
 	 *
-	 * @param string $plugin_slug The plugin slug.
-	 * @return string plugin notes or empty string if none found.
+	 * @param string $plugin_file Plugin basename path.
+	 * @return string Sanitized plugin file.
 	 */
-	public function get_plugin_notes( $plugin_slug ) {
-		global $wpdb;
-		$query = 'SELECT * FROM ' . parent::get_table_name() . ' WHERE plugin_slug = %s';
-		$query = $wpdb->prepare( $query, sanitize_title( $plugin_slug ) );
-		$notes = $wpdb->get_results( $query, ARRAY_A );
-		if ( is_wp_error( $notes ) || empty( $notes ) ) {
-			return '';
-		}
-		return $notes[0]['notes'];
+	private static function sanitize_plugin_file( string $plugin_file ): string {
+		return sanitize_text_field( $plugin_file );
 	}
 
 	/**
-	 * Get a plugin by its slug.
+	 * Get notes for a specific plugin.
 	 *
-	 * @param string $plugin_slug The plugin to retrieve by slug.
-	 * @return array|null The plugin or null if not found.
+	 * @param string $plugin_file Plugin basename path.
+	 * @return string Plugin notes or empty string if none found.
+	 */
+	public static function get_notes( string $plugin_file ): string {
+		$row = self::get_plugin_by_slug( $plugin_file );
+		if ( ! is_array( $row ) || ! isset( $row['notes'] ) ) {
+			return '';
+		}
+
+		return (string) $row['notes'];
+	}
+
+	/**
+	 * Get all plugin notes keyed by plugin file.
+	 *
+	 * @return array<string, string> Plugin file => notes.
+	 */
+	public static function get_all_notes(): array {
+		global $wpdb;
+
+		$table_name = static::get_table_name();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
+		$results = $wpdb->get_results( "SELECT plugin_slug, notes FROM {$table_name}", ARRAY_A );
+
+		if ( empty( $results ) || is_wp_error( $results ) ) {
+			return array();
+		}
+
+		$notes = array();
+		foreach ( $results as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['plugin_slug'] ) ) {
+				continue;
+			}
+
+			$plugin_file = (string) $row['plugin_slug'];
+			if ( '' === $plugin_file ) {
+				continue;
+			}
+
+			$notes[ $plugin_file ] = isset( $row['notes'] ) ? (string) $row['notes'] : '';
+		}
+
+		return $notes;
+	}
+
+	/**
+	 * Save notes for a plugin. Empty notes remove the row.
+	 *
+	 * @param string $plugin_file Plugin basename path.
+	 * @param string $notes       Note text.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public static function save_notes( string $plugin_file, string $notes ) {
+		global $wpdb;
+
+		$plugin_file = self::sanitize_plugin_file( $plugin_file );
+		if ( '' === $plugin_file ) {
+			return new \WP_Error( 'invalid_plugin', __( 'Invalid plugin file.', 'updatebee' ) );
+		}
+
+		$notes = sanitize_textarea_field( $notes );
+		if ( '' === trim( $notes ) ) {
+			return self::delete_notes( $plugin_file );
+		}
+
+		$user_id    = (string) get_current_user_id();
+		$existing   = self::get_plugin_by_slug( $plugin_file );
+		$table_name = static::get_table_name();
+
+		if ( is_array( $existing ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id' => $user_id,
+					'notes'   => $notes,
+				),
+				array(
+					'plugin_slug' => $plugin_file,
+				),
+				array( '%s', '%s' ),
+				array( '%s' )
+			);
+
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to update plugin notes.', 'updatebee' ) );
+			}
+
+			return true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table insert.
+		$result = $wpdb->insert(
+			$table_name,
+			array(
+				'user_id'     => $user_id,
+				'plugin_slug' => $plugin_file,
+				'notes'       => $notes,
+			),
+			array( '%s', '%s', '%s' )
+		);
+
+		if ( false === $result ) {
+			return new \WP_Error( 'insert_failed', __( 'Failed to save plugin notes.', 'updatebee' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Delete notes for a plugin.
+	 *
+	 * @param string $plugin_file Plugin basename path.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public static function delete_notes( string $plugin_file ) {
+		global $wpdb;
+
+		$plugin_file = self::sanitize_plugin_file( $plugin_file );
+		if ( '' === $plugin_file ) {
+			return new \WP_Error( 'invalid_plugin', __( 'Invalid plugin file.', 'updatebee' ) );
+		}
+
+		$table_name = static::get_table_name();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete.
+		$result = $wpdb->delete(
+			$table_name,
+			array(
+				'plugin_slug' => $plugin_file,
+			),
+			array( '%s' )
+		);
+
+		if ( false === $result ) {
+			return new \WP_Error( 'delete_failed', __( 'Failed to delete plugin notes.', 'updatebee' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Get a plugin by its file key.
+	 *
+	 * @param string $plugin_slug Plugin basename path.
+	 * @return array|false Plugin row or false if not found.
 	 */
 	public static function get_plugin_by_slug( string $plugin_slug ) {
-		return self::get_by( 'plugin_slug', sanitize_title( $plugin_slug ) );
+		return self::get_by( 'plugin_slug', $plugin_slug );
 	}
 }

@@ -187,4 +187,23 @@
 	top: 12px;
 	right: 12px;
 	z-index: 1000;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.updatebee-plugin-note {
+	margin-top: 1rem;
+
+	.updatebee-plugin-note-text {
+		margin: 0 0 0.5rem;
+		white-space: pre-wrap;
+	}
+
+	.updatebee-plugin-note-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
 }

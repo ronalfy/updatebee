@@ -288,3 +288,13 @@ h3.updatebee-panel-heading {
 	background: var(--wpds-color-background-interactive-neutral-active);
 	border-color: var(--wpds-color-background-interactive-neutral-strong);
 }
+
+.updatebee-plugin-note {
+	h3 {
+		margin-bottom: var(--wpds-dimension-padding-sm);
+	}
+
+	.updatebee-plugin-note-actions {
+		margin-top: var(--wpds-dimension-padding-sm);
+	}
+}

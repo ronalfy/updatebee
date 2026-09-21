@@ -29,6 +29,7 @@ import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import Loader from '../../components/Loader';
 import { type Action } from './bulk-actions';
+import PluginNote from './PluginNote';
 import { getPluginFieldKey } from './plugin-fields';
 import PluginsFooter, {
 	type SnackbarState,
@@ -63,6 +64,8 @@ export type PluginItem = {
 	EnableNonce: string;
 	BlockNonce: string;
 	PatchNonce: string;
+	NoteNonce: string;
+	Notes: string;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -218,8 +221,9 @@ const getBulkSuccessMessage = (
 const PluginsList = ( props: {
 	plugins: PluginItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
+	onNotesChange: ( file: string, notes: string ) => void;
 } ) => {
-	const { plugins, autoUpdatesStatus } = props;
+	const { plugins, autoUpdatesStatus, onNotesChange } = props;
 	const { control, getValues, setValue } =
 		useFormContext< PluginsFormValues >();
 	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
@@ -664,27 +668,41 @@ const PluginsList = ( props: {
 	] );
 
 	/**
-	 * Get the activation badge for a plugin.
+	 * Get activation and notes badges for a plugin.
 	 *
 	 * @param plugin The plugin.
-	 * @return The activation badge.
+	 * @return The plugin badges.
 	 */
-	const getActivationBadge = ( plugin: PluginItem ): React.ReactNode => {
-		if ( updatebeePlugins.isNetworkAdmin && ! plugin.Active ) {
+	const getPluginBadges = ( plugin: PluginItem ): React.ReactNode => {
+		const hasNotes = '' !== ( plugin.Notes || '' ).trim();
+		let activationBadge: React.ReactNode = null;
+
+		if ( ! updatebeePlugins.isNetworkAdmin || plugin.Active ) {
+			let intent: React.ComponentProps< typeof Badge >[ 'intent' ] =
+				'stable';
+			let label: string = __( 'Activated', 'updatebee' );
+			if ( ! plugin.Active ) {
+				intent = 'high';
+				label = __( 'Deactivated', 'updatebee' );
+			} else if ( updatebeePlugins.isNetworkAdmin && plugin.Active ) {
+				intent = 'stable';
+				label = __( 'Network Activated', 'updatebee' );
+			}
+			activationBadge = <Badge intent={ intent }>{ label }</Badge>;
+		}
+
+		if ( ! activationBadge && ! hasNotes ) {
 			return null;
 		}
-		let intent: React.ComponentProps< typeof Badge >[ 'intent' ] = 'stable';
-		let label: string = __( 'Activated', 'updatebee' );
-		if ( ! plugin.Active ) {
-			intent = 'high';
-			label = __( 'Deactivated', 'updatebee' );
-		} else if ( updatebeePlugins.isNetworkAdmin && plugin.Active ) {
-			intent = 'stable';
-			label = __( 'Network Activated', 'updatebee' );
-		}
+
 		return (
 			<div className="updatebee-plugin-badge">
-				<Badge intent={ intent }>{ label }</Badge>
+				{ activationBadge }
+				{ hasNotes && (
+					<Badge intent="low">
+						{ __( 'Note', 'updatebee' ) }
+					</Badge>
+				) }
 			</div>
 		);
 	};
@@ -1033,7 +1051,7 @@ const PluginsList = ( props: {
 								</div>
 								<div></div>
 								<div className="updatebee-plugin-column updatebee-plugin-column-info">
-									{ getActivationBadge( plugin ) }
+									{ getPluginBadges( plugin ) }
 									<div className="updatebee-plugin-actions">
 										<Controller
 											name={ autoKey }
@@ -1287,6 +1305,12 @@ const PluginsList = ( props: {
 											</>
 										) }
 									</div>
+									<PluginNote
+										plugin={ plugin }
+										disabled={ isBusy }
+										onNotesChange={ onNotesChange }
+										showSnackbar={ showSnackbar }
+									/>
 								</div>
 
 								<div
@@ -1324,6 +1348,20 @@ const PluginsMain = () => {
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
 
+	/**
+	 * Update a plugin's notes in local list state.
+	 *
+	 * @param file  Plugin file.
+	 * @param notes Saved notes.
+	 */
+	const handleNotesChange = useCallback( ( file: string, notes: string ) => {
+		setPlugins( ( current ) =>
+			current.map( ( plugin ) =>
+				plugin.File === file ? { ...plugin, Notes: notes } : plugin
+			)
+		);
+	}, [] );
+
 	useEffect( () => {
 		let cancelled = false;
 
@@ -1343,7 +1381,13 @@ const PluginsMain = () => {
 					return;
 				}
 
-				const pluginItems = Object.values( data.plugins );
+				const pluginItems = Object.values( data.plugins ).map(
+					( plugin ) => ( {
+						...plugin,
+						Notes: plugin.Notes || '',
+						NoteNonce: plugin.NoteNonce || '',
+					} )
+				);
 				const values: PluginsFormValues = {};
 				pluginItems.forEach( ( plugin ) => {
 					values[ getPluginFieldKey( plugin, 'auto_update' ) ] =
@@ -1399,6 +1443,7 @@ const PluginsMain = () => {
 			<PluginsList
 				plugins={ plugins }
 				autoUpdatesStatus={ autoUpdatesStatus }
+				onNotesChange={ handleNotesChange }
 			/>
 		</FormProvider>
 	);

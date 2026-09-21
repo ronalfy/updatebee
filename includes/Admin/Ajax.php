@@ -9,6 +9,7 @@ namespace UpdateBee\Admin;
 
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Tables\Table_Plugins;
 
 /**
  * Class Ajax.
@@ -27,6 +28,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_plugin_block_updates', array( $this, 'toggle_plugin_block_updates' ) );
 		add_action( 'wp_ajax_updatebee_toggle_plugin_patches', array( $this, 'toggle_plugin_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
+		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
 	}
 
 	/**
@@ -159,6 +161,11 @@ class Ajax {
 			$auto_updated_plugins = array();
 		}
 
+		$plugin_notes = Table_Plugins::get_all_notes();
+		if ( ! is_array( $plugin_notes ) ) {
+			$plugin_notes = array();
+		}
+
 		foreach ( $all_plugins as $file => $plugin ) {
 			if ( ! is_string( $file ) ) {
 				continue;
@@ -173,6 +180,8 @@ class Ajax {
 			$plugin['EnableNonce'] = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
 			$plugin['BlockNonce']  = wp_create_nonce( 'updatebee-plugin-block-' . $file );
 			$plugin['PatchNonce']  = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
+			$plugin['NoteNonce']   = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
+			$plugin['Notes']       = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
 			$plugin['Active']      = in_array( $file, $active_plugin_slugs, true );
 			$plugin['Autoupdates'] = isset( $auto_updated_plugins[ $file ] );
 			$plugin['Blocked']     = Functions::auto_updates_blocked( $file, 'plugin' );
@@ -373,6 +382,38 @@ class Ajax {
 		}
 
 		wp_send_json_success();
+	}
+
+	/**
+	 * Save or remove notes for a single plugin.
+	 */
+	public function save_plugin_note(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-notes-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) ) {
+			wp_send_json_error();
+		}
+
+		$notes = '';
+		if ( isset( $_POST['notes'] ) && is_string( $_POST['notes'] ) ) {
+			$notes = sanitize_textarea_field( wp_unslash( $_POST['notes'] ) );
+		}
+
+		$saved = Table_Plugins::save_notes( $file, $notes );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'notes' => Table_Plugins::get_notes( $file ),
+			)
+		);
 	}
 
 	/**
