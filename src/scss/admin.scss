@@ -71,6 +71,7 @@ body {
 
 .updatebee-settings-layout {
 	display: flex;
+	position: relative;
 	align-items: flex-start;
 	gap: 2rem;
 }
@@ -92,9 +93,20 @@ body {
 	line-height: inherit;
 }
 
-.updatebee-settings-tabs .nav-tab-wrapper::after {
-	content: none;
-	display: none;
+.updatebee-settings-tabs .nav-tab-wrapper {
+	position: relative;
+
+	&:after {
+		content: '';
+		display: block;
+		width: 1px;
+		height: 100%;
+		background-color: var(--wpds-color-background-thumb-neutral-weak);
+		position: absolute;
+		top: 0;
+		right: calc(-1rem + 1px);
+		z-index: 1000;
+	}
 }
 
 .updatebee-settings-tabs .nav-tab-wrapper .nav-tab {
@@ -147,7 +159,7 @@ body {
 	left: 0;
 	z-index: 1000;
 
-	> * {
+	>* {
 		width: 100%;
 	}
 }
