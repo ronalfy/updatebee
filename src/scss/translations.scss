@@ -5,7 +5,8 @@
 @import '../../node_modules/@wordpress/dataviews/build-style/style.css';
 
 .updatebee-translations-main {
-	padding-bottom: 48px;
+	/* Keep the last table rows clear of the sticky DataViews footer. */
+	padding-bottom: 96px;
 }
 
 .updatebee-translation-notice {
@@ -23,9 +24,19 @@
 	flex-direction: column;
 	align-items: flex-start;
 	width: 100%;
+	/* Restore DataViews container queries after the footer is portaled out. */
+	container: dataviews-wrapper / inline-size;
 
 	.updatebee-snackbar {
 		margin: 0 24px 8px;
+	}
+
+	.dataviews-footer {
+		box-sizing: border-box;
+		width: 100%;
+		background-color: #f6f7f7;
+		position: relative;
+		z-index: 1;
 	}
 }
 

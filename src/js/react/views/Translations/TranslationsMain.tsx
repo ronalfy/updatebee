@@ -10,6 +10,7 @@ import {
 } from '@wordpress/dataviews';
 import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import { Stack } from '@wordpress/ui';
 import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import Loader from '../../components/Loader';
@@ -45,7 +46,7 @@ const defaultView: View = {
 	search: '',
 	page: 1,
 	perPage: 25,
-	fields: [ 'EnglishName', 'Locale', 'NativeName' ],
+	fields: [ 'Locale', 'NativeName' ],
 	mediaField: 'media',
 	titleField: 'EnglishName',
 	sort: {
@@ -105,6 +106,53 @@ const getStatusNotice = (
 			'updatebee'
 		),
 	};
+};
+
+type TranslationsDataViewsProps = {
+	searchLabel: string;
+	snackbar: SnackbarState;
+	onSnackbarClose: () => void;
+};
+
+/**
+ * Compose DataViews so the footer can render in the admin slot.
+ *
+ * @param props Toolbar labels and footer snackbar state.
+ */
+const TranslationsDataViews = ( props: TranslationsDataViewsProps ) => {
+	const { searchLabel, snackbar, onSnackbarClose } = props;
+
+	return (
+		<>
+			<Stack
+				direction="row"
+				align="top"
+				justify="space-between"
+				className="dataviews__view-actions"
+				gap="xs"
+			>
+				<Stack
+					direction="row"
+					justify="start"
+					gap="sm"
+					className="dataviews__search"
+				>
+					<DataViews.Search label={ searchLabel } />
+					<DataViews.FiltersToggle />
+				</Stack>
+				<Stack direction="row" gap="xs" style={ { flexShrink: 0 } }>
+					<DataViews.LayoutSwitcher />
+					<DataViews.ViewConfig />
+				</Stack>
+			</Stack>
+			<DataViews.FiltersToggled className="dataviews-filters__container" />
+			<DataViews.Layout />
+			<TranslationsFooter
+				snackbar={ snackbar }
+				onSnackbarClose={ onSnackbarClose }
+			/>
+		</>
+	);
 };
 
 const TranslationIcon = () => {
@@ -438,7 +486,6 @@ const TranslationsMain = () => {
 						},
 					} }
 					getItemId={ ( item ) => item.Locale }
-					searchLabel={ __( 'Search translations', 'updatebee' ) }
 					isLoading={ isBusy }
 					empty={
 						<p>
@@ -448,12 +495,14 @@ const TranslationsMain = () => {
 							) }
 						</p>
 					}
-				/>
+				>
+					<TranslationsDataViews
+						searchLabel={ __( 'Search translations', 'updatebee' ) }
+						snackbar={ snackbar }
+						onSnackbarClose={ handleSnackbarClose }
+					/>
+				</DataViews>
 			</div>
-			<TranslationsFooter
-				snackbar={ snackbar }
-				onSnackbarClose={ handleSnackbarClose }
-			/>
 		</>
 	);
 };

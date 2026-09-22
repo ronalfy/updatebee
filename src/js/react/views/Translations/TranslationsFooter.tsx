@@ -1,7 +1,8 @@
 /**
- * Translations footer snackbar.
+ * Translations footer snackbar and DataViews pagination/bulk bar.
  */
 import { Fill } from '@wordpress/components';
+import { DataViews } from '@wordpress/dataviews';
 import Snackbar from '../../components/Snackbar';
 
 export type SnackbarType = 'success' | 'error' | 'warning' | 'info';
@@ -29,6 +30,7 @@ const TranslationsFooter = ( props: TranslationsFooterProps ) => {
 					type={ snackbar.type }
 					onClose={ onSnackbarClose }
 				/>
+				<DataViews.Footer />
 			</div>
 		</Fill>
 	);

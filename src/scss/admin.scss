@@ -146,6 +146,10 @@ body {
 	bottom: 0;
 	left: 0;
 	z-index: 1000;
+
+	> * {
+		width: 100%;
+	}
 }
 
 .updatebee-bulk-actions-container {
@@ -169,8 +173,8 @@ body {
 	}
 }
 
-/* Pin the footer slot to the viewport when it hosts the bulk bar. */
-#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+/* Pin the footer slot to the viewport when it hosts the bulk or DataViews bar. */
+#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer) {
 	bottom: 0;
 	left: 160px;
 	position: fixed;
@@ -179,21 +183,21 @@ body {
 	z-index: 1000;
 }
 
-.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer) {
 	left: 36px;
 }
 
 @media screen and (max-width: 960px) {
-	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer) {
 		left: 36px;
 	}
 }
 
 @media screen and (max-width: 782px) {
 
-	#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
-	.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
-	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
+	#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer),
+	.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer),
+	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container, .dataviews-footer) {
 		left: 0;
 	}
 }

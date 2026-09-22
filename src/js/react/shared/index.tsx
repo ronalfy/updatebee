@@ -33,6 +33,9 @@ const withViewBoundary = ( children: ReactNode ): ReactNode => {
 /**
  * Mount children into a DOM node and optionally portal a footer Slot.
  *
+ * The footer Slot uses bubblesVirtually so Fill children keep React context
+ * (required for DataViews.Footer).
+ *
  * @param domId    Target container element ID.
  * @param children React nodes to render in the container.
  */
@@ -61,7 +64,11 @@ export const commonFill = ( domId: string, children: ReactNode ): void => {
 					<SlotFillProvider>
 						{ createPortal( view, container ) }
 						{ createPortal(
-							<Slot name="updatebeeFooter" />,
+							<Slot
+								name="updatebeeFooter"
+								bubblesVirtually
+								style={ { width: '100%' } }
+							/>,
 							slotContainer
 						) }
 					</SlotFillProvider>
