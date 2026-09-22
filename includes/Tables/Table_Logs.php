@@ -264,6 +264,37 @@ class Table_Logs extends Tables {
 	}
 
 	/**
+	 * Delete log rows older than the given number of days.
+	 *
+	 * @param int $days Retention window in days.
+	 * @return bool True when the query succeeds.
+	 */
+	public static function clear_logs_older_than( int $days ): bool {
+		if ( $days < 1 ) {
+			return false;
+		}
+
+		global $wpdb;
+
+		$table_name = static::get_table_name();
+		$cutoff     = wp_date( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
+		if ( ! is_string( $cutoff ) || '' === $cutoff ) {
+			return false;
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is generated internally.
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$table_name} WHERE date < %s",
+				$cutoff
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return false !== $result;
+	}
+
+	/**
 	 * Get log rows for CSV export.
 	 *
 	 * @param array<string, mixed> $args Export filters.

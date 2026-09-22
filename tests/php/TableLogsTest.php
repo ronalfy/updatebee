@@ -146,6 +146,43 @@ class TableLogsTest extends TestCase {
 	}
 
 	/**
+	 * Test aged clear deletes rows older than the cutoff.
+	 */
+	public function test_clear_logs_older_than_deletes_rows_before_cutoff(): void {
+		$this->stub_table_helpers();
+		$cutoff = '2023-10-14 12:00:00';
+		MonkeyFunctions\expect( 'wp_date' )
+			->once()
+			->with( 'Y-m-d H:i:s', \Mockery::type( 'int' ) )
+			->andReturn( $cutoff );
+
+		$wpdb = $this->create_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$cleared = Table_Logs::clear_logs_older_than( 7 );
+
+		$this->assertTrue( $cleared );
+		$this->assertStringContainsString( 'DELETE FROM', $wpdb->query_ran );
+		$this->assertStringContainsString( Table_Logs::get_table_name(), $wpdb->query_ran );
+		$this->assertStringContainsString( "date < '" . $cutoff . "'", $wpdb->query_ran );
+	}
+
+	/**
+	 * Test aged clear does not query for zero or negative days.
+	 */
+	public function test_clear_logs_older_than_skips_non_positive_days(): void {
+		$this->stub_table_helpers();
+		$wpdb = $this->create_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$this->assertFalse( Table_Logs::clear_logs_older_than( 0 ) );
+		$this->assertSame( '', $wpdb->query_ran );
+
+		$this->assertFalse( Table_Logs::clear_logs_older_than( -3 ) );
+		$this->assertSame( '', $wpdb->query_ran );
+	}
+
+	/**
 	 * Test export query applies categorical filters and a date range.
 	 */
 	public function test_get_logs_for_export_applies_filters_and_date_range(): void {

@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Functions;
+use UpdateBee\Options;
 
 /**
  * Output the logs tab and content.
@@ -81,14 +82,20 @@ class Logs {
 			$style_deps,
 			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
 		);
+		$clear_logs_days   = Options::get_options( 'clear_logs_days' );
+		$slack_webhook_url = Options::get_options( 'slack_webhook_url' );
+
 		wp_localize_script(
 			'updatebee-logs',
 			'updatebeeLogs',
 			array(
-				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-logs' ),
-				'detailNonce'   => wp_create_nonce( 'updatebee-retrieve-log-detail' ),
-				'exportNonce'   => wp_create_nonce( 'updatebee-export-logs' ),
-				'clearNonce'    => wp_create_nonce( 'updatebee-clear-logs' ),
+				'retrieveNonce'   => wp_create_nonce( 'updatebee-retrieve-logs' ),
+				'detailNonce'     => wp_create_nonce( 'updatebee-retrieve-log-detail' ),
+				'exportNonce'     => wp_create_nonce( 'updatebee-export-logs' ),
+				'clearNonce'      => wp_create_nonce( 'updatebee-clear-logs' ),
+				'saveNonce'       => wp_create_nonce( 'updatebee-save-logs-settings' ),
+				'clearLogsDays'   => absint( $clear_logs_days ),
+				'slackWebhookUrl' => is_string( $slack_webhook_url ) ? $slack_webhook_url : '',
 			)
 		);
 

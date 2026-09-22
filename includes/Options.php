@@ -59,6 +59,8 @@ class Options {
 			'auto_update_translations'         => array(),
 			'blocked_translations'             => array(),
 			'enable_core_emails'               => true,
+			'clear_logs_days'                  => 0,
+			'slack_webhook_url'                => '',
 		);
 
 		/**

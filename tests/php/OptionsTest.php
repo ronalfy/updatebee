@@ -58,6 +58,8 @@ class OptionsTest extends TestCase {
 		$this->assertSame( 'on', $options['minor_auto_updates'] );
 		$this->assertSame( 'on', $options['translation_auto_updates'] );
 		$this->assertSame( array(), $options['auto_update_plugins'] );
+		$this->assertSame( 0, $options['clear_logs_days'] );
+		$this->assertSame( '', $options['slack_webhook_url'] );
 	}
 
 	/**

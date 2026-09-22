@@ -36,6 +36,9 @@ interface UpdateBeeLogs {
 	detailNonce: string;
 	exportNonce: string;
 	clearNonce: string;
+	saveNonce: string;
+	clearLogsDays: number;
+	slackWebhookUrl: string;
 }
 
 declare const updatebeeLogs: UpdateBeeLogs;

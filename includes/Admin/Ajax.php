@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin;
 
+use UpdateBee\Cron\Clear_Logs;
 use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
@@ -55,6 +56,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_retrieve_log_detail', array( $this, 'retrieve_log_detail' ) );
 		add_action( 'wp_ajax_updatebee_export_logs', array( $this, 'export_logs' ) );
 		add_action( 'wp_ajax_updatebee_clear_logs', array( $this, 'clear_logs' ) );
+		add_action( 'wp_ajax_updatebee_save_logs_settings', array( $this, 'save_logs_settings' ) );
 
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
@@ -977,6 +979,53 @@ class Ajax {
 	}
 
 	/**
+	 * Save log retention and Slack webhook settings.
+	 */
+	public function save_logs_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-logs-settings', 'nonce' );
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Days are passed through absint.
+		$days = isset( $_POST['clear_logs_days'] ) ? absint( wp_unslash( $_POST['clear_logs_days'] ) ) : 0;
+
+		$slack_webhook_url = '';
+		if ( isset( $_POST['slack_webhook_url'] ) ) {
+			$raw_webhook = sanitize_text_field( wp_unslash( $_POST['slack_webhook_url'] ) );
+			if ( '' !== $raw_webhook ) {
+				$slack_webhook_url = esc_url_raw( $raw_webhook );
+			}
+		}
+
+		$updated = Options::update_options(
+			'',
+			array(
+				'clear_logs_days'   => $days,
+				'slack_webhook_url' => $slack_webhook_url,
+			)
+		);
+		if ( null === $updated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Log settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		Clear_Logs::sync_schedule();
+
+		wp_send_json_success(
+			array(
+				'message'           => __( 'Log settings have been saved.', 'updatebee' ),
+				'clear_logs_days'   => $days,
+				'slack_webhook_url' => $slack_webhook_url,
+			)
+		);
+	}
+
+	/**
 	 * Enable or disable auto-updates for a single translation locale.
 	 */
 	public function toggle_translation_auto_updates(): void {
@@ -1285,6 +1334,7 @@ class Ajax {
 
 		if ( in_array( 'all', $selected, true ) ) {
 			Options::reset_options();
+			Clear_Logs::sync_schedule();
 			wp_send_json_success(
 				array(
 					'message' => __( 'Options have been reset.', 'updatebee' ),

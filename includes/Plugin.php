@@ -10,6 +10,7 @@ namespace UpdateBee;
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
+use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
 use UpdateBee\Tables\{
 	Tables,
 	Table_Logs,
@@ -74,6 +75,13 @@ class Plugin {
 	private Update_Logs $update_logs;
 
 	/**
+	 * Expired log cleanup cron.
+	 *
+	 * @var Clear_Logs_Cron
+	 */
+	private Clear_Logs_Cron $clear_logs_cron;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -127,5 +135,8 @@ class Plugin {
 
 		$this->update_logs = new Update_Logs();
 		$this->update_logs->run();
+
+		$this->clear_logs_cron = new Clear_Logs_Cron();
+		$this->clear_logs_cron->run();
 	}
 }

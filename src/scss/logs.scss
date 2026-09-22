@@ -103,11 +103,13 @@
 	color: #b32d2e;
 }
 
-.updatebee-logs-export-drawer-portal {
+.updatebee-logs-export-drawer-portal,
+.updatebee-logs-settings-drawer-portal {
 	--wp-ui-drawer-z-index: 100000;
 }
 
-.updatebee-logs-export-fields {
+.updatebee-logs-export-fields,
+.updatebee-logs-settings-fields {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
@@ -119,7 +121,8 @@
 	color: #b32d2e;
 }
 
-.updatebee-logs-export-footer {
+.updatebee-logs-export-footer,
+.updatebee-logs-settings-footer {
 	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
