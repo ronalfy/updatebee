@@ -53,6 +53,7 @@ class LogsTest extends TestCase {
 		$hooks = array();
 		MonkeyFunctions\when( 'add_action' )->alias(
 			static function ( $hook, $callback, $priority = 10, $accepted_args = 1 ) use ( &$hooks ) {
+				unset( $callback, $accepted_args );
 				$hooks[] = array(
 					'hook'     => $hook,
 					'priority' => $priority,
@@ -60,6 +61,7 @@ class LogsTest extends TestCase {
 				return true;
 			}
 		);
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
 
 		$logs = new Logs();
 		$logs->run();
@@ -84,6 +86,44 @@ class LogsTest extends TestCase {
 				'priority' => 9,
 			),
 			$hooks
+		);
+	}
+
+	/**
+	 * Test run registers manual upgrader logging hooks.
+	 */
+	public function test_run_registers_manual_upgrader_hooks(): void {
+		$filters = array();
+		$actions = array();
+
+		MonkeyFunctions\when( 'add_filter' )->alias(
+			static function ( $hook ) use ( &$filters ) {
+				$filters[] = $hook;
+				return true;
+			}
+		);
+		MonkeyFunctions\when( 'add_action' )->alias(
+			static function ( $hook, $callback, $priority = 10 ) use ( &$actions ) {
+				unset( $callback );
+				$actions[] = array(
+					'hook'     => $hook,
+					'priority' => $priority,
+				);
+				return true;
+			}
+		);
+
+		$logs = new Logs();
+		$logs->run();
+
+		$this->assertContains( 'upgrader_package_options', $filters );
+		$this->assertContains( 'upgrader_pre_download', $filters );
+		$this->assertContains(
+			array(
+				'hook'     => 'upgrader_process_complete',
+				'priority' => 1,
+			),
+			$actions
 		);
 	}
 
@@ -307,5 +347,203 @@ class LogsTest extends TestCase {
 		$this->assertStringContainsString( Table_Logs::get_table_name(), $wpdb->query_ran );
 		$this->assertStringContainsString( "'failure'", $wpdb->query_ran );
 		$this->assertCount( 1, $results );
+	}
+
+	/**
+	 * Test manual plugin updates are written with manual offer and user id.
+	 */
+	public function test_log_upgrader_updates_writes_manual_plugin_log(): void {
+		$this->stub_log_helpers();
+		MonkeyFunctions\when( 'get_current_user_id' )->justReturn( 42 );
+		MonkeyFunctions\when( 'maybe_serialize' )->alias(
+			static function ( $data ) {
+				return serialize( $data );
+			}
+		);
+
+		$wpdb = new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last inserted row.
+			 *
+			 * @var array<string, mixed>|null
+			 */
+			public $inserted_row = null;
+
+			/**
+			 * Mock wpdb insert.
+			 *
+			 * @param string               $table Table name.
+			 * @param array<string, mixed> $data  Row data.
+			 * @return bool
+			 */
+			public function insert( $table, $data ) {
+				unset( $table );
+				$this->inserted_row = $data;
+				return true;
+			}
+		};
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs       = new Logs();
+		$reflection = new \ReflectionClass( $logs );
+		$messages   = $reflection->getProperty( 'log_messages' );
+		$messages->setAccessible( true );
+		$messages->setValue(
+			$logs,
+			array(
+				'plugin' => array(
+					'hello-dolly/hello.php' => array(
+						'name'   => 'Hello Dolly',
+						'from'   => '1.0.0',
+						'to'     => '1.1.0',
+						'status' => 1,
+					),
+				),
+			)
+		);
+
+		$logs->log_upgrader_updates(
+			(object) array(),
+			array(
+				'action'  => 'update',
+				'type'    => 'plugin',
+				'plugins' => array( 'hello-dolly/hello.php' ),
+			)
+		);
+
+		$this->assertIsArray( $wpdb->inserted_row );
+		$this->assertSame( 'manual', $wpdb->inserted_row['update_offer'] );
+		$this->assertSame( 42, $wpdb->inserted_row['user_id'] );
+		$this->assertSame( 'success', $wpdb->inserted_row['update_status'] );
+		$this->assertSame( 'hello-dolly', $wpdb->inserted_row['slug'] );
+	}
+
+	/**
+	 * Test upgrader logging is skipped during automatic updates.
+	 */
+	public function test_log_upgrader_updates_skips_when_auto_update_flag_set(): void {
+		$this->stub_log_helpers();
+		MonkeyFunctions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$wpdb = new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Whether insert was called.
+			 *
+			 * @var bool
+			 */
+			public $insert_ran = false;
+
+			/**
+			 * Mock wpdb insert.
+			 *
+			 * @return bool
+			 */
+			public function insert() {
+				$this->insert_ran = true;
+				return true;
+			}
+		};
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs       = new Logs();
+		$reflection = new \ReflectionClass( $logs );
+		$auto_flag  = $reflection->getProperty( 'is_auto_update' );
+		$auto_flag->setAccessible( true );
+		$auto_flag->setValue( $logs, true );
+
+		$messages = $reflection->getProperty( 'log_messages' );
+		$messages->setAccessible( true );
+		$messages->setValue(
+			$logs,
+			array(
+				'plugin' => array(
+					'hello-dolly/hello.php' => array(
+						'name'   => 'Hello Dolly',
+						'from'   => '1.0.0',
+						'to'     => '1.1.0',
+						'status' => 1,
+					),
+				),
+			)
+		);
+
+		$logs->log_upgrader_updates(
+			(object) array(),
+			array(
+				'action'  => 'update',
+				'type'    => 'plugin',
+				'plugins' => array( 'hello-dolly/hello.php' ),
+			)
+		);
+
+		$this->assertFalse( $wpdb->insert_ran );
+	}
+
+	/**
+	 * Test insert_log persists stacktrace when provided.
+	 */
+	public function test_insert_log_persists_stacktrace(): void {
+		$this->stub_log_helpers();
+
+		$wpdb = new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last inserted row.
+			 *
+			 * @var array<string, mixed>|null
+			 */
+			public $inserted_row = null;
+
+			/**
+			 * Mock wpdb insert.
+			 *
+			 * @param string               $table Table name.
+			 * @param array<string, mixed> $data  Row data.
+			 * @return bool
+			 */
+			public function insert( $table, $data ) {
+				unset( $table );
+				$this->inserted_row = $data;
+				return true;
+			}
+		};
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs = new Logs();
+		$logs->insert_log(
+			'Plugin',
+			'plugin-slug',
+			5,
+			'1.0.0',
+			'1.0.1',
+			'manual',
+			'plugin',
+			'success',
+			'notes',
+			'serialized-trace'
+		);
+
+		$this->assertIsArray( $wpdb->inserted_row );
+		$this->assertSame( 'serialized-trace', $wpdb->inserted_row['stacktrace'] ?? null );
 	}
 }

@@ -54,7 +54,7 @@ class Table_Logs extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_version = '1.0.0';
+	protected static $table_version = '1.1.0';
 
 	/**
 	 * Table columns and their schema.
@@ -138,6 +138,14 @@ class Table_Logs extends Tables {
 		'raw'           => array(
 			'name'           => 'raw',
 			'schema'         => 'TEXT NOT NULL',
+			'sanitize'       => 'sanitize_textarea_field',
+			'validate'       => 'is_string',
+			'prepare_symbol' => '%s',
+			'mapped_column'  => null,
+		),
+		'stacktrace'    => array(
+			'name'           => 'stacktrace',
+			'schema'         => 'TEXT NULL',
 			'sanitize'       => 'sanitize_textarea_field',
 			'validate'       => 'is_string',
 			'prepare_symbol' => '%s',
