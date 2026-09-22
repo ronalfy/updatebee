@@ -66,6 +66,9 @@ declare const updatebeeEmails: UpdateBeeEmails;
 
 interface UpdateBeeCron {
 	nonce: string;
+	eventsNonce: string;
+	initialSubtab: string;
+	settingsUrl: string;
 }
 
 declare const updatebeeCron: UpdateBeeCron;

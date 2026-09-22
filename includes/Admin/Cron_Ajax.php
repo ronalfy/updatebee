@@ -7,7 +7,7 @@
 
 namespace UpdateBee\Admin;
 
-use UpdateBee\Cron\Schedules;
+use UpdateBee\Cron\Cron_Events;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
 
@@ -38,6 +38,26 @@ class Cron_Ajax {
 		}
 
 		add_action( 'wp_ajax_updatebee_get_cron_time', array( $this, 'ajax_get_time' ) );
+
+		add_action( 'wp_ajax_updatebee_list_cron_events', array( $this, 'ajax_list_cron_events' ) );
+		add_action( 'wp_ajax_updatebee_delete_cron_event', array( $this, 'ajax_delete_cron_event' ) );
+		add_action( 'wp_ajax_updatebee_run_cron_event', array( $this, 'ajax_run_cron_event' ) );
+	}
+
+	/**
+	 * Verify cron events nonce and capability.
+	 */
+	private function verify_events_request(): bool {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, Cron_Events::EVENTS_NONCE_ACTION ) ) {
+			wp_send_json_error();
+		}
+
+		return true;
 	}
 
 	/**
@@ -113,21 +133,7 @@ class Cron_Ajax {
 		$options = Updates_Cron::sanitize_schedule_input( $input );
 		Updates_Cron::save_cron_options( $context, $options );
 
-		$next_cron = Updates_Cron::get_next_cron_event( $context );
-		if ( false === $next_cron || 0 === $next_cron ) {
-			$next_cron = Schedules::calculate_next_event( $options, true );
-		}
-
-		if ( is_int( $next_cron ) && $next_cron > 0 ) {
-			wp_send_json_success( Schedules::get_format_from_cron( $next_cron ) );
-		}
-
-		wp_send_json_success(
-			array(
-				'timestamp' => 0,
-				'datetime'  => '',
-			)
-		);
+		wp_send_json_success( Updates_Cron::get_schedule_payload( $context ) );
 	}
 
 	/**
@@ -145,13 +151,7 @@ class Cron_Ajax {
 		update_site_option( Updates_Cron::get_option_key( $context ), $defaults );
 		Updates_Cron::set_default_crons( $context );
 
-		$next_cron = Updates_Cron::get_next_cron_event( $context );
-		$payload   = array_merge( $defaults, array( 'timestamp' => 0, 'datetime' => '' ) );
-		if ( false !== $next_cron && $next_cron > 0 ) {
-			$payload = array_merge( $payload, Schedules::get_format_from_cron( (int) $next_cron ) );
-		}
-
-		wp_send_json_success( $payload );
+		wp_send_json_success( Updates_Cron::get_schedule_payload( $context ) );
 	}
 
 	/**
@@ -175,6 +175,88 @@ class Cron_Ajax {
 			array(
 				'universal_time' => $universal_time,
 				'local_time'     => $local_time,
+			)
+		);
+	}
+
+	/**
+	 * List all scheduled cron events.
+	 */
+	public function ajax_list_cron_events(): void {
+		$this->verify_events_request();
+
+		wp_send_json_success(
+			array(
+				'events' => Cron_Events::list_events(),
+			)
+		);
+	}
+
+	/**
+	 * Delete a cron event.
+	 */
+	public function ajax_delete_cron_event(): void {
+		$this->verify_events_request();
+
+		$hook      = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
+		$sig       = isset( $_POST['sig'] ) ? sanitize_text_field( wp_unslash( $_POST['sig'] ) ) : '';
+		$timestamp = isset( $_POST['timestamp'] ) ? absint( wp_unslash( $_POST['timestamp'] ) ) : 0;
+
+		if ( '' === $hook || '' === $sig || $timestamp <= 0 ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid cron event.', 'updatebee' ),
+				)
+			);
+		}
+
+		$result = Cron_Events::delete_event( $hook, $sig, $timestamp );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $result->get_error_message(),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Cron event deleted.', 'updatebee' ),
+				'events'  => Cron_Events::list_events(),
+			)
+		);
+	}
+
+	/**
+	 * Run a cron event immediately.
+	 */
+	public function ajax_run_cron_event(): void {
+		$this->verify_events_request();
+
+		$hook = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
+		$sig  = isset( $_POST['sig'] ) ? sanitize_text_field( wp_unslash( $_POST['sig'] ) ) : '';
+
+		if ( '' === $hook || '' === $sig ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid cron event.', 'updatebee' ),
+				)
+			);
+		}
+
+		$result = Cron_Events::run_event( $hook, $sig );
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $result->get_error_message(),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Cron event was scheduled to run. It may take a moment to complete depending on server loopback.', 'updatebee' ),
+				'events'  => Cron_Events::list_events(),
 			)
 		);
 	}

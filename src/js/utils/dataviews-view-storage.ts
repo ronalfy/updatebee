@@ -6,6 +6,7 @@ import type { View } from '@wordpress/dataviews';
 export const DATAVIEWS_STORAGE_KEYS = {
 	logs: 'updatebee:dataviews:v1:logs',
 	translations: 'updatebee:dataviews:v1:translations',
+	cronEvents: 'updatebee:dataviews:v1:cron-events',
 } as const;
 
 type PersistableView = Omit< View, 'search' | 'page' > & {

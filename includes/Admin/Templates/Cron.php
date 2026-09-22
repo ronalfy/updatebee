@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Cron\Cron_Events;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
 
@@ -65,6 +66,9 @@ class Cron {
 		}
 
 		$style_deps = array( 'updatebee-admin' );
+		if ( wp_style_is( 'wp-dataviews', 'registered' ) ) {
+			$style_deps[] = 'wp-dataviews';
+		}
 
 		wp_enqueue_script(
 			'updatebee-cron',
@@ -84,7 +88,10 @@ class Cron {
 			'updatebee-cron',
 			'updatebeeCron',
 			array(
-				'nonce' => wp_create_nonce( Updates_Cron::NONCE_ACTION ),
+				'nonce'         => wp_create_nonce( Updates_Cron::NONCE_ACTION ),
+				'eventsNonce'   => wp_create_nonce( Cron_Events::EVENTS_NONCE_ACTION ),
+				'initialSubtab' => Functions::get_admin_sub_tab() ?: 'schedule',
+				'settingsUrl'   => esc_url_raw( Functions::get_settings_url( 'cron' ) ),
 			)
 		);
 

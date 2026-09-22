@@ -58,10 +58,15 @@ const CronScheduleForm = ( props: CronScheduleFormProps ) => {
 			typeof payload.datetime === 'string' ? payload.datetime : '';
 		const timestamp =
 			typeof payload.timestamp === 'number' ? payload.timestamp : 0;
+		const crontabEquivalent =
+			typeof payload.crontab_equivalent === 'string'
+				? payload.crontab_equivalent
+				: '';
 		setValues( ( current ) => ( {
 			...current,
 			datetime,
 			timestamp,
+			crontabEquivalent,
 		} ) );
 	};
 

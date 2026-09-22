@@ -2,11 +2,55 @@
  * Cron tab layout.
  */
 
+@import '../../node_modules/@wordpress/dataviews/build-style/style.css';
+
 .updatebee-cron-main {
 	display: flex;
 	flex-direction: column;
 	gap: 24px;
 	padding-bottom: 48px;
+}
+
+.updatebee-cron-tabs-list {
+	margin-bottom: 8px;
+}
+
+.updatebee-cron-schedule-tab,
+.updatebee-cron-events-tab {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	padding-top: 8px;
+}
+
+.updatebee-cron-events-tab {
+	/* Keep the last table rows clear of the sticky DataViews footer. */
+	padding-bottom: 96px;
+}
+
+.updatebee-cron-events-tab .dataviews-wrapper {
+	margin-top: 8px;
+	padding: var(--wpds-dimension-padding-2xl) var(--wpds-dimension-padding-xl);
+}
+
+.updatebee-cron-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	container: dataviews-wrapper / inline-size;
+
+	.updatebee-snackbar {
+		margin: 0 24px 8px;
+	}
+
+	.dataviews-footer {
+		box-sizing: border-box;
+		width: 100%;
+		background-color: #f6f7f7;
+		position: relative;
+		z-index: 1;
+	}
 }
 
 .updatebee-cron-time-heading {
@@ -39,6 +83,20 @@
 	label {
 		min-width: 120px;
 		font-weight: 600;
+	}
+}
+
+.updatebee-cron-crontab-row {
+	align-items: flex-start;
+
+	.updatebee-cron-crontab-field {
+		flex: 1 1 280px;
+		min-width: 280px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			"Liberation Mono", "Courier New", monospace;
+		font-size: 12px;
+		line-height: 1.45;
+		resize: vertical;
 	}
 }
 

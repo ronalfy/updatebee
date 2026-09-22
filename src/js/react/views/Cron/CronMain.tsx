@@ -1,20 +1,28 @@
 /**
- * Cron tab: three independent update check schedules.
+ * Cron tab: Schedule and Cron Events sub-views.
  */
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
+import { Tabs, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
+import CronEventsMain from './CronEventsMain';
 import CronFooter from './CronFooter';
-import CronScheduleCard from './CronScheduleCard';
-import CronTimeDisplay from './CronTimeDisplay';
+import CronScheduleTab from './CronScheduleTab';
 import type { SnackbarState, SnackbarType } from '../Tools/ToolsFooter';
 
+type CronSubtab = 'schedule' | 'events';
+
+const resolveInitialSubtab = (): CronSubtab =>
+	'events' === updatebeeCron.initialSubtab ? 'events' : 'schedule';
+
 /**
- * Cron settings screen.
+ * Cron settings screen with tabs.
  */
 const CronMain = () => {
 	useEnableWpCompatOverlaySlot();
 
+	const [ activeTab, setActiveTab ] = useState< CronSubtab >(
+		resolveInitialSubtab
+	);
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
@@ -39,58 +47,50 @@ const CronMain = () => {
 		} ) );
 	}, [] );
 
+	const handleTabChange = useCallback( ( value: string ) => {
+		const next = 'events' === value ? 'events' : 'schedule';
+		setActiveTab( next );
+
+		try {
+			const url = new URL(
+				updatebeeCron.settingsUrl,
+				window.location.href
+			);
+			url.searchParams.set( 'subtab', next );
+			window.history.replaceState( null, '', url.toString() );
+		} catch {
+			// Ignore invalid settings URL.
+		}
+	}, [] );
+
 	return (
 		<div className="updatebee-cron-main">
-			<Card.Root className="updatebee-cron-card updatebee-cron-intro-card">
-				<Card.Header>
-					<Card.Title>
-						{ __( 'Update cron schedules', 'updatebee' ) }
-					</Card.Title>
-					<p className="description">
-						{ __(
-							'Modify when update cron schedules are run. This is useful if you would like updates to run during off-peak hours.',
-							'updatebee'
-						) }
-					</p>
-				</Card.Header>
-				<Card.Content>
-					<h2 className="updatebee-cron-time-heading">
-						{ __( 'WordPress time', 'updatebee' ) }
-					</h2>
-					<CronTimeDisplay />
-				</Card.Content>
-			</Card.Root>
-			<CronScheduleCard
-				slug="plugin_updates"
-				title={ __( 'Plugin updates', 'updatebee' ) }
-				description={ __(
-					'Schedule when WordPress checks for plugin updates.',
-					'updatebee'
-				) }
-				onNotify={ onNotify }
-			/>
-			<CronScheduleCard
-				slug="theme_updates"
-				title={ __( 'Theme updates', 'updatebee' ) }
-				description={ __(
-					'Schedule when WordPress checks for theme updates.',
-					'updatebee'
-				) }
-				onNotify={ onNotify }
-			/>
-			<CronScheduleCard
-				slug="core_updates"
-				title={ __( 'Core updates', 'updatebee' ) }
-				description={ __(
-					'Schedule when WordPress checks for core updates.',
-					'updatebee'
-				) }
-				onNotify={ onNotify }
-			/>
-			<CronFooter
-				snackbar={ snackbar }
-				onSnackbarClose={ onSnackbarClose }
-			/>
+			<Tabs.Root value={ activeTab } onValueChange={ handleTabChange }>
+				<Tabs.List className="updatebee-cron-tabs-list">
+					<Tabs.Tab value="schedule">
+						{ __( 'Schedule', 'updatebee' ) }
+					</Tabs.Tab>
+					<Tabs.Tab value="events">
+						{ __( 'Cron Events', 'updatebee' ) }
+					</Tabs.Tab>
+				</Tabs.List>
+				<Tabs.Panel value="schedule">
+					<CronScheduleTab onNotify={ onNotify } />
+				</Tabs.Panel>
+				<Tabs.Panel value="events">
+					<CronEventsMain
+						onNotify={ onNotify }
+						snackbar={ snackbar }
+						onSnackbarClose={ onSnackbarClose }
+					/>
+				</Tabs.Panel>
+			</Tabs.Root>
+			{ 'schedule' === activeTab ? (
+				<CronFooter
+					snackbar={ snackbar }
+					onSnackbarClose={ onSnackbarClose }
+				/>
+			) : null }
 		</div>
 	);
 };

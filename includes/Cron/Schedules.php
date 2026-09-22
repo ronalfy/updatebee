@@ -245,8 +245,8 @@ class Schedules {
 		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
 		$time     = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
 
-		$options      = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
-		$allowed_days = $options['days_list'];
+		$options            = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
+		$allowed_days       = $options['days_list'];
 		$use_selective_days = false;
 		$interval           = 0;
 
@@ -362,5 +362,299 @@ class Schedules {
 			'datetime'   => esc_js( get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $next_cron ) ) ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 			'timestamp'  => $next_cron,
 		);
+	}
+
+	/**
+	 * Build copyable crontab text for a saved schedule (site-local time).
+	 *
+	 * @param array<string, mixed> $options   Saved schedule options.
+	 * @param string               $cron_hook WordPress cron hook name.
+	 * @return string Multiline crontab-style text with command hints.
+	 */
+	public static function get_crontab_equivalent( array $options, string $cron_hook ): string {
+		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
+		$options  = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
+
+		$time_parts = self::parse_start_time( isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00' );
+		$minute     = $time_parts['minute'];
+		$hour       = $time_parts['hour'];
+
+		$lines   = self::get_crontab_command_comment_lines( $cron_hook );
+		$lines[] = '# Times use the WordPress site timezone.';
+
+		$cron_lines = self::build_crontab_schedule_lines( $options, $minute, $hour );
+		if ( empty( $cron_lines ) ) {
+			$lines[] = '# No valid run days are configured for this schedule.';
+			return implode( "\n", $lines );
+		}
+
+		return implode( "\n", array_merge( $lines, $cron_lines ) );
+	}
+
+	/**
+	 * Suggested WP-CLI / curl comments for system crontab entries.
+	 *
+	 * @param string $cron_hook WordPress cron hook name.
+	 * @return string[]
+	 */
+	private static function get_crontab_command_comment_lines( string $cron_hook ): array {
+		$cron_url = home_url( 'wp-cron.php?doing_wp_cron' );
+
+		return array(
+			'# Preferred (WP-CLI): wp cron event run ' . $cron_hook,
+			'# Alternative: curl -s ' . $cron_url . ' >/dev/null 2>&1',
+		);
+	}
+
+	/**
+	 * Parse HH:MM start time into hour and minute.
+	 *
+	 * @param string $start_time Time string.
+	 * @return array{hour: int, minute: int}
+	 */
+	private static function parse_start_time( string $start_time ): array {
+		$parts = explode( ':', $start_time );
+
+		return array(
+			'hour'   => isset( $parts[0] ) ? max( 0, min( 23, (int) $parts[0] ) ) : 0,
+			'minute' => isset( $parts[1] ) ? max( 0, min( 59, (int) $parts[1] ) ) : 0,
+		);
+	}
+
+	/**
+	 * Produce one or more five-field crontab lines for saved options.
+	 *
+	 * @param array<string, mixed> $options Schedule options.
+	 * @param int                  $minute  Minute field.
+	 * @param int                  $hour    Hour field (daily and slower schedules).
+	 * @return string[]
+	 */
+	private static function build_crontab_schedule_lines( array $options, int $minute, int $hour ): array {
+		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
+
+		switch ( $schedule ) {
+			case 'hourly':
+				return self::build_subdaily_crontab_lines( $options, 1, $minute, $hour );
+			case 'two-hours':
+				return self::build_subdaily_crontab_lines( $options, 2, $minute, $hour );
+			case 'three-hours':
+				return self::build_subdaily_crontab_lines( $options, 3, $minute, $hour );
+			case 'six-hours':
+				return self::build_subdaily_crontab_lines( $options, 6, $minute, $hour );
+			case 'twelve-hours':
+				return self::build_subdaily_crontab_lines( $options, 12, $minute, $hour );
+			case 'daily':
+				return self::build_daily_crontab_lines( $options, $minute, $hour );
+			case 'weekly':
+				return array(
+					self::format_crontab_line(
+						$minute,
+						$hour,
+						'*',
+						'*',
+						self::weekday_name_to_cron_dow( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' )
+					),
+				);
+			case 'two-weeks':
+				$dow = self::weekday_name_to_cron_dow( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' );
+				return array(
+					'# Bi-weekly cadence cannot be expressed in one crontab line; weekly approximation:',
+					self::format_crontab_line( $minute, $hour, '*', '*', $dow ),
+				);
+			case 'monthly':
+				$day_num = absint( $options['day_num'] ?? 1 );
+				return array(
+					self::format_crontab_line( $minute, $hour, (string) max( 1, min( 28, $day_num ) ), '*', '*' ),
+				);
+			default:
+				return array();
+		}
+	}
+
+	/**
+	 * Sub-daily schedules with EUM allow-list weekdays.
+	 *
+	 * @param array<string, mixed> $options        Options.
+	 * @param int                  $interval_hours Interval in hours.
+	 * @param int                  $minute         Start minute.
+	 * @param int                  $start_hour     Start hour.
+	 * @return string[]
+	 */
+	private static function build_subdaily_crontab_lines( array $options, int $interval_hours, int $minute, int $start_hour ): array {
+		$allowed = array_values( array_map( 'absint', (array) ( $options['days_list'] ?? array() ) ) );
+		$dow     = self::format_cron_dow_from_eum_days( $allowed );
+		if ( '' === $dow ) {
+			return array();
+		}
+
+		$hours      = self::subdaily_cron_hours( $interval_hours, $start_hour, $minute );
+		$hour_field = self::format_cron_number_list_field( $hours, 24 );
+
+		return array(
+			self::format_crontab_line( $minute, $hour_field, '*', '*', $dow ),
+		);
+	}
+
+	/**
+	 * Daily schedule with EUM except-list weekdays.
+	 *
+	 * @param array<string, mixed> $options Options.
+	 * @param int                  $minute  Minute.
+	 * @param int                  $hour    Hour.
+	 * @return string[]
+	 */
+	private static function build_daily_crontab_lines( array $options, int $minute, int $hour ): array {
+		$except  = array_map( 'absint', (array) ( $options['days_list'] ?? array() ) );
+		$allowed = array_values(
+			array_diff(
+				array( 1, 2, 3, 4, 5, 6, 7 ),
+				$except
+			)
+		);
+
+		$dow = self::format_cron_dow_from_eum_days( $allowed );
+		if ( '' === $dow ) {
+			return array();
+		}
+
+		return array(
+			self::format_crontab_line( $minute, $hour, '*', '*', $dow ),
+		);
+	}
+
+	/**
+	 * Hours (0–23) that fire for a sub-daily interval anchored at start time.
+	 *
+	 * @param int $interval_hours Interval.
+	 * @param int $start_hour     Start hour.
+	 * @param int $start_minute   Start minute.
+	 * @return int[]
+	 */
+	private static function subdaily_cron_hours( int $interval_hours, int $start_hour, int $start_minute ): array {
+		$hours       = array();
+		$step        = max( 1, $interval_hours ) * 60;
+		$start_total = $start_hour * 60 + $start_minute;
+
+		for ( $total = $start_total; $total < 24 * 60; $total += $step ) {
+			$hours[] = (int) floor( $total / 60 );
+		}
+
+		return array_values( array_unique( $hours ) );
+	}
+
+	/**
+	 * Map EUM weekday allow-list (1=Sunday) to crontab DOW field (0=Sunday).
+	 *
+	 * @param int[] $eum_days Allowed EUM day numbers.
+	 * @return string Empty when no days remain.
+	 */
+	private static function format_cron_dow_from_eum_days( array $eum_days ): string {
+		$eum_days = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $eum_days ),
+					static function ( $day ) {
+						return $day >= 1 && $day <= 7;
+					}
+				)
+			)
+		);
+
+		if ( empty( $eum_days ) ) {
+			return '';
+		}
+
+		if ( count( $eum_days ) === 7 ) {
+			return '*';
+		}
+
+		$cron_days = array_map(
+			static function ( $eum_day ) {
+				return $eum_day - 1;
+			},
+			$eum_days
+		);
+
+		sort( $cron_days );
+
+		return self::compress_number_ranges( $cron_days );
+	}
+
+	/**
+	 * Map lowercase weekday name to cron DOW (0=Sunday).
+	 *
+	 * @param string $day_name Day slug.
+	 */
+	private static function weekday_name_to_cron_dow( string $day_name ): string {
+		$map = array(
+			'sunday'    => '0',
+			'monday'    => '1',
+			'tuesday'   => '2',
+			'wednesday' => '3',
+			'thursday'  => '4',
+			'friday'    => '5',
+			'saturday'  => '6',
+		);
+
+		return $map[ strtolower( $day_name ) ] ?? '0';
+	}
+
+	/**
+	 * Format cron list field or asterisk when complete.
+	 *
+	 * @param int[] $values    Selected values.
+	 * @param int   $full_count Count when all values selected.
+	 */
+	private static function format_cron_number_list_field( array $values, int $full_count ): string {
+		$values = array_values( array_unique( array_map( 'intval', $values ) ) );
+		sort( $values );
+
+		if ( count( $values ) >= $full_count ) {
+			return '*';
+		}
+
+		return self::compress_number_ranges( $values );
+	}
+
+	/**
+	 * Collapse sorted integers into cron ranges (e.g. 1,3-5).
+	 *
+	 * @param int[] $numbers Sorted unique integers.
+	 */
+	private static function compress_number_ranges( array $numbers ): string {
+		if ( empty( $numbers ) ) {
+			return '';
+		}
+
+		$ranges = array();
+		$start  = $numbers[0];
+		$prev   = $numbers[0];
+
+		for ( $i = 1, $len = count( $numbers ); $i < $len; $i++ ) {
+			if ( $numbers[ $i ] === $prev + 1 ) {
+				$prev = $numbers[ $i ];
+				continue;
+			}
+			$ranges[] = $start === $prev ? (string) $start : $start . '-' . $prev;
+			$start    = $numbers[ $i ];
+			$prev     = $numbers[ $i ];
+		}
+
+		$ranges[] = $start === $prev ? (string) $start : $start . '-' . $prev;
+
+		return implode( ',', $ranges );
+	}
+
+	/**
+	 * Assemble a five-field crontab expression.
+	 *
+	 * @param int|string $minute Minute.
+	 * @param int|string $hour   Hour.
+	 * @param string     $dom    Day of month.
+	 * @param string     $month  Month.
+	 * @param string     $dow    Day of week.
+	 */
+	private static function format_crontab_line( $minute, $hour, string $dom, string $month, string $dow ): string {
+		return sprintf( '%s %s %s %s %s', $minute, $hour, $dom, $month, $dow );
 	}
 }

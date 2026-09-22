@@ -326,6 +326,11 @@ class Updates_Cron {
 			$payload['datetime']  = '';
 		}
 
+		$payload['crontab_equivalent'] = Schedules::get_crontab_equivalent(
+			$options,
+			self::get_cron_hook( $context )
+		);
+
 		return $payload;
 	}
 

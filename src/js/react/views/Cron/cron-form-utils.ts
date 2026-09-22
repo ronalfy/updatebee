@@ -22,6 +22,7 @@ export const defaultCronScheduleValues = (): CronScheduleFormValues => ( {
 	daysList: [ ...ALL_WEEKDAYS ],
 	datetime: '',
 	timestamp: 0,
+	crontabEquivalent: '',
 } );
 
 /**
@@ -70,6 +71,10 @@ export const mapPayloadToFormValues = (
 		datetime: payload.datetime ?? '',
 		timestamp:
 			typeof payload.timestamp === 'number' ? payload.timestamp : 0,
+		crontabEquivalent:
+			typeof payload.crontab_equivalent === 'string'
+				? payload.crontab_equivalent
+				: '',
 	};
 };
 

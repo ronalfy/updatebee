@@ -195,6 +195,21 @@ const CronScheduleFields = ( props: CronScheduleFieldsProps ) => {
 					</select>
 				</div>
 			) }
+			<div className="updatebee-cron-schedule-row updatebee-cron-crontab-row">
+				<label htmlFor={ `${ fieldIdPrefix }-crontab` }>
+					{ __( 'Crontab equivalent', 'updatebee' ) }
+				</label>
+				<textarea
+					id={ `${ fieldIdPrefix }-crontab` }
+					className="updatebee-cron-crontab-field"
+					readOnly
+					rows={ 5 }
+					value={ value.crontabEquivalent }
+					onFocus={ ( event ) => {
+						event.target.select();
+					} }
+				/>
+			</div>
 		</div>
 	);
 };

@@ -165,4 +165,67 @@ class CronScheduleTest extends TestCase {
 
 		$this->assertFalse( $blocked );
 	}
+
+	/**
+	 * Stub home_url for crontab command hints.
+	 */
+	private function stub_home_url(): void {
+		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/wp-cron.php?doing_wp_cron' );
+	}
+
+	/**
+	 * Test daily crontab line at configured time.
+	 */
+	public function test_crontab_equivalent_daily(): void {
+		$this->stub_home_url();
+
+		$text = Schedules::get_crontab_equivalent(
+			array(
+				'schedule'   => 'daily',
+				'start_time' => '03:30',
+				'days_list'  => array(),
+			),
+			'wp_update_plugins'
+		);
+
+		$this->assertStringContainsString( 'wp cron event run wp_update_plugins', $text );
+		$this->assertStringContainsString( '30 3 * * *', $text );
+	}
+
+	/**
+	 * Test twelve-hours crontab uses midnight and noon hours.
+	 */
+	public function test_crontab_equivalent_twelve_hours(): void {
+		$this->stub_home_url();
+
+		$text = Schedules::get_crontab_equivalent(
+			array(
+				'schedule'   => 'twelve-hours',
+				'start_time' => '00:00',
+				'days_list'  => array( 1, 2, 3, 4, 5, 6, 7 ),
+			),
+			'wp_update_themes'
+		);
+
+		$this->assertStringContainsString( 'wp cron event run wp_update_themes', $text );
+		$this->assertStringContainsString( '0 0,12 * * *', $text );
+	}
+
+	/**
+	 * Test daily except-list maps to weekday DOW field.
+	 */
+	public function test_crontab_equivalent_daily_with_except_days(): void {
+		$this->stub_home_url();
+
+		$text = Schedules::get_crontab_equivalent(
+			array(
+				'schedule'   => 'daily',
+				'start_time' => '01:15',
+				'days_list'  => array( 1, 7 ),
+			),
+			'wp_version_check'
+		);
+
+		$this->assertStringContainsString( '15 1 * * 1-5', $text );
+	}
 }

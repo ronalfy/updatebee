@@ -27,6 +27,7 @@ export type CronScheduleFormValues = {
 	daysList: number[];
 	datetime: string;
 	timestamp: number;
+	crontabEquivalent: string;
 };
 
 export type CronSchedulePayload = {
@@ -38,4 +39,5 @@ export type CronSchedulePayload = {
 	days_list?: number[];
 	datetime?: string;
 	timestamp?: number;
+	crontab_equivalent?: string;
 };
