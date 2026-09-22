@@ -12,7 +12,9 @@ import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Stack } from '@wordpress/ui';
 import sendCommand from '../../../utils/SendCommand';
+import { DATAVIEWS_STORAGE_KEYS } from '../../../utils/dataviews-view-storage';
 import { ErrorFallback } from '../../components/ErrorBoundary';
+import usePersistedDataView from '../../hooks/usePersistedDataView';
 import Loader from '../../components/Loader';
 import TranslationsFooter, {
 	type SnackbarState,
@@ -75,6 +77,8 @@ const defaultView: View = {
 		styles: tableColumnStyles,
 	},
 };
+
+const translationFieldIds = defaultView.fields ?? [];
 
 const getStatusNotice = (
 	status: AutoUpdatesStatus
@@ -205,7 +209,11 @@ const TranslationsMain = () => {
 	);
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
-	const [ view, setView ] = useState< View >( defaultView );
+	const { view, onChangeView, onReset } = usePersistedDataView(
+		DATAVIEWS_STORAGE_KEYS.translations,
+		defaultView,
+		translationFieldIds
+	);
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
@@ -488,7 +496,8 @@ const TranslationsMain = () => {
 					data={ visibleTranslations }
 					fields={ fields }
 					view={ view }
-					onChangeView={ setView }
+					onChangeView={ onChangeView }
+					onReset={ onReset }
 					actions={ actions }
 					paginationInfo={ paginationInfo }
 					defaultLayouts={ {
