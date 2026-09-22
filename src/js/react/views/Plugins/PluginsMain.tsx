@@ -1154,6 +1154,13 @@ const PluginsList = ( props: {
 																plugin
 															);
 														onChange( next );
+														if ( next ) {
+															setValue(
+																autoKey,
+																true,
+																dirty
+															);
+														}
 														setPluginBusy(
 															plugin.File,
 															true
@@ -1206,7 +1213,7 @@ const PluginsList = ( props: {
 													) }
 													disabled={
 														isBlocked ||
-														! autoEnabled ||
+														! autoUpdatesAvailable ||
 														isBusy
 													}
 												/>

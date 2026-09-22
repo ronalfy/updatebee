@@ -1157,6 +1157,13 @@ const ThemesList = ( props: {
 																theme
 															);
 														onChange( next );
+														if ( next ) {
+															setValue(
+																autoKey,
+																true,
+																dirty
+															);
+														}
 														setThemeBusy(
 															theme.Stylesheet,
 															true
@@ -1210,7 +1217,7 @@ const ThemesList = ( props: {
 													) }
 													disabled={
 														isBlocked ||
-														! autoEnabled ||
+														! autoUpdatesAvailable ||
 														isBusy
 													}
 												/>
