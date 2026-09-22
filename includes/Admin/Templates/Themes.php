@@ -41,7 +41,7 @@ class Themes {
 	}
 
 	/**
-	 * Output themes placeholder content.
+	 * Output themes screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,27 +51,46 @@ class Themes {
 			return;
 		}
 
-		unset( $sub_tab );
-
 		$asset_file = Functions::get_plugin_dir( 'build/themes.asset.php' );
-		$version    = Functions::get_plugin_version();
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
 		if ( file_exists( $asset_file ) ) {
 			$loaded = require $asset_file;
-			if ( is_array( $loaded ) && isset( $loaded['version'] ) && is_string( $loaded['version'] ) ) {
-				$version = $loaded['version'];
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
 			}
 		}
 
+		add_thickbox();
+
+		wp_enqueue_script(
+			'updatebee-themes',
+			Functions::get_plugin_url( 'build/themes.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
 		wp_enqueue_style(
 			'updatebee-themes',
 			Functions::get_plugin_url( 'build/themes.css' ),
 			array( 'updatebee-admin' ),
-			$version
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
 		);
+		wp_localize_script(
+			'updatebee-themes',
+			'updatebeeThemes',
+			array(
+				'retrieveNonce'  => wp_create_nonce( 'updatebee-retrieve-themes' ),
+				'bulkNonce'      => wp_create_nonce( 'updatebee-theme-bulk' ),
+				'isNetworkAdmin' => is_network_admin(),
+			)
+		);
+
+		unset( $sub_tab );
 		?>
-		<div class="updatebee-themes-placeholder">
-			<p><?php esc_html_e( 'Theme update controls will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-themes-container"></div>
 		<?php
 	}
 }

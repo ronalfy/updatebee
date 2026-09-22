@@ -83,8 +83,8 @@ class Plugins {
 			'updatebee-plugins',
 			'updatebeePlugins',
 			array(
-				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-plugins' ),
-				'bulkNonce'     => wp_create_nonce( 'updatebee-plugin-bulk' ),
+				'retrieveNonce'  => wp_create_nonce( 'updatebee-retrieve-plugins' ),
+				'bulkNonce'      => wp_create_nonce( 'updatebee-plugin-bulk' ),
 				'isNetworkAdmin' => is_network_admin(),
 			)
 		);

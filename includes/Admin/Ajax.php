@@ -10,6 +10,7 @@ namespace UpdateBee\Admin;
 use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Tables\Table_Plugins;
+use UpdateBee\Tables\Table_Themes;
 
 /**
  * Class Ajax.
@@ -29,6 +30,12 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_plugin_patches', array( $this, 'toggle_plugin_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
+		add_action( 'wp_ajax_updatebee_retrieve_themes', array( $this, 'retrieve_themes' ) );
+		add_action( 'wp_ajax_updatebee_toggle_theme_auto_updates', array( $this, 'toggle_theme_auto_updates' ) );
+		add_action( 'wp_ajax_updatebee_toggle_theme_block_updates', array( $this, 'toggle_theme_block_updates' ) );
+		add_action( 'wp_ajax_updatebee_toggle_theme_patches', array( $this, 'toggle_theme_patches' ) );
+		add_action( 'wp_ajax_updatebee_bulk_theme_action', array( $this, 'bulk_theme_action' ) );
+		add_action( 'wp_ajax_updatebee_save_theme_note', array( $this, 'save_theme_note' ) );
 	}
 
 	/**
@@ -417,6 +424,297 @@ class Ajax {
 	}
 
 	/**
+	 * Return theme list data for the Themes screen.
+	 */
+	public function retrieve_themes(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-themes', 'nonce' );
+
+		$installed_themes    = Functions::get_installed_themes();
+		$auto_updated_themes = Functions::get_auto_updates_themes();
+		if ( ! is_array( $auto_updated_themes ) ) {
+			$auto_updated_themes = array();
+		}
+
+		$theme_notes = Table_Themes::get_all_notes();
+		if ( ! is_array( $theme_notes ) ) {
+			$theme_notes = array();
+		}
+
+		$current_stylesheet = get_stylesheet();
+		$all_themes         = array();
+
+		foreach ( $installed_themes as $slug => $theme ) {
+			if ( ! is_string( $slug ) || ! $theme instanceof \WP_Theme ) {
+				continue;
+			}
+
+			$stylesheet = $theme->get_stylesheet();
+			$parent     = $theme->parent();
+			$screenshot = $theme->get_screenshot();
+			$style_css  = $theme->get_stylesheet_directory() . '/style.css';
+			$mtime      = file_exists( $style_css ) ? filemtime( $style_css ) : false;
+			if ( false !== $mtime ) {
+				$date_format  = (string) get_option( 'date_format' );
+				$time_format  = (string) get_option( 'time_format' );
+				$last_updated = gmdate( $date_format, $mtime ) . ' ' . _x( 'at', 'Date and time separator', 'updatebee' ) . ' ' . gmdate( $time_format, $mtime );
+			} else {
+				$last_updated = __( 'Unknown', 'updatebee' );
+			}
+
+			$all_themes[ $stylesheet ] = array(
+				'Stylesheet'     => $stylesheet,
+				'Template'       => $theme->get_template(),
+				'Slug'           => $stylesheet,
+				'Name'           => (string) $theme->get( 'Name' ),
+				'Description'    => (string) $theme->get( 'Description' ),
+				'Version'        => (string) $theme->get( 'Version' ),
+				'AuthorName'     => (string) $theme->display( 'Author', false ),
+				'AuthorURI'      => (string) $theme->get( 'AuthorURI' ),
+				'ThemeURI'       => (string) $theme->get( 'ThemeURI' ),
+				'Screenshot'     => is_string( $screenshot ) ? $screenshot : '',
+				'ParentName'     => $parent instanceof \WP_Theme ? (string) $parent->get( 'Name' ) : '',
+				'EnableNonce'    => wp_create_nonce( 'updatebee-theme-enable-' . $stylesheet ),
+				'BlockNonce'     => wp_create_nonce( 'updatebee-theme-block-' . $stylesheet ),
+				'PatchNonce'     => wp_create_nonce( 'updatebee-theme-patches-' . $stylesheet ),
+				'NoteNonce'      => wp_create_nonce( 'updatebee-theme-notes-' . $stylesheet ),
+				'Notes'          => isset( $theme_notes[ $stylesheet ] ) ? (string) $theme_notes[ $stylesheet ] : '',
+				'Active'         => $stylesheet === $current_stylesheet,
+				'NetworkEnabled' => Functions::is_multisite() ? (bool) $theme->is_allowed( 'network' ) : false,
+				'Autoupdates'    => isset( $auto_updated_themes[ $stylesheet ] ),
+				'Blocked'        => Functions::auto_updates_blocked( $stylesheet, 'theme' ),
+				'PatchesOnly'    => Functions::auto_updates_patches_only( $stylesheet, 'theme' ),
+				'LastUpdated'    => $last_updated,
+			);
+		}
+
+		$theme_info = get_site_transient( 'update_themes' );
+		if ( is_object( $theme_info ) ) {
+			foreach ( $all_themes as $stylesheet => $theme_data ) {
+				if ( ! is_string( $stylesheet ) || ! is_array( $theme_data ) ) {
+					continue;
+				}
+				if ( isset( $theme_data['Description'] ) ) {
+					$theme_data['Description'] = wp_trim_words( wp_strip_all_tags( $theme_data['Description'] ), 20, '...' );
+				}
+
+				$extra = null;
+				if ( isset( $theme_info->response[ $stylesheet ] ) ) {
+					$extra = $theme_info->response[ $stylesheet ];
+				} elseif ( isset( $theme_info->no_update[ $stylesheet ] ) ) {
+					$extra = $theme_info->no_update[ $stylesheet ];
+				}
+
+				if ( is_object( $extra ) || is_array( $extra ) ) {
+					$all_themes[ $stylesheet ] = array_merge( (array) $extra, $theme_data );
+				} else {
+					$all_themes[ $stylesheet ] = $theme_data;
+				}
+
+				$theme_slug = $all_themes[ $stylesheet ]['theme'] ?? $stylesheet;
+				$theme_id   = $all_themes[ $stylesheet ]['id'] ?? '';
+				$theme_url  = $all_themes[ $stylesheet ]['url'] ?? '';
+				$is_dot_org = ( is_string( $theme_id ) && false !== stripos( $theme_id, 'w.org' ) )
+					|| ( is_string( $theme_url ) && false !== stripos( $theme_url, 'wordpress.org/themes' ) );
+
+				if ( $is_dot_org && is_string( $theme_slug ) && '' !== $theme_slug ) {
+					// AJAX is not a network admin request, so self_admin_url() cannot be used here.
+					$theme_install_url                    = Functions::is_multisite() ? network_admin_url( 'theme-install.php' ) : admin_url( 'theme-install.php' );
+					$all_themes[ $stylesheet ]['Details'] = esc_url_raw(
+						add_query_arg(
+							array(
+								'tab'       => 'theme-information',
+								'theme'     => $theme_slug,
+								'TB_iframe' => 'true',
+								'width'     => 600,
+								'height'    => 550,
+							),
+							$theme_install_url
+						)
+					);
+				}
+			}
+		}
+
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			$options = array();
+		}
+
+		$status = 'disabled';
+		if ( isset( $options['theme_updates_disabled'] ) && 'on' === $options['theme_updates_disabled'] ) {
+			$status = 'blocked';
+		} elseif ( isset( $options['theme_auto_updates'] ) && 'on' === $options['theme_auto_updates'] ) {
+			if ( isset( $options['theme_auto_updates_custom'] ) && 'on' === $options['theme_auto_updates_custom'] ) {
+				$status = 'custom';
+			} else {
+				$status = 'enabled';
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'themes'               => $all_themes,
+				'auto_updates_enabled' => $status,
+			)
+		);
+	}
+
+	/**
+	 * Enable or disable auto-updates for a single theme.
+	 */
+	public function toggle_theme_auto_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-enable-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) || ! Functions::theme_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_theme_auto_update( $stylesheet, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Block or unblock updates for a single theme.
+	 */
+	public function toggle_theme_block_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-block-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) || Functions::theme_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_theme_blocked( $stylesheet, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Enable or disable patches-only auto-updates for a single theme.
+	 */
+	public function toggle_theme_patches(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-patches-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) || ! Functions::theme_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_theme_patches_only( $stylesheet, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Apply a bulk action to selected theme stylesheets.
+	 */
+	public function bulk_theme_action(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-theme-bulk', 'nonce' );
+
+		$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
+		$allowed     = array( 'enable', 'disable', 'block', 'unblock', 'patches' );
+		if ( ! in_array( $bulk_action, $allowed, true ) ) {
+			wp_send_json_error();
+		}
+
+		$needs_auto_updates = in_array( $bulk_action, array( 'enable', 'disable', 'patches' ), true );
+		if ( $needs_auto_updates && ! Functions::theme_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$is_block_action = in_array( $bulk_action, array( 'block', 'unblock' ), true );
+		if ( $is_block_action && Functions::theme_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheets = $this->get_posted_theme_stylesheets();
+		foreach ( $stylesheets as $stylesheet ) {
+			switch ( $bulk_action ) {
+				case 'enable':
+					Functions::set_theme_auto_update( $stylesheet, true );
+					break;
+				case 'disable':
+					Functions::set_theme_auto_update( $stylesheet, false );
+					break;
+				case 'block':
+					Functions::set_theme_blocked( $stylesheet, true );
+					break;
+				case 'unblock':
+					Functions::set_theme_blocked( $stylesheet, false );
+					break;
+				case 'patches':
+					Functions::set_theme_patches_only( $stylesheet, true );
+					break;
+			}
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Save or remove notes for a single theme.
+	 */
+	public function save_theme_note(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-notes-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) ) {
+			wp_send_json_error();
+		}
+
+		$notes = '';
+		if ( isset( $_POST['notes'] ) && is_string( $_POST['notes'] ) ) {
+			$notes = sanitize_textarea_field( wp_unslash( $_POST['notes'] ) );
+		}
+
+		$saved = Table_Themes::save_notes( $stylesheet, $notes );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'notes' => Table_Themes::get_notes( $stylesheet ),
+			)
+		);
+	}
+
+	/**
 	 * Sanitize a posted plugin file path.
 	 *
 	 * @return string Plugin basename path.
@@ -427,6 +725,49 @@ class Ajax {
 		$file = isset( $_POST['file'] ) ? sanitize_text_field( wp_unslash( $_POST['file'] ) ) : '';
 
 		return sanitize_text_field( urldecode( $file ) );
+	}
+
+	/**
+	 * Sanitize a posted theme stylesheet slug.
+	 *
+	 * @return string Theme stylesheet slug.
+	 */
+	private function get_posted_theme_stylesheet(): string {
+		// Stylesheet is required to verify the per-theme nonce in the caller.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$stylesheet = isset( $_POST['stylesheet'] ) ? sanitize_text_field( wp_unslash( $_POST['stylesheet'] ) ) : '';
+
+		return sanitize_text_field( urldecode( $stylesheet ) );
+	}
+
+	/**
+	 * Sanitize posted theme stylesheets for a bulk action.
+	 *
+	 * @return array<int, string> Installed theme stylesheets.
+	 */
+	private function get_posted_theme_stylesheets(): array {
+		// Callers verify `updatebee-theme-bulk` before reading stylesheets.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$stylesheets = isset( $_POST['stylesheets'] ) ? Functions::sanitize_array_recursive( wp_unslash( $_POST['stylesheets'] ) ) : array();
+		if ( ! is_array( $stylesheets ) ) {
+			return array();
+		}
+
+		$sanitized = array();
+		foreach ( $stylesheets as $stylesheet ) {
+			if ( ! is_string( $stylesheet ) ) {
+				continue;
+			}
+
+			$stylesheet = sanitize_text_field( urldecode( $stylesheet ) );
+			if ( ! Functions::theme_stylesheet_exists( $stylesheet ) ) {
+				continue;
+			}
+
+			$sanitized[] = $stylesheet;
+		}
+
+		return array_values( array_unique( $sanitized ) );
 	}
 
 	/**

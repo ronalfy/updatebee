@@ -1,7 +1,152 @@
 /**
- * Theme list styles. Filled when the Themes screen is ported.
+ * Theme list screen styles.
  */
 
-.updatebee-themes-placeholder {
-	/* Placeholder until the Themes screen is ported. */
+.updatebee-themes-main {
+	/* Keep the last theme card clear of the sticky bulk bar. */
+	padding-bottom: 96px;
+}
+
+.updatebee-theme-list-wrapper {
+	.updatebee-theme-item {
+		display: grid;
+		position: relative;
+		grid-template-columns: 24px 5fr 2px 5fr;
+		column-gap: 16px;
+		border: 1px solid var(--wpds-color-background-interactive-brand-weak-active, #c3c4c7);
+		background: var(--wpds-color-background-interactive-neutral, #fff);
+		box-shadow: 3px 2px 5px -3px rgba(0, 0, 0, 0.4);
+		padding: 45px 20px;
+		margin-bottom: 25px;
+		margin-top: 25px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+
+	.updatebee-theme-screenshot {
+		display: block;
+		width: 100%;
+		max-width: 280px;
+		height: auto;
+		object-fit: contain;
+		margin: 0.75rem 0 1rem;
+		color: currentColor;
+		fill: currentColor;
+	}
+
+	.updatebee-theme-title {
+		font-size: 18px;
+		margin: 0;
+		padding: 0;
+	}
+
+	.updatebee-theme-slug {
+		font-size: 13px;
+		margin: 0;
+		padding: 0;
+	}
+
+	.updatebee-theme-column .form-table {
+		width: 100%;
+		border-collapse: collapse;
+
+		td,
+		th {
+			padding: 0;
+			width: auto;
+			max-width: none;
+			display: block;
+			vertical-align: top;
+		}
+
+		th {
+			font-weight: 600;
+		}
+
+		tr {
+			display: grid;
+			grid-template-columns: 140px minmax(0, 1fr);
+			column-gap: 16px;
+			align-items: start;
+			margin-bottom: var(--wpds-dimension-padding-md, 1rem);
+		}
+	}
+
+	.updatebee-theme-column-separator {
+		background: var(--wpds-color-background-interactive-brand-weak-active,
+				#f0f0f1);
+	}
+}
+
+.updatebee-bulk-row {
+	display: flex;
+	column-gap: 10px;
+	justify-content: space-between;
+	align-items: flex-end;
+	margin-bottom: 1rem;
+
+	.updatebee-bulk-actions,
+	.updatebee-filter-actions {
+		display: flex;
+		align-items: flex-end;
+
+		select {
+			width: 90%;
+		}
+
+		button {
+			max-height: 30px;
+			margin-left: 8px;
+		}
+	}
+
+	.components-base-control__field {
+		margin-bottom: 0;
+		padding-bottom: 0;
+	}
+
+	.updatebee-theme-list-search {
+		justify-self: end;
+
+		.components-text-control__input {
+			min-width: 250px;
+			max-width: 100%;
+		}
+	}
+}
+
+.updatebee-themes-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+
+	.updatebee-snackbar {
+		margin: 0 24px 8px;
+	}
+
+	.updatebee-bulk-actions-container {
+		width: 100%;
+	}
+}
+
+.updatebee-theme-notice {
+	margin: 1rem 0;
+}
+
+.form-table th {
+	max-width: 140px;
+}
+
+.updatebee-theme-badge {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	z-index: 1000;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
 }

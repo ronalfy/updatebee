@@ -102,56 +102,6 @@
 	}
 }
 
-.updatebee-bulk-actions-container {
-	min-height: 70px;
-	align-items: center;
-	background: #f6f7f7;
-	border-top: 1px solid #c3c4c7;
-	bottom: 0;
-	box-sizing: border-box;
-	display: flex;
-	justify-content: space-between;
-	left: 0;
-	padding: 16px 24px;
-	position: sticky;
-	right: 0;
-	width: 100%;
-	z-index: 1000;
-
-	.components-base-control__field {
-		margin-bottom: 0;
-	}
-}
-
-/* Pin the footer slot to the viewport when it hosts the bulk bar. */
-#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
-	bottom: 0;
-	left: 160px;
-	position: fixed;
-	right: 0;
-	width: auto;
-	z-index: 1000;
-}
-
-.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
-	left: 36px;
-}
-
-@media screen and (max-width: 960px) {
-	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
-		left: 36px;
-	}
-}
-
-@media screen and (max-width: 782px) {
-
-	#updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
-	.folded #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container),
-	.auto-fold #updatebee-admin-container-slot:has(.updatebee-bulk-actions-container) {
-		left: 0;
-	}
-}
-
 .updatebee-plugins-footer {
 	display: flex;
 	flex-direction: column;
@@ -165,13 +115,6 @@
 	.updatebee-bulk-actions-container {
 		width: 100%;
 	}
-}
-
-.updatebee-bulk-actions-buttons {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px;
 }
 
 .updatebee-plugin-notice {

@@ -803,28 +803,28 @@ class Functions {
 				return $is_active_update;
 				break; // phpcs:ignore
 			case 'theme':
-				$theme_auto_update_enabled = isset( $options['theme_updates'] ) ? $options['theme_updates'] : 'off';
-				$theme_custom              = isset( $options['theme_custom'] ) ? $options['theme_custom'] : 'off';
-				$blocked_themes            = isset( $options['blocked_themes'] ) ? $options['blocked_themes'] : array();
-				$is_active_update          = in_array( $path, $options['auto_update_themes'], true );
+				$theme_auto_updates_enabled = isset( $options['theme_auto_updates'] ) ? $options['theme_auto_updates'] : 'off';
+				$theme_auto_updates_custom  = isset( $options['theme_auto_updates_custom'] ) ? $options['theme_auto_updates_custom'] : 'off';
+				$auto_update_themes         = isset( $options['auto_update_themes'] ) && is_array( $options['auto_update_themes'] ) ? $options['auto_update_themes'] : array();
+				$is_active_update           = in_array( $path, $auto_update_themes, true );
 
 				// Make sure theme auto-updates are enabled or not.
-				if ( ! $theme_auto_update_enabled || 'off' === $theme_auto_update_enabled ) {
+				if ( ! $theme_auto_updates_enabled || 'off' === $theme_auto_updates_enabled ) {
 					return false;
 				}
 
 				// If theme is blocked, return false.
-				if ( in_array( $path, $blocked_themes, true ) ) {
+				if ( ! $skip_blocked && self::auto_updates_blocked( $path, 'theme' ) ) {
 					return false;
 				}
 
 				// Theme updates are on, custom is enabled, and is not an active update.
-				if ( 'on' === $theme_auto_update_enabled && 'on' === $theme_custom && ! $is_active_update ) {
+				if ( 'on' === $theme_auto_updates_enabled && 'on' === $theme_auto_updates_custom && ! $is_active_update ) {
 					return false;
 				}
 
 				// Theme updates are enabled and custom themes flag is off.
-				if ( 'on' === $theme_auto_update_enabled && 'off' === $theme_custom ) {
+				if ( 'on' === $theme_auto_updates_enabled && 'off' === $theme_auto_updates_custom ) {
 					return true;
 				}
 
@@ -1051,6 +1051,108 @@ class Functions {
 		$block_id = sanitize_title( dirname( $file ) );
 
 		return self::update_option_list( 'blocked_plugins', $block_id, $blocked );
+	}
+
+	/**
+	 * Whether all theme updates are blocked from the dashboard.
+	 *
+	 * @return bool True when theme updates are fully blocked.
+	 */
+	public static function theme_updates_fully_blocked(): bool {
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['theme_updates_disabled'] ) && 'on' === $options['theme_updates_disabled'];
+	}
+
+	/**
+	 * Whether the dashboard allows theme auto-updates.
+	 *
+	 * @return bool True when auto-updates are on and not fully blocked.
+	 */
+	public static function theme_auto_updates_available(): bool {
+		if ( self::theme_updates_fully_blocked() ) {
+			return false;
+		}
+
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['theme_auto_updates'] ) && 'on' === $options['theme_auto_updates'];
+	}
+
+	/**
+	 * Installed themes keyed by stylesheet.
+	 *
+	 * @return array<string, \WP_Theme> Theme objects.
+	 */
+	public static function get_installed_themes(): array {
+		$all_themes = apply_filters( 'all_themes', wp_get_themes() );
+		if ( ! is_array( $all_themes ) ) {
+			return array();
+		}
+
+		return $all_themes;
+	}
+
+	/**
+	 * Whether a theme stylesheet is installed.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @return bool True when the theme exists.
+	 */
+	public static function theme_stylesheet_exists( string $stylesheet ): bool {
+		$all_themes = self::get_installed_themes();
+
+		return isset( $all_themes[ $stylesheet ] );
+	}
+
+	/**
+	 * Enable or disable auto-updates for a theme stylesheet.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @param bool   $enabled    True to enable auto-updates.
+	 * @return array<int, mixed>|null Updated auto-update list or null on failure.
+	 */
+	public static function set_theme_auto_update( string $stylesheet, bool $enabled ) {
+		$result = self::update_option_list( 'auto_update_themes', $stylesheet, $enabled );
+		if ( ! $enabled ) {
+			self::update_option_list( 'auto_update_themes_patches', $stylesheet, false );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Enable or disable patches-only auto-updates for a theme stylesheet.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @param bool   $enabled    True to limit the theme to patch auto-updates.
+	 * @return array<int, mixed>|null Updated patches list or null on failure.
+	 */
+	public static function set_theme_patches_only( string $stylesheet, bool $enabled ) {
+		if ( $enabled ) {
+			self::update_option_list( 'auto_update_themes', $stylesheet, true );
+		}
+
+		return self::update_option_list( 'auto_update_themes_patches', $stylesheet, $enabled );
+	}
+
+	/**
+	 * Block or unblock a theme from updates.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @param bool   $blocked    True to block updates.
+	 * @return array<int, mixed>|null Updated blocked list or null on failure.
+	 */
+	public static function set_theme_blocked( string $stylesheet, bool $blocked ) {
+		$block_id = sanitize_title( $stylesheet );
+
+		return self::update_option_list( 'blocked_themes', $block_id, $blocked );
 	}
 
 	/**

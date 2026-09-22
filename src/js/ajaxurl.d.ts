@@ -15,3 +15,11 @@ interface UpdateBeePlugins {
 }
 
 declare const updatebeePlugins: UpdateBeePlugins;
+
+interface UpdateBeeThemes {
+	retrieveNonce: string;
+	bulkNonce: string;
+	isNetworkAdmin: boolean;
+}
+
+declare const updatebeeThemes: UpdateBeeThemes;
