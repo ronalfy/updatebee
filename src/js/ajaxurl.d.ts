@@ -33,6 +33,7 @@ declare const updatebeeTranslations: UpdateBeeTranslations;
 
 interface UpdateBeeLogs {
 	retrieveNonce: string;
+	detailNonce: string;
 }
 
 declare const updatebeeLogs: UpdateBeeLogs;

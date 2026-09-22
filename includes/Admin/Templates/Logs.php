@@ -86,6 +86,7 @@ class Logs {
 			'updatebeeLogs',
 			array(
 				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-logs' ),
+				'detailNonce'   => wp_create_nonce( 'updatebee-retrieve-log-detail' ),
 			)
 		);
 

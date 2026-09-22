@@ -38,6 +38,67 @@
 	fill: var(--wpds-color-foreground-interactive-brand);
 }
 
+.updatebee-log-detail-modal {
+	max-width: 720px;
+
+	.components-modal__content {
+		display: flex;
+		flex-direction: column;
+		min-height: 200px;
+		max-height: 70vh;
+	}
+}
+
+.updatebee-log-detail-tabs {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.updatebee-log-detail-tab-panel,
+.updatebee-log-detail-single {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.updatebee-log-detail-tab-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 8px;
+}
+
+.updatebee-log-detail {
+	flex: 1;
+	overflow: auto;
+	margin: 0;
+	max-height: 50vh;
+}
+
+.updatebee-log-detail--notes {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.updatebee-log-detail--stacktrace {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.updatebee-log-detail-loading,
+.updatebee-log-detail-error {
+	margin: 0;
+}
+
+.updatebee-log-detail-error {
+	color: #b32d2e;
+}
+
 .updatebee-logs-footer {
 	display: flex;
 	flex-direction: column;

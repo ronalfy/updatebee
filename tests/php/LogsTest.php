@@ -546,4 +546,84 @@ class LogsTest extends TestCase {
 		$this->assertIsArray( $wpdb->inserted_row );
 		$this->assertSame( 'serialized-trace', $wpdb->inserted_row['stacktrace'] ?? null );
 	}
+
+	/**
+	 * Stub helpers used when formatting stack traces.
+	 */
+	private function stub_stacktrace_format_helpers(): void {
+		if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+			define( 'WP_CONTENT_DIR', ABSPATH . 'wp-content' );
+		}
+
+		MonkeyFunctions\when( 'maybe_unserialize' )->alias(
+			static function ( $data ) {
+				if ( ! is_string( $data ) ) {
+					return $data;
+				}
+
+				$unserialized = @unserialize( $data );
+				if ( false !== $unserialized || 'b:0;' === $data ) {
+					return $unserialized;
+				}
+
+				return $data;
+			}
+		);
+		MonkeyFunctions\when( 'wp_normalize_path' )->alias(
+			static function ( $path ) {
+				return str_replace( '\\', '/', (string) $path );
+			}
+		);
+	}
+
+	/**
+	 * Test format_stacktrace_for_display with empty input.
+	 */
+	public function test_format_stacktrace_for_display_empty(): void {
+		$this->stub_stacktrace_format_helpers();
+
+		$this->assertSame( '', Logs::format_stacktrace_for_display( '' ) );
+		$this->assertSame( '', Logs::format_stacktrace_for_display( 'not-serialized' ) );
+	}
+
+	/**
+	 * Test format_stacktrace_for_display with a class method frame.
+	 */
+	public function test_format_stacktrace_for_display_class_frame(): void {
+		$this->stub_stacktrace_format_helpers();
+
+		$trace = array(
+			array(
+				'file'     => WP_CONTENT_DIR . '/plugins/updatebee/includes/Logs.php',
+				'line'     => 42,
+				'class'    => 'UpdateBee\\Logs',
+				'type'     => '->',
+				'function' => 'insert_log',
+				'args'     => array( 'arg-one', '' ),
+			),
+		);
+
+		$formatted = Logs::format_stacktrace_for_display( serialize( $trace ) );
+
+		$this->assertStringContainsString( '#1 /plugins/updatebee/includes/Logs.php (42):', $formatted );
+		$this->assertStringContainsString( 'UpdateBee\\Logs->insert_log(arg-one, \'\')', $formatted );
+	}
+
+	/**
+	 * Test format_stacktrace_for_display with a do_action frame.
+	 */
+	public function test_format_stacktrace_for_display_do_action_frame(): void {
+		$this->stub_stacktrace_format_helpers();
+
+		$trace = array(
+			array(
+				'function' => 'do_action',
+				'args'     => array( 'upgrader_process_complete' ),
+			),
+		);
+
+		$formatted = Logs::format_stacktrace_for_display( serialize( $trace ) );
+
+		$this->assertStringContainsString( "do_action('upgrader_process_complete')", $formatted );
+	}
 }

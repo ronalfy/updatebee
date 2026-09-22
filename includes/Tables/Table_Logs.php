@@ -213,4 +213,36 @@ class Table_Logs extends Tables {
 
 		return $results;
 	}
+
+	/**
+	 * Get a single log row by ID.
+	 *
+	 * @param int $id Log row ID.
+	 * @return array<string, mixed>|null Log row or null when not found.
+	 */
+	public static function get_log_by_id( int $id ): ?array {
+		global $wpdb;
+
+		if ( $id < 1 ) {
+			return null;
+		}
+
+		$table_name = static::get_table_name();
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated internally.
+		$sql = $wpdb->prepare(
+			"SELECT * FROM {$table_name} WHERE id = %d LIMIT 1",
+			$id
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
+		$row = $wpdb->get_row( $sql, ARRAY_A );
+
+		if ( empty( $row ) || ! is_array( $row ) ) {
+			return null;
+		}
+
+		return $row;
+	}
 }

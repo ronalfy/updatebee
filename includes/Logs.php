@@ -935,6 +935,93 @@ class Logs {
 	}
 
 	/**
+	 * Format a serialized stack trace for display in the admin UI.
+	 *
+	 * @param string $stacktrace Serialized call stack from log storage.
+	 * @return string
+	 */
+	public static function format_stacktrace_for_display( string $stacktrace ): string {
+		if ( '' === trim( $stacktrace ) ) {
+			return '';
+		}
+
+		$decoded = maybe_unserialize( $stacktrace );
+		if ( ! is_array( $decoded ) ) {
+			return '';
+		}
+
+		$trace          = array_reverse( $decoded );
+		$lines          = array();
+		$frame_number   = 1;
+		$truncate_paths = array(
+			wp_normalize_path( WP_CONTENT_DIR ),
+			wp_normalize_path( ABSPATH ),
+		);
+
+		foreach ( $trace as $node ) {
+			if ( ! is_array( $node ) ) {
+				continue;
+			}
+
+			$line = '';
+
+			if ( isset( $node['file'] ) && isset( $node['line'] ) && $node['line'] ) {
+				$filename = (string) $node['file'];
+				$line     = '#' . $frame_number . ' ' . str_replace(
+					$truncate_paths,
+					'',
+					wp_normalize_path( $filename )
+				) . ' (' . $node['line'] . '): ';
+			}
+
+			if ( isset( $node['class'] ) ) {
+				$type     = isset( $node['type'] ) ? (string) $node['type'] : '->';
+				$function = isset( $node['function'] ) ? (string) $node['function'] : '';
+				$line    .= (string) $node['class'] . $type . $function;
+				$line    .= '(';
+				$args     = '';
+
+				if ( isset( $node['args'] ) && is_array( $node['args'] ) ) {
+					foreach ( $node['args'] as $arg ) {
+						if ( ! is_string( $arg ) ) {
+							continue;
+						}
+
+						if ( '' !== $args ) {
+							$args .= ', ';
+						}
+
+						$args .= ( '' === $arg ) ? "''" : $arg;
+					}
+				}
+
+				$line .= $args . ')';
+			} elseif ( isset( $node['function'] ) ) {
+				$function = (string) $node['function'];
+				$args     = isset( $node['args'] ) && is_array( $node['args'] ) ? $node['args'] : array();
+
+				if ( in_array( $function, array( 'do_action', 'apply_filters', 'do_action_ref_array', 'apply_filters_ref_array' ), true ) ) {
+					$hook  = isset( $args[0] ) && is_string( $args[0] ) ? $args[0] : '';
+					$line .= $function . "('" . $hook . "')";
+				} elseif ( in_array( $function, array( 'include', 'include_once', 'require', 'require_once' ), true ) ) {
+					$filename = isset( $args[0] ) && is_string( $args[0] ) ? $args[0] : '';
+					$line    .= $function . "('" . str_replace( $truncate_paths, '', wp_normalize_path( $filename ) ) . "')";
+				} else {
+					$line .= $function;
+				}
+			}
+
+			if ( '' !== $line ) {
+				$lines[] = $line;
+			}
+
+			++$frame_number;
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
 	 * Get successful logs based on params.
 	 *
 	 * @param array<string, bool> $supported {

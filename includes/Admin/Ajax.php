@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin;
 
 use UpdateBee\Functions;
+use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
@@ -51,6 +52,7 @@ class Ajax {
 
 		// Log Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_logs', array( $this, 'retrieve_logs' ) );
+		add_action( 'wp_ajax_updatebee_retrieve_log_detail', array( $this, 'retrieve_log_detail' ) );
 	}
 
 	/**
@@ -789,24 +791,68 @@ class Ajax {
 				}
 			}
 
+			$raw        = isset( $row['raw'] ) ? (string) $row['raw'] : '';
+			$stacktrace = isset( $row['stacktrace'] ) ? (string) $row['stacktrace'] : '';
+
 			$logs[] = array(
-				'Id'           => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
-				'Name'         => isset( $row['name'] ) ? (string) $row['name'] : '',
-				'Slug'         => isset( $row['slug'] ) ? (string) $row['slug'] : '',
-				'UserId'       => $user_id,
-				'User'         => $user,
-				'FromVersion'  => isset( $row['from_version'] ) ? (string) $row['from_version'] : '',
-				'ToVersion'    => isset( $row['to_version'] ) ? (string) $row['to_version'] : '',
-				'UpdateOffer'  => isset( $row['update_offer'] ) ? (string) $row['update_offer'] : '',
-				'UpdateType'   => isset( $row['update_type'] ) ? (string) $row['update_type'] : '',
-				'UpdateStatus' => isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
-				'Date'         => isset( $row['date'] ) ? (string) $row['date'] : '',
+				'Id'            => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+				'Name'          => isset( $row['name'] ) ? (string) $row['name'] : '',
+				'Slug'          => isset( $row['slug'] ) ? (string) $row['slug'] : '',
+				'UserId'        => $user_id,
+				'User'          => $user,
+				'FromVersion'   => isset( $row['from_version'] ) ? (string) $row['from_version'] : '',
+				'ToVersion'     => isset( $row['to_version'] ) ? (string) $row['to_version'] : '',
+				'UpdateOffer'   => isset( $row['update_offer'] ) ? (string) $row['update_offer'] : '',
+				'UpdateType'    => isset( $row['update_type'] ) ? (string) $row['update_type'] : '',
+				'UpdateStatus'  => isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
+				'Date'          => isset( $row['date'] ) ? (string) $row['date'] : '',
+				'HasNotes'      => '' !== trim( $raw ),
+				'HasStacktrace' => '' !== trim( $stacktrace ),
 			);
 		}
 
 		wp_send_json_success(
 			array(
 				'logs' => $logs,
+			)
+		);
+	}
+
+	/**
+	 * Return notes and formatted stack trace for a single log row.
+	 */
+	public function retrieve_log_detail(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-log-detail', 'nonce' );
+
+		$log_id = isset( $_POST['log_id'] ) ? absint( wp_unslash( $_POST['log_id'] ) ) : 0;
+		if ( $log_id < 1 ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid log entry.', 'updatebee' ),
+				)
+			);
+		}
+
+		$row = Table_Logs::get_log_by_id( $log_id );
+		if ( null === $row ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Log entry not found.', 'updatebee' ),
+				)
+			);
+		}
+
+		$raw        = isset( $row['raw'] ) ? (string) $row['raw'] : '';
+		$stacktrace = isset( $row['stacktrace'] ) ? (string) $row['stacktrace'] : '';
+
+		wp_send_json_success(
+			array(
+				'Notes'      => $raw,
+				'Stacktrace' => Logs::format_stacktrace_for_display( $stacktrace ),
 			)
 		);
 	}
