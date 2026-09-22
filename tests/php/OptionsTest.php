@@ -54,9 +54,9 @@ class OptionsTest extends TestCase {
 		$options = Options::get_options();
 
 		$this->assertIsArray( $options );
-		$this->assertSame( 'off', $options['major_updates'] );
-		$this->assertSame( 'on', $options['minor_updates'] );
-		$this->assertSame( 'on', $options['translation_updates'] );
+		$this->assertSame( 'off', $options['major_auto_updates'] );
+		$this->assertSame( 'on', $options['minor_auto_updates'] );
+		$this->assertSame( 'on', $options['translation_auto_updates'] );
 		$this->assertSame( array(), $options['auto_update_plugins'] );
 	}
 
@@ -70,11 +70,11 @@ class OptionsTest extends TestCase {
 			->with( 'updatebee_options', array() )
 			->andReturn(
 				array(
-					'major_updates' => 'on',
+					'major_auto_updates' => 'on',
 				)
 			);
 
-		$this->assertSame( 'on', Options::get_options( 'major_updates' ) );
+		$this->assertSame( 'on', Options::get_options( 'major_auto_updates' ) );
 	}
 
 	/**
@@ -92,16 +92,16 @@ class OptionsTest extends TestCase {
 				'updatebee_options',
 				\Mockery::on(
 					static function ( $options ) {
-						return is_array( $options ) && 'on' === $options['plugin_updates'];
+						return is_array( $options ) && 'on' === $options['plugin_auto_updates'];
 					}
 				)
 			)
 			->andReturn( true );
 
-		$updated = Options::update_options( 'plugin_updates', array( 'plugin_updates' => 'on' ) );
+		$updated = Options::update_options( 'plugin_auto_updates', array( 'plugin_auto_updates' => 'on' ) );
 
 		$this->assertIsArray( $updated );
-		$this->assertSame( 'on', $updated['plugin_updates'] );
+		$this->assertSame( 'on', $updated['plugin_auto_updates'] );
 	}
 
 	/**
@@ -114,7 +114,7 @@ class OptionsTest extends TestCase {
 			->with( 'updatebee_options', array() )
 			->andReturn(
 				array(
-					'major_updates' => 'on',
+					'major_auto_updates' => 'on',
 				)
 			);
 		MonkeyFunctions\expect( 'update_site_option' )
@@ -123,6 +123,6 @@ class OptionsTest extends TestCase {
 
 		Options::reset_options();
 
-		$this->assertSame( 'off', Options::get_options( 'major_updates' ) );
+		$this->assertSame( 'off', Options::get_options( 'major_auto_updates' ) );
 	}
 }

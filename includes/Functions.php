@@ -1284,4 +1284,24 @@ class Functions {
 
 		return $dir;
 	}
+
+	/**
+	 * Gets the highest priority for a filter.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $subtract The amount to subtract from the high priority.
+	 * @return int Priority.
+	 */
+	public static function get_highest_priority( int $subtract = 0 ): int {
+		$highest_priority = PHP_INT_MAX;
+		$subtract         = absint( $subtract );
+		if ( 0 === $subtract ) {
+			--$highest_priority;
+		} else {
+			$highest_priority = absint( $highest_priority - $subtract );
+		}
+
+		return $highest_priority;
+	}
 }

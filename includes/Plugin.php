@@ -16,7 +16,7 @@ use UpdateBee\Tables\{
 	Table_Plugins,
 	Table_Themes,
 };
-use UpdateBee\Updates\Translations;
+use UpdateBee\Updates\Init as Updates_Init;
 
 /**
  * Plugin singleton.
@@ -59,11 +59,11 @@ class Plugin {
 	private Ajax $ajax;
 
 	/**
-	 * Translation auto-update filter.
+	 * Update runtime hooks (core, plugins, themes, translations).
 	 *
-	 * @var Translations
+	 * @var Updates_Init
 	 */
-	private Translations $translation_updates;
+	private Updates_Init $updates_init;
 
 	/**
 	 * Return a class instance.
@@ -114,7 +114,7 @@ class Plugin {
 		$this->ajax = new Ajax();
 		$this->ajax->run();
 
-		$this->translation_updates = new Translations();
-		$this->translation_updates->run();
+		$this->updates_init = new Updates_Init();
+		$this->updates_init->run();
 	}
 }

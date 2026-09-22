@@ -15,10 +15,30 @@ use UpdateBee\Functions;
 class Translations {
 
 	/**
-	 * Class runner.
+	 * Translations instance.
+	 *
+	 * @var Translations|null
 	 */
-	public function run(): void {
-		add_filter( 'auto_update_translation', array( $this, 'maybe_auto_update_translation' ), PHP_INT_MAX, 2 );
+	private static $instance = null;
+
+	/**
+	 * Return a class instance.
+	 *
+	 * @return Translations
+	 */
+	public static function get_instance(): Translations {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+
+		return self::$instance;
+	}
+
+	/**
+	 * Class constructor.
+	 */
+	private function __construct() {
+		add_filter( 'auto_update_translation', array( $this, 'maybe_auto_update_translation' ), Functions::get_highest_priority( 10 ), 2 );
 	}
 
 	/**
