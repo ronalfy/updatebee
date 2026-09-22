@@ -13,10 +13,19 @@
 	margin: 1rem 0 1.5rem;
 }
 
+.updatebee-translation-name {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
 .updatebee-translation-icon {
 	width: 32px;
 	height: 32px;
 	display: block;
+	flex-shrink: 0;
+	fill: var(--wpds-color-foreground-interactive-brand);
 }
 
 .updatebee-translations-footer {
@@ -38,8 +47,4 @@
 		position: relative;
 		z-index: 1;
 	}
-}
-
-.dataviews-column-primary__media svg {
-	fill: var(--wpds-color-foreground-interactive-brand);
 }
