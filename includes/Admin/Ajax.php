@@ -8,9 +8,12 @@
 namespace UpdateBee\Admin;
 
 use UpdateBee\Cron\Clear_Logs;
+use UpdateBee\Emails\Email_Failures;
+use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
+use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
@@ -57,6 +60,10 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_export_logs', array( $this, 'export_logs' ) );
 		add_action( 'wp_ajax_updatebee_clear_logs', array( $this, 'clear_logs' ) );
 		add_action( 'wp_ajax_updatebee_save_logs_settings', array( $this, 'save_logs_settings' ) );
+
+		// Email Ajax actions.
+		add_action( 'wp_ajax_updatebee_retrieve_email_settings', array( $this, 'retrieve_email_settings' ) );
+		add_action( 'wp_ajax_updatebee_save_wordpress_email_settings', array( $this, 'save_wordpress_email_settings' ) );
 
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
@@ -1392,6 +1399,59 @@ class Ajax {
 		}
 
 		return array_values( array_unique( $sanitized ) );
+	}
+
+	/**
+	 * Retrieve WordPress email toggle and report enabled flags for the Emails tab.
+	 */
+	public function retrieve_email_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-email-settings', 'nonce' );
+
+		$success_options = Email_Successes::get_options();
+		$failure_options = Email_Failures::get_options();
+
+		wp_send_json_success(
+			array(
+				'enable_core_emails'       => Updates_Init::core_emails_enabled(),
+				'email_successes_enabled'  => Email_Successes::is_enabled( $success_options ),
+				'email_failures_enabled'   => Email_Failures::is_enabled( $failure_options ),
+			)
+		);
+	}
+
+	/**
+	 * Save the WordPress native automatic update email toggle.
+	 */
+	public function save_wordpress_email_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-wordpress-email-settings', 'nonce' );
+
+		$enabled = $this->get_posted_enabled();
+
+		$updated = Options::update_options(
+			'enable_core_emails',
+			array(
+				'enable_core_emails' => $enabled,
+			)
+		);
+
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'enable_core_emails' => Updates_Init::core_emails_enabled(),
+				'message'              => __( 'Email settings saved.', 'updatebee' ),
+			)
+		);
 	}
 
 	/**

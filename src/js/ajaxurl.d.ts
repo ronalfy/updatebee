@@ -50,3 +50,16 @@ interface UpdateBeeTools {
 }
 
 declare const updatebeeTools: UpdateBeeTools;
+
+interface UpdateBeeEmails {
+	enableCoreEmails: boolean;
+	wordpressSaveNonce: string;
+	successRetrieveNonce: string;
+	successSaveNonce: string;
+	successResetNonce: string;
+	failureRetrieveNonce: string;
+	failureSaveNonce: string;
+	failureResetNonce: string;
+}
+
+declare const updatebeeEmails: UpdateBeeEmails;

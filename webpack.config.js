@@ -29,5 +29,9 @@ module.exports = {
 			process.cwd(),
 			'src/js/react/views/Tools/index.tsx'
 		),
+		emails: path.resolve(
+			process.cwd(),
+			'src/js/react/views/Emails/index.tsx'
+		),
 	},
 };

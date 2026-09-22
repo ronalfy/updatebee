@@ -1,0 +1,89 @@
+/**
+ * Emails tab layout.
+ */
+
+.updatebee-emails-main {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	padding-bottom: 48px;
+}
+
+.updatebee-emails-intro {
+	margin: 0;
+	color: #50575e;
+}
+
+.updatebee-emails-card-content {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.updatebee-emails-card-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.updatebee-emails-status-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.updatebee-emails-status-badge.is-active {
+	background: #edfaef;
+	color: #008a20;
+}
+
+.updatebee-emails-include-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 24px;
+}
+
+.updatebee-emails-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 8px;
+}
+
+.updatebee-emails-actions-start {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.updatebee-emails-schedule-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+}
+
+.updatebee-emails-schedule-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+}
+
+.updatebee-emails-schedule-row label {
+	font-weight: 500;
+	min-width: 120px;
+}

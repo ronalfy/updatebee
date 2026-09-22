@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Functions;
+use UpdateBee\Updates\Init as Updates_Init;
 
 /**
  * Output the emails tab and content.
@@ -41,7 +42,7 @@ class Emails {
 	}
 
 	/**
-	 * Output emails placeholder content.
+	 * Output emails screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,11 +52,52 @@ class Emails {
 			return;
 		}
 
+		$asset_file = Functions::get_plugin_dir( 'build/emails.asset.php' );
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
+		if ( file_exists( $asset_file ) ) {
+			$loaded = require $asset_file;
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
+			}
+		}
+
+		$style_deps = array( 'updatebee-admin' );
+
+		wp_enqueue_script(
+			'updatebee-emails',
+			Functions::get_plugin_url( 'build/emails.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
+		wp_enqueue_style(
+			'updatebee-emails',
+			Functions::get_plugin_url( 'build/emails.css' ),
+			$style_deps,
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
+		);
+
+		wp_localize_script(
+			'updatebee-emails',
+			'updatebeeEmails',
+			array(
+				'enableCoreEmails'     => Updates_Init::core_emails_enabled(),
+				'wordpressSaveNonce'   => wp_create_nonce( 'updatebee-save-wordpress-email-settings' ),
+				'successRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-success-settings' ),
+				'successSaveNonce'     => wp_create_nonce( 'updatebee-save-email-success-settings' ),
+				'successResetNonce'    => wp_create_nonce( 'updatebee-reset-email-success-settings' ),
+				'failureRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-failure-settings' ),
+				'failureSaveNonce'     => wp_create_nonce( 'updatebee-save-email-failure-settings' ),
+				'failureResetNonce'    => wp_create_nonce( 'updatebee-reset-email-failure-settings' ),
+			)
+		);
+
 		unset( $sub_tab );
 		?>
-		<div class="updatebee-emails-placeholder">
-			<p><?php esc_html_e( 'Email notification settings will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-emails-container"></div>
 		<?php
 	}
 }

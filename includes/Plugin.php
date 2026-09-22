@@ -11,6 +11,9 @@ use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
 use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
+use UpdateBee\Cron\Schedules as Cron_Schedules;
+use UpdateBee\Emails\Email_Failures;
+use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Tables\{
 	Tables,
 	Table_Logs,
@@ -82,6 +85,27 @@ class Plugin {
 	private Clear_Logs_Cron $clear_logs_cron;
 
 	/**
+	 * Custom cron schedules for email digests.
+	 *
+	 * @var Cron_Schedules
+	 */
+	private Cron_Schedules $cron_schedules;
+
+	/**
+	 * Success email reports.
+	 *
+	 * @var Email_Successes
+	 */
+	private Email_Successes $email_successes;
+
+	/**
+	 * Failure email reports.
+	 *
+	 * @var Email_Failures
+	 */
+	private Email_Failures $email_failures;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -138,5 +162,14 @@ class Plugin {
 
 		$this->clear_logs_cron = new Clear_Logs_Cron();
 		$this->clear_logs_cron->run();
+
+		$this->cron_schedules = new Cron_Schedules();
+		$this->cron_schedules->run();
+
+		$this->email_successes = new Email_Successes();
+		$this->email_successes->run();
+
+		$this->email_failures = new Email_Failures();
+		$this->email_failures->run();
 	}
 }
