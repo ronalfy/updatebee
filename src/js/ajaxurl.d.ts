@@ -23,3 +23,10 @@ interface UpdateBeeThemes {
 }
 
 declare const updatebeeThemes: UpdateBeeThemes;
+
+interface UpdateBeeTranslations {
+	retrieveNonce: string;
+	bulkNonce: string;
+}
+
+declare const updatebeeTranslations: UpdateBeeTranslations;

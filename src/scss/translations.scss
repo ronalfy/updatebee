@@ -1,7 +1,34 @@
 /**
- * Translation list styles. Filled when the Translations screen is ported.
+ * Translations DataViews screen styles.
  */
 
-.updatebee-translations-placeholder {
-	/* Placeholder until the Translations screen is ported. */
+@import '../../node_modules/@wordpress/dataviews/build-style/style.css';
+
+.updatebee-translations-main {
+	padding-bottom: 48px;
+}
+
+.updatebee-translation-notice {
+	margin: 1rem 0 1.5rem;
+}
+
+.updatebee-translation-icon {
+	width: 32px;
+	height: 32px;
+	display: block;
+}
+
+.updatebee-translations-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+
+	.updatebee-snackbar {
+		margin: 0 24px 8px;
+	}
+}
+
+.dataviews-column-primary__media svg {
+	fill: var(--wpds-color-foreground-interactive-brand);
 }

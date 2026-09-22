@@ -636,11 +636,7 @@ class Functions {
 	 */
 	public static function get_auto_updates_translations( $mode = 'active', $force = false ) {
 
-		$translations = array();
-		if ( empty( $translations ) ) {
-			require_once ABSPATH . 'wp-admin/includes/translation-install.php';
-			$translations = wp_get_available_translations();
-		}
+		$translations                       = self::get_available_translations();
 		$auto_updated_translations          = array();
 		$auto_updated_translations_disabled = array();
 
@@ -732,7 +728,13 @@ class Functions {
 	 * @return bool true if blocked, false if not.
 	 */
 	public static function auto_updates_blocked( $path, $type = 'plugin' ) {
-		$path = 'plugin' === $type ? sanitize_title( dirname( $path ) ) : sanitize_title( $path );
+		if ( 'plugin' === $type ) {
+			$path = sanitize_title( dirname( $path ) );
+		} elseif ( 'theme' === $type ) {
+			$path = sanitize_title( $path );
+		} else {
+			$path = sanitize_text_field( $path );
+		}
 
 		switch ( $type ) {
 			case 'plugin':
@@ -832,18 +834,18 @@ class Functions {
 				return $is_active_update;
 				break; // phpcs:ignore
 			case 'translation':
-				$translation_auto_updates_enabled = isset( $options['translation_updates'] ) ? $options['translation_updates'] : 'on';
-				$translation_custom               = isset( $options['translation_custom'] ) ? $options['translation_custom'] : 'off';
-				$blocked_translations             = isset( $options['blocked_translations'] ) ? $options['blocked_translations'] : array();
-				$is_active_update                 = in_array( $path, $options['auto_update_translations'], true );
+				$translation_auto_updates_enabled = isset( $options['translation_auto_updates'] ) ? $options['translation_auto_updates'] : 'on';
+				$translation_custom               = isset( $options['translation_auto_updates_custom'] ) ? $options['translation_auto_updates_custom'] : 'off';
+				$auto_update_translations         = isset( $options['auto_update_translations'] ) && is_array( $options['auto_update_translations'] ) ? $options['auto_update_translations'] : array();
+				$is_active_update                 = in_array( $path, $auto_update_translations, true );
 
-				// Make sure plugin auto-updates are enabled or not.
+				// Make sure translation auto-updates are enabled or not.
 				if ( ! $translation_auto_updates_enabled || 'off' === $translation_auto_updates_enabled ) {
 					return false;
 				}
 
 				// If translation is blocked, return false.
-				if ( in_array( $path, $blocked_translations, true ) ) {
+				if ( ! $skip_blocked && self::auto_updates_blocked( $path, 'translation' ) ) {
 					return false;
 				}
 
@@ -852,7 +854,7 @@ class Functions {
 					return false;
 				}
 
-				// Translation updates are enabled and custom plugins flag is off.
+				// Translation updates are enabled and custom translations flag is off.
 				if ( 'on' === $translation_auto_updates_enabled && 'off' === $translation_custom ) {
 					return true;
 				}
@@ -1153,6 +1155,94 @@ class Functions {
 		$block_id = sanitize_title( $stylesheet );
 
 		return self::update_option_list( 'blocked_themes', $block_id, $blocked );
+	}
+
+	/**
+	 * Available locales from WordPress.org, keyed by locale.
+	 *
+	 * @return array<string, array<string, mixed>> Translation catalog.
+	 */
+	public static function get_available_translations(): array {
+		if ( ! function_exists( 'wp_get_available_translations' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/translation-install.php';
+		}
+
+		$translations = wp_get_available_translations();
+		if ( ! is_array( $translations ) ) {
+			return array();
+		}
+
+		return $translations;
+	}
+
+	/**
+	 * Whether a locale exists in the WordPress.org translation catalog.
+	 *
+	 * @param string $locale Locale key such as `da_DK`.
+	 * @return bool True when the locale is listed.
+	 */
+	public static function translation_locale_exists( string $locale ): bool {
+		if ( '' === $locale ) {
+			return false;
+		}
+
+		$translations = self::get_available_translations();
+
+		return isset( $translations[ $locale ] );
+	}
+
+	/**
+	 * Whether all translation updates are blocked from the dashboard.
+	 *
+	 * @return bool True when translation updates are fully blocked.
+	 */
+	public static function translation_updates_fully_blocked(): bool {
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['translation_updates_disabled'] ) && 'on' === $options['translation_updates_disabled'];
+	}
+
+	/**
+	 * Whether the dashboard allows translation auto-updates.
+	 *
+	 * @return bool True when auto-updates are on and not fully blocked.
+	 */
+	public static function translation_auto_updates_available(): bool {
+		if ( self::translation_updates_fully_blocked() ) {
+			return false;
+		}
+
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			return false;
+		}
+
+		return isset( $options['translation_auto_updates'] ) && 'on' === $options['translation_auto_updates'];
+	}
+
+	/**
+	 * Enable or disable auto-updates for a translation locale.
+	 *
+	 * @param string $locale  Locale key such as `da_DK`.
+	 * @param bool   $enabled True to enable auto-updates.
+	 * @return array<int, mixed>|null Updated auto-update list or null on failure.
+	 */
+	public static function set_translation_auto_update( string $locale, bool $enabled ) {
+		return self::update_option_list( 'auto_update_translations', $locale, $enabled );
+	}
+
+	/**
+	 * Block or unblock a translation locale from updates.
+	 *
+	 * @param string $locale  Locale key such as `da_DK`.
+	 * @param bool   $blocked True to block updates.
+	 * @return array<int, mixed>|null Updated blocked list or null on failure.
+	 */
+	public static function set_translation_blocked( string $locale, bool $blocked ) {
+		return self::update_option_list( 'blocked_translations', $locale, $blocked );
 	}
 
 	/**

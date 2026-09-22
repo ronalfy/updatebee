@@ -41,7 +41,7 @@ class Translations {
 	}
 
 	/**
-	 * Output translations placeholder content.
+	 * Output translations screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,27 +51,48 @@ class Translations {
 			return;
 		}
 
-		unset( $sub_tab );
-
 		$asset_file = Functions::get_plugin_dir( 'build/translations.asset.php' );
-		$version    = Functions::get_plugin_version();
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
 		if ( file_exists( $asset_file ) ) {
 			$loaded = require $asset_file;
-			if ( is_array( $loaded ) && isset( $loaded['version'] ) && is_string( $loaded['version'] ) ) {
-				$version = $loaded['version'];
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
 			}
 		}
 
+		$style_deps = array( 'updatebee-admin' );
+		if ( wp_style_is( 'wp-dataviews', 'registered' ) ) {
+			$style_deps[] = 'wp-dataviews';
+		}
+
+		wp_enqueue_script(
+			'updatebee-translations',
+			Functions::get_plugin_url( 'build/translations.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
 		wp_enqueue_style(
 			'updatebee-translations',
 			Functions::get_plugin_url( 'build/translations.css' ),
-			array( 'updatebee-admin' ),
-			$version
+			$style_deps,
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
 		);
+		wp_localize_script(
+			'updatebee-translations',
+			'updatebeeTranslations',
+			array(
+				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-translations' ),
+				'bulkNonce'     => wp_create_nonce( 'updatebee-translation-bulk' ),
+			)
+		);
+
+		unset( $sub_tab );
 		?>
-		<div class="updatebee-translations-placeholder">
-			<p><?php esc_html_e( 'Translation update controls will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-translations-container"></div>
 		<?php
 	}
 }

@@ -41,6 +41,12 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_theme_patches', array( $this, 'toggle_theme_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_theme_action', array( $this, 'bulk_theme_action' ) );
 		add_action( 'wp_ajax_updatebee_save_theme_note', array( $this, 'save_theme_note' ) );
+
+		// Translation Ajax actions.
+		add_action( 'wp_ajax_updatebee_retrieve_translations', array( $this, 'retrieve_translations' ) );
+		add_action( 'wp_ajax_updatebee_toggle_translation_auto_updates', array( $this, 'toggle_translation_auto_updates' ) );
+		add_action( 'wp_ajax_updatebee_toggle_translation_block_updates', array( $this, 'toggle_translation_block_updates' ) );
+		add_action( 'wp_ajax_updatebee_bulk_translation_action', array( $this, 'bulk_translation_action' ) );
 	}
 
 	/**
@@ -518,7 +524,6 @@ class Ajax {
 				} else {
 					$all_themes[ $stylesheet ] = $theme_data;
 				}
-
 			}
 		}
 
@@ -695,6 +700,198 @@ class Ajax {
 				'notes' => Table_Themes::get_notes( $stylesheet ),
 			)
 		);
+	}
+
+	/**
+	 * Return translation locale data for the Translations screen.
+	 */
+	public function retrieve_translations(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-translations', 'nonce' );
+
+		$catalog = Functions::get_available_translations();
+		$options = Options::get_options();
+		if ( ! is_array( $options ) ) {
+			$options = array();
+		}
+
+		$auto_update_translations = isset( $options['auto_update_translations'] ) && is_array( $options['auto_update_translations'] )
+			? $options['auto_update_translations']
+			: array();
+
+		$all_translations = array();
+		foreach ( $catalog as $locale => $translation ) {
+			if ( ! is_string( $locale ) || ! is_array( $translation ) ) {
+				continue;
+			}
+
+			$all_translations[] = array(
+				'Locale'      => $locale,
+				'EnglishName' => isset( $translation['english_name'] ) ? (string) $translation['english_name'] : $locale,
+				'NativeName'  => isset( $translation['native_name'] ) ? (string) $translation['native_name'] : $locale,
+				'Autoupdates' => in_array( $locale, $auto_update_translations, true ),
+				'Blocked'     => Functions::auto_updates_blocked( $locale, 'translation' ),
+				'EnableNonce' => wp_create_nonce( 'updatebee-translation-enable-' . $locale ),
+				'BlockNonce'  => wp_create_nonce( 'updatebee-translation-block-' . $locale ),
+			);
+		}
+
+		$status = 'disabled';
+		if ( isset( $options['translation_updates_disabled'] ) && 'on' === $options['translation_updates_disabled'] ) {
+			$status = 'blocked';
+		} elseif ( isset( $options['translation_auto_updates'] ) && 'on' === $options['translation_auto_updates'] ) {
+			if ( isset( $options['translation_auto_updates_custom'] ) && 'on' === $options['translation_auto_updates_custom'] ) {
+				$status = 'custom';
+			} else {
+				$status = 'enabled';
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'translations'         => $all_translations,
+				'auto_updates_enabled' => $status,
+			)
+		);
+	}
+
+	/**
+	 * Enable or disable auto-updates for a single translation locale.
+	 */
+	public function toggle_translation_auto_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$locale = $this->get_posted_translation_locale();
+		check_ajax_referer( 'updatebee-translation-enable-' . $locale, 'nonce' );
+
+		if ( ! Functions::translation_locale_exists( $locale ) || ! Functions::translation_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_translation_auto_update( $locale, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Block or unblock updates for a single translation locale.
+	 */
+	public function toggle_translation_block_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$locale = $this->get_posted_translation_locale();
+		check_ajax_referer( 'updatebee-translation-block-' . $locale, 'nonce' );
+
+		if ( ! Functions::translation_locale_exists( $locale ) || Functions::translation_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$updated = Functions::set_translation_blocked( $locale, $this->get_posted_enabled() );
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Apply a bulk action to selected translation locales.
+	 */
+	public function bulk_translation_action(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-translation-bulk', 'nonce' );
+
+		$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
+		$allowed     = array( 'enable', 'disable', 'block', 'unblock' );
+		if ( ! in_array( $bulk_action, $allowed, true ) ) {
+			wp_send_json_error();
+		}
+
+		$needs_auto_updates = in_array( $bulk_action, array( 'enable', 'disable' ), true );
+		if ( $needs_auto_updates && ! Functions::translation_auto_updates_available() ) {
+			wp_send_json_error();
+		}
+
+		$is_block_action = in_array( $bulk_action, array( 'block', 'unblock' ), true );
+		if ( $is_block_action && Functions::translation_updates_fully_blocked() ) {
+			wp_send_json_error();
+		}
+
+		$locales = $this->get_posted_translation_locales();
+		foreach ( $locales as $locale ) {
+			switch ( $bulk_action ) {
+				case 'enable':
+					Functions::set_translation_auto_update( $locale, true );
+					break;
+				case 'disable':
+					Functions::set_translation_auto_update( $locale, false );
+					break;
+				case 'block':
+					Functions::set_translation_blocked( $locale, true );
+					break;
+				case 'unblock':
+					Functions::set_translation_blocked( $locale, false );
+					break;
+			}
+		}
+
+		wp_send_json_success();
+	}
+
+	/**
+	 * Sanitize a posted translation locale.
+	 *
+	 * @return string Locale key such as `da_DK`.
+	 */
+	private function get_posted_translation_locale(): string {
+		// Locale is required to verify the per-locale nonce in the caller.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$locale = isset( $_POST['locale'] ) ? sanitize_text_field( wp_unslash( $_POST['locale'] ) ) : '';
+
+		return sanitize_text_field( urldecode( $locale ) );
+	}
+
+	/**
+	 * Sanitize posted translation locales for a bulk action.
+	 *
+	 * @return array<int, string> Catalog locales.
+	 */
+	private function get_posted_translation_locales(): array {
+		// Callers verify `updatebee-translation-bulk` before reading locales.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$locales = isset( $_POST['locales'] ) ? Functions::sanitize_array_recursive( wp_unslash( $_POST['locales'] ) ) : array();
+		if ( ! is_array( $locales ) ) {
+			return array();
+		}
+
+		$sanitized = array();
+		foreach ( $locales as $locale ) {
+			if ( ! is_string( $locale ) ) {
+				continue;
+			}
+
+			$locale = sanitize_text_field( urldecode( $locale ) );
+			if ( ! Functions::translation_locale_exists( $locale ) ) {
+				continue;
+			}
+
+			$sanitized[] = $locale;
+		}
+
+		return array_values( array_unique( $sanitized ) );
 	}
 
 	/**

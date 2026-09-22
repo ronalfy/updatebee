@@ -15,6 +15,7 @@ use UpdateBee\Tables\{
 	Table_Plugins,
 	Table_Themes,
 };
+use UpdateBee\Updates\Translations;
 
 /**
  * Plugin singleton.
@@ -55,6 +56,13 @@ class Plugin {
 	 * @var Ajax
 	 */
 	private Ajax $ajax;
+
+	/**
+	 * Translation auto-update filter.
+	 *
+	 * @var Translations
+	 */
+	private Translations $translation_updates;
 
 	/**
 	 * Return a class instance.
@@ -103,5 +111,8 @@ class Plugin {
 
 		$this->ajax = new Ajax();
 		$this->ajax->run();
+
+		$this->translation_updates = new Translations();
+		$this->translation_updates->run();
 	}
 }

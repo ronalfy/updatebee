@@ -8,6 +8,9 @@ module.exports = {
 		dashboard: path.resolve( process.cwd(), 'src/js/react/views/Dashboard/index.tsx' ),
 		plugins: path.resolve( process.cwd(), 'src/js/react/views/Plugins/index.tsx' ),
 		themes: path.resolve( process.cwd(), 'src/js/react/views/Themes/index.tsx' ),
-		translations: path.resolve( process.cwd(), 'src/js/translations.ts' ),
+		translations: path.resolve(
+			process.cwd(),
+			'src/js/react/views/Translations/index.tsx'
+		),
 	},
 };
