@@ -16,6 +16,7 @@ use UpdateBee\Tables\{
 	Table_Plugins,
 	Table_Themes,
 };
+use UpdateBee\Logs as Update_Logs;
 use UpdateBee\Updates\Init as Updates_Init;
 
 /**
@@ -64,6 +65,13 @@ class Plugin {
 	 * @var Updates_Init
 	 */
 	private Updates_Init $updates_init;
+
+	/**
+	 * Automatic update logging.
+	 *
+	 * @var Update_Logs
+	 */
+	private Update_Logs $update_logs;
 
 	/**
 	 * Return a class instance.
@@ -116,5 +124,8 @@ class Plugin {
 
 		$this->updates_init = new Updates_Init();
 		$this->updates_init->run();
+
+		$this->update_logs = new Update_Logs();
+		$this->update_logs->run();
 	}
 }
