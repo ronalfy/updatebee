@@ -41,7 +41,7 @@ class Logs {
 	}
 
 	/**
-	 * Output logs placeholder content.
+	 * Output logs screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,11 +51,47 @@ class Logs {
 			return;
 		}
 
+		$asset_file = Functions::get_plugin_dir( 'build/logs.asset.php' );
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
+		if ( file_exists( $asset_file ) ) {
+			$loaded = require $asset_file;
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
+			}
+		}
+
+		$style_deps = array( 'updatebee-admin' );
+		if ( wp_style_is( 'wp-dataviews', 'registered' ) ) {
+			$style_deps[] = 'wp-dataviews';
+		}
+
+		wp_enqueue_script(
+			'updatebee-logs',
+			Functions::get_plugin_url( 'build/logs.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
+		wp_enqueue_style(
+			'updatebee-logs',
+			Functions::get_plugin_url( 'build/logs.css' ),
+			$style_deps,
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
+		);
+		wp_localize_script(
+			'updatebee-logs',
+			'updatebeeLogs',
+			array(
+				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-logs' ),
+			)
+		);
+
 		unset( $sub_tab );
 		?>
-		<div class="updatebee-logs-placeholder">
-			<p><?php esc_html_e( 'Update logs will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-logs-container"></div>
 		<?php
 	}
 }

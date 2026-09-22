@@ -30,3 +30,9 @@ interface UpdateBeeTranslations {
 }
 
 declare const updatebeeTranslations: UpdateBeeTranslations;
+
+interface UpdateBeeLogs {
+	retrieveNonce: string;
+}
+
+declare const updatebeeLogs: UpdateBeeLogs;

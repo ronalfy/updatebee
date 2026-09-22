@@ -1,0 +1,60 @@
+/**
+ * Logs DataViews screen styles.
+ */
+
+@import '../../node_modules/@wordpress/dataviews/build-style/style.css';
+
+.updatebee-logs-main {
+	/* Keep the last table rows clear of the sticky DataViews footer. */
+	padding-bottom: 96px;
+}
+
+.updatebee-log-name {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: 8px;
+	min-width: 0;
+}
+
+.updatebee-log-name-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.updatebee-log-name-title {
+	font-weight: 600;
+}
+
+.updatebee-log-name-slug {
+	margin: 0;
+}
+
+.updatebee-log-icon {
+	width: 32px;
+	height: 32px;
+	display: block;
+	flex-shrink: 0;
+	fill: var(--wpds-color-foreground-interactive-brand);
+}
+
+.updatebee-logs-footer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	/* Restore DataViews container queries after the footer is portaled out. */
+	container: dataviews-wrapper / inline-size;
+
+	.updatebee-snackbar {
+		margin: 0 24px 8px;
+	}
+
+	.dataviews-footer {
+		box-sizing: border-box;
+		width: 100%;
+		background-color: #f6f7f7;
+		position: relative;
+		z-index: 1;
+	}
+}

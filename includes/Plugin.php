@@ -12,6 +12,7 @@ use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
 use UpdateBee\Tables\{
 	Tables,
+	Table_Logs,
 	Table_Plugins,
 	Table_Themes,
 };
@@ -93,6 +94,7 @@ class Plugin {
 		// Initialize tables.
 		Tables::register_table( Table_Plugins::class );
 		Tables::register_table( Table_Themes::class );
+		Tables::register_table( Table_Logs::class );
 		Tables::init_tables();
 	}
 

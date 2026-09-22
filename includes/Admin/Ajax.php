@@ -9,6 +9,7 @@ namespace UpdateBee\Admin;
 
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
 
@@ -47,6 +48,9 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_translation_auto_updates', array( $this, 'toggle_translation_auto_updates' ) );
 		add_action( 'wp_ajax_updatebee_toggle_translation_block_updates', array( $this, 'toggle_translation_block_updates' ) );
 		add_action( 'wp_ajax_updatebee_bulk_translation_action', array( $this, 'bulk_translation_action' ) );
+
+		// Log Ajax actions.
+		add_action( 'wp_ajax_updatebee_retrieve_logs', array( $this, 'retrieve_logs' ) );
 	}
 
 	/**
@@ -754,6 +758,55 @@ class Ajax {
 			array(
 				'translations'         => $all_translations,
 				'auto_updates_enabled' => $status,
+			)
+		);
+	}
+
+	/**
+	 * Return update log rows for the Logs screen.
+	 */
+	public function retrieve_logs(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-logs', 'nonce' );
+
+		$rows = Table_Logs::get_logs();
+		$logs = array();
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$user_id = isset( $row['user_id'] ) ? absint( $row['user_id'] ) : 0;
+			$user    = _x( 'None', 'No user found', 'updatebee' );
+			if ( $user_id > 0 ) {
+				$user_object = get_user_by( 'id', $user_id );
+				if ( $user_object instanceof \WP_User ) {
+					$user = $user_object->user_nicename;
+				}
+			}
+
+			$logs[] = array(
+				'Id'           => isset( $row['id'] ) ? absint( $row['id'] ) : 0,
+				'Name'         => isset( $row['name'] ) ? (string) $row['name'] : '',
+				'Slug'         => isset( $row['slug'] ) ? (string) $row['slug'] : '',
+				'UserId'       => $user_id,
+				'User'         => $user,
+				'FromVersion'  => isset( $row['from_version'] ) ? (string) $row['from_version'] : '',
+				'ToVersion'    => isset( $row['to_version'] ) ? (string) $row['to_version'] : '',
+				'UpdateOffer'  => isset( $row['update_offer'] ) ? (string) $row['update_offer'] : '',
+				'UpdateType'   => isset( $row['update_type'] ) ? (string) $row['update_type'] : '',
+				'UpdateStatus' => isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
+				'Date'         => isset( $row['date'] ) ? (string) $row['date'] : '',
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'logs' => $logs,
 			)
 		);
 	}

@@ -148,7 +148,6 @@ const TranslationsDataViews = (props: TranslationsDataViewsProps) => {
 					className="dataviews__search"
 				>
 					<DataViews.Search label={searchLabel} />
-					<DataViews.FiltersToggle />
 				</Stack>
 				<Stack direction="row" gap="xs" style={{ flexShrink: 0 }}>
 					<DataViews.LayoutSwitcher />
