@@ -1130,7 +1130,7 @@ const PluginsList = ( props: {
 													) }
 													disabled={
 														isBlocked ||
-														! autoEnabled ||
+														! autoUpdatesAvailable ||
 														isBusy
 													}
 												/>

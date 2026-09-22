@@ -1133,7 +1133,7 @@ const ThemesList = ( props: {
 													) }
 													disabled={
 														isBlocked ||
-														! autoEnabled ||
+														! autoUpdatesAvailable ||
 														isBusy
 													}
 												/>
