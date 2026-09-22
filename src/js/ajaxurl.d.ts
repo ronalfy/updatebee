@@ -63,3 +63,9 @@ interface UpdateBeeEmails {
 }
 
 declare const updatebeeEmails: UpdateBeeEmails;
+
+interface UpdateBeeCron {
+	nonce: string;
+}
+
+declare const updatebeeCron: UpdateBeeCron;

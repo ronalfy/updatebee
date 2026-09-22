@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
 
 /**
@@ -41,7 +42,7 @@ class Cron {
 	}
 
 	/**
-	 * Output cron placeholder content.
+	 * Output cron screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,11 +52,45 @@ class Cron {
 			return;
 		}
 
+		$asset_file = Functions::get_plugin_dir( 'build/cron.asset.php' );
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
+		if ( file_exists( $asset_file ) ) {
+			$loaded = require $asset_file;
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
+			}
+		}
+
+		$style_deps = array( 'updatebee-admin' );
+
+		wp_enqueue_script(
+			'updatebee-cron',
+			Functions::get_plugin_url( 'build/cron.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
+		wp_enqueue_style(
+			'updatebee-cron',
+			Functions::get_plugin_url( 'build/cron.css' ),
+			$style_deps,
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
+		);
+
+		wp_localize_script(
+			'updatebee-cron',
+			'updatebeeCron',
+			array(
+				'nonce' => wp_create_nonce( Updates_Cron::NONCE_ACTION ),
+			)
+		);
+
 		unset( $sub_tab );
 		?>
-		<div class="updatebee-cron-placeholder">
-			<p><?php esc_html_e( 'Cron and scheduling settings will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-cron-container"></div>
 		<?php
 	}
 }

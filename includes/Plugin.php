@@ -12,6 +12,7 @@ use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Register_Options_Page;
 use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
 use UpdateBee\Cron\Schedules as Cron_Schedules;
+use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Emails\Email_Failures;
 use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Tables\{
@@ -92,6 +93,13 @@ class Plugin {
 	private Cron_Schedules $cron_schedules;
 
 	/**
+	 * Update check cron schedules (plugins, themes, core).
+	 *
+	 * @var Updates_Cron
+	 */
+	private Updates_Cron $updates_cron;
+
+	/**
 	 * Success email reports.
 	 *
 	 * @var Email_Successes
@@ -165,6 +173,9 @@ class Plugin {
 
 		$this->cron_schedules = new Cron_Schedules();
 		$this->cron_schedules->run();
+
+		$this->updates_cron = new Updates_Cron();
+		$this->updates_cron->run();
 
 		$this->email_successes = new Email_Successes();
 		$this->email_successes->run();

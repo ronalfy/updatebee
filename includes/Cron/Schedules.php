@@ -74,15 +74,20 @@ class Schedules {
 	 * @param string               $action  Cron hook name.
 	 */
 	public static function set_hourly_cron( int $hours, array $options, string $action ): void {
+		unset( $hours );
 		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
-		$time     = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
 
-		$cron_timestamp = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
-		$gmt_offset     = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
-		$cron_timestamp = (int) ( $cron_timestamp - $gmt_offset );
-		if ( $cron_timestamp < time() ) {
-			$cron_timestamp += DAY_IN_SECONDS;
+		$cron_timestamp = self::calculate_next_event( $options, false );
+		if ( $cron_timestamp <= 0 ) {
+			$time           = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
+			$cron_timestamp = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+			$gmt_offset     = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
+			$cron_timestamp = (int) ( $cron_timestamp - $gmt_offset );
+			if ( $cron_timestamp < time() ) {
+				$cron_timestamp += DAY_IN_SECONDS;
+			}
 		}
+
 		self::schedule_event( $cron_timestamp, $schedule, $action );
 	}
 
@@ -94,13 +99,16 @@ class Schedules {
 	 */
 	public static function set_daily_cron( array $options, string $action ): void {
 		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'daily';
-		$time     = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
 
-		$date_time      = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
-		$gmt_offset     = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
-		$cron_date_time = (int) ( $date_time - $gmt_offset );
-		if ( $cron_date_time < time() ) {
-			$cron_date_time += DAY_IN_SECONDS;
+		$cron_date_time = self::calculate_next_event( $options, false );
+		if ( $cron_date_time <= 0 ) {
+			$time           = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
+			$date_time      = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+			$gmt_offset     = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
+			$cron_date_time = (int) ( $date_time - $gmt_offset );
+			if ( $cron_date_time < time() ) {
+				$cron_date_time += DAY_IN_SECONDS;
+			}
 		}
 
 		self::schedule_event( $cron_date_time, $schedule, $action );
@@ -224,5 +232,135 @@ class Schedules {
 			default:
 				break;
 		}
+	}
+
+	/**
+	 * Calculate the next event timestamp from saved options (EUM-style weekday rules).
+	 *
+	 * @param array<string, mixed> $options    Schedule options.
+	 * @param bool                 $allow_zero Return 0 when no valid weekday remains.
+	 * @return int Unix timestamp or 0.
+	 */
+	public static function calculate_next_event( array $options, bool $allow_zero = false ): int {
+		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
+		$time     = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
+
+		$options      = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
+		$allowed_days = $options['days_list'];
+		$use_selective_days = false;
+		$interval           = 0;
+
+		$gmt_offset = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
+		$timestamp  = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+		$timestamp  = (int) ( $timestamp - $gmt_offset );
+
+		switch ( $schedule ) {
+			case 'hourly':
+				$interval           = HOUR_IN_SECONDS;
+				$use_selective_days = true;
+				break;
+			case 'two-hours':
+				$interval           = HOUR_IN_SECONDS * 2;
+				$use_selective_days = true;
+				break;
+			case 'three-hours':
+				$interval           = HOUR_IN_SECONDS * 3;
+				$use_selective_days = true;
+				break;
+			case 'six-hours':
+				$interval           = HOUR_IN_SECONDS * 6;
+				$use_selective_days = true;
+				break;
+			case 'twelve-hours':
+				$interval           = HOUR_IN_SECONDS * 12;
+				$use_selective_days = true;
+				break;
+			case 'daily':
+				$interval           = DAY_IN_SECONDS;
+				$allowed_days       = array_values(
+					array_diff(
+						array( 1, 2, 3, 4, 5, 6, 7 ),
+						array_map( 'absint', (array) $allowed_days )
+					)
+				);
+				$use_selective_days = true;
+				break;
+			case 'weekly':
+				$day_of_week = ucfirst( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' );
+				$timestamp   = strtotime( "This {$day_of_week}, {$time}", strtotime( gmdate( 'Y-m-d' ) ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+				$timestamp   = (int) ( $timestamp - $gmt_offset );
+				$interval    = WEEK_IN_SECONDS;
+				break;
+			case 'two-weeks':
+				$user_week_number = absint( $options['week'] ?? 1 );
+				$day_of_week      = ucfirst( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' );
+				$timestamp        = strtotime( "+{$user_week_number} weeks", strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+				$timestamp        = strtotime( "this {$day_of_week}, {$time}", $timestamp );
+				$timestamp        = (int) ( $timestamp - $gmt_offset );
+				$interval         = DAY_IN_SECONDS * 14;
+				break;
+			case 'monthly':
+				$user_day_number = absint( $options['day_num'] ?? 1 );
+				$timestamp       = strtotime( gmdate( 'Y-m-' . $user_day_number ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+				$timestamp       = (int) ( $timestamp - $gmt_offset );
+				$interval        = (int) ( strtotime( '+1 month', $timestamp ) - $timestamp );
+				break;
+			default:
+				return 0;
+		}
+
+		$now = time();
+		if ( $timestamp < $now ) {
+			if ( $interval > 0 ) {
+				$timestamp = $now + ( $interval - ( ( $now - $timestamp ) % $interval ) );
+			}
+		} elseif ( $interval > 0 ) {
+			$timestamp = $now + ( ( $timestamp - $now ) % $interval );
+		}
+
+		if ( $use_selective_days ) {
+			$guard = 0;
+			while ( ! empty( $allowed_days ) && is_array( $allowed_days ) && array_intersect( $allowed_days, range( 1, 7 ) ) ) {
+				$timestamp_day_in_number = (int) get_date_from_gmt( gmdate( 'Y-m-d H:i', $timestamp ), 'w' ) + 1;
+				if ( in_array( $timestamp_day_in_number, $allowed_days, true ) ) {
+					break;
+				}
+				$timestamp += $interval;
+				++$guard;
+				if ( $guard > 500 ) {
+					break;
+				}
+			}
+			if ( empty( $allowed_days ) && $allow_zero ) {
+				return 0;
+			}
+		}
+
+		if ( 'weekly' === $schedule && $timestamp < $now ) {
+			$timestamp += WEEK_IN_SECONDS;
+		}
+		if ( 'two-weeks' === $schedule && ( $timestamp < $now || 2 === absint( $options['week'] ?? 1 ) ) ) {
+			$timestamp += 7 * DAY_IN_SECONDS;
+		}
+
+		return (int) $timestamp;
+	}
+
+	/**
+	 * Format next cron timestamp for the admin UI.
+	 *
+	 * @param int $next_cron Unix timestamp.
+	 * @return array<string, mixed>
+	 */
+	public static function get_format_from_cron( int $next_cron ): array {
+		$timezone   = get_option( 'timezone_string' );
+		$gmt_offset = get_option( 'gmt_offset' );
+
+		return array(
+			'timezone'   => esc_js( is_string( $timezone ) ? $timezone : '' ),
+			'gmt_offset' => esc_js( (string) $gmt_offset ),
+			'datetime'   => esc_js( get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $next_cron ) ) ), // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
+			'timestamp'  => $next_cron,
+		);
 	}
 }

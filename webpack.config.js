@@ -33,5 +33,9 @@ module.exports = {
 			process.cwd(),
 			'src/js/react/views/Emails/index.tsx'
 		),
+		cron: path.resolve(
+			process.cwd(),
+			'src/js/react/views/Cron/index.tsx'
+		),
 	},
 };
