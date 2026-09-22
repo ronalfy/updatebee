@@ -699,9 +699,7 @@ const PluginsList = ( props: {
 			<div className="updatebee-plugin-badge">
 				{ activationBadge }
 				{ hasNotes && (
-					<Badge intent="low">
-						{ __( 'Note', 'updatebee' ) }
-					</Badge>
+					<Badge intent="low">{ __( 'Note', 'updatebee' ) }</Badge>
 				) }
 			</div>
 		);
@@ -797,11 +795,14 @@ const PluginsList = ( props: {
 					</div>
 				</div>
 				<div className="updatebee-plugin-list-wrapper">
-					{ visiblePlugins.length === 0 &&
+					{ visiblePlugins.length === 0 && (
 						<div className="updatebee-plugin-list-empty">
-							{ __( 'No plugins found matching your filters or search.', 'updatebee' ) }
+							{ __(
+								'No plugins found matching your filters or search.',
+								'updatebee'
+							) }
 						</div>
-					}
+					) }
 					{ visiblePlugins.map( ( plugin ) => {
 						const iconPath = getPluginIconPath( plugin );
 						const hasIcon = '' !== iconPath;

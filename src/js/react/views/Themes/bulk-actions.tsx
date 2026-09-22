@@ -105,10 +105,7 @@ const BulkActions = < TTheme extends ThemeRow >(
 						disabled={ isBusy }
 						onClick={ () => {
 							themes.forEach( ( theme ) => {
-								setValue(
-									getThemeSelectedKey( theme ),
-									false
-								);
+								setValue( getThemeSelectedKey( theme ), false );
 							} );
 						} }
 					/>
@@ -145,8 +142,7 @@ const BulkActions = < TTheme extends ThemeRow >(
 					labelCount
 				) }
 				indeterminate={
-					0 < themesSelectedCount &&
-					themesSelectedCount < themesCount
+					0 < themesSelectedCount && themesSelectedCount < themesCount
 				}
 			/>
 			{ 0 < themesSelectedCount && getActionButtons() }

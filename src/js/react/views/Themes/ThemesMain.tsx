@@ -483,9 +483,7 @@ const ThemesList = ( props: {
 
 	const actions = useMemo< Action< ThemeItem >[] >( () => {
 		const isBlocked = ( theme: ThemeItem ): boolean =>
-			Boolean(
-				getValues( getThemeFieldKey( theme, 'block_updates' ) )
-			);
+			Boolean( getValues( getThemeFieldKey( theme, 'block_updates' ) ) );
 		const hasAutoUpdates = ( theme: ThemeItem ): boolean =>
 			Boolean( getValues( getThemeFieldKey( theme, 'auto_update' ) ) );
 		const hasPatchesOnly = ( theme: ThemeItem ): boolean =>
@@ -681,8 +679,7 @@ const ThemesList = ( props: {
 		const isChild = '' !== ( theme.ParentName || '' ).trim();
 		let activationBadge: React.ReactNode = null;
 
-		let intent: React.ComponentProps< typeof Badge >[ 'intent' ] =
-				'stable';
+		let intent: React.ComponentProps< typeof Badge >[ 'intent' ] = 'stable';
 		let label: string = __( 'Activated', 'updatebee' );
 		if ( ! updatebeeThemes.isNetworkAdmin && theme.Active ) {
 			activationBadge = <Badge intent={ intent }>{ label }</Badge>;
@@ -802,7 +799,19 @@ const ThemesList = ( props: {
 							value={ filter }
 							options={ themeFilterOptions }
 							onChange={ ( value ) => {
-								setFilter( value as "all" | "activated" | "deactivated" | "auto-updates-enabled" | "auto-updates-disabled" | "blocked" | "unblocked" | "patches-only" | "third-party" | "org-theme" );
+								setFilter(
+									value as
+										| 'all'
+										| 'activated'
+										| 'deactivated'
+										| 'auto-updates-enabled'
+										| 'auto-updates-disabled'
+										| 'blocked'
+										| 'unblocked'
+										| 'patches-only'
+										| 'third-party'
+										| 'org-theme'
+								);
 							} }
 						/>
 					</div>

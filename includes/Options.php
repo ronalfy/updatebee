@@ -161,6 +161,50 @@ class Options {
 	}
 
 	/**
+	 * Clear plugin auto-update and patch lists.
+	 */
+	public static function reset_plugin_auto_updates(): void {
+		self::update_options( 'auto_update_plugins', array() );
+		self::update_options( 'auto_update_plugins_patches', array() );
+	}
+
+	/**
+	 * Clear blocked plugin updates.
+	 */
+	public static function reset_plugin_blocked_updates(): void {
+		self::update_options( 'blocked_plugins', array() );
+	}
+
+	/**
+	 * Clear theme auto-update and patch lists.
+	 */
+	public static function reset_theme_auto_updates(): void {
+		self::update_options( 'auto_update_themes', array() );
+		self::update_options( 'auto_update_themes_patches', array() );
+	}
+
+	/**
+	 * Clear blocked theme updates.
+	 */
+	public static function reset_theme_blocked_updates(): void {
+		self::update_options( 'blocked_themes', array() );
+	}
+
+	/**
+	 * Clear translation auto-update selections.
+	 */
+	public static function reset_translation_auto_updates(): void {
+		self::update_options( 'auto_update_translations', array() );
+	}
+
+	/**
+	 * Clear blocked translation updates.
+	 */
+	public static function reset_translation_blocked_updates(): void {
+		self::update_options( 'blocked_translations', array() );
+	}
+
+	/**
 	 * Clear/Reset all options to defaults.
 	 */
 	public static function reset_options(): void {

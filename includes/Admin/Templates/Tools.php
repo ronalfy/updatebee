@@ -82,6 +82,7 @@ class Tools {
 			array(
 				'forceUpdatesNonce' => wp_create_nonce( 'updatebee-force-updates' ),
 				'triggerCronNonce'  => wp_create_nonce( 'updatebee-trigger-update-cron' ),
+				'resetNonce'        => wp_create_nonce( 'updatebee-reset-options' ),
 			)
 		);
 

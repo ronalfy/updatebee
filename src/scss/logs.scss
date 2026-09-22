@@ -9,6 +9,10 @@
 	padding-bottom: 96px;
 }
 
+.updatebee-logs-actions {
+	margin: 0 0 16px;
+}
+
 .updatebee-log-name {
 	display: inline-flex;
 	align-items: flex-start;
@@ -99,6 +103,35 @@
 	color: #b32d2e;
 }
 
+.updatebee-logs-export-drawer-portal {
+	--wp-ui-drawer-z-index: 100000;
+}
+
+.updatebee-logs-export-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.updatebee-logs-export-error {
+	margin: 0;
+	color: #b32d2e;
+}
+
+.updatebee-logs-export-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.updatebee-logs-clear-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
 .updatebee-logs-footer {
 	display: flex;
 	flex-direction: column;
@@ -118,4 +151,12 @@
 		position: relative;
 		z-index: 1;
 	}
+}
+
+.updatebee-logs-actions {
+	gap: var(--wpds-dimension-gap-sm) !important;
+}
+
+.dataviews-wrapper {
+	padding: var(--wpds-dimension-padding-2xl) var(--wpds-dimension-padding-xl);
 }

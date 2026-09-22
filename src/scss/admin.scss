@@ -67,6 +67,16 @@ body {
 	.nav-tab-active .updatebee-icon-tab {
 		opacity: 1;
 	}
+
+	.updatebee-button-danger {
+		background-color: var(--wpds-color-background-interactive-error-strong);
+		color: var(--wpds-color-background-interactive-error-active);
+
+		&[data-disabled] {
+			background-color: var(--wpds-color-background-interactive-error-weak-active);
+			color: var(--wpds-color-foreground-interactive-brand-disabled);
+		}
+	}
 }
 
 .updatebee-settings-layout {

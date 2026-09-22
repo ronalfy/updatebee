@@ -11,11 +11,7 @@ import {
 } from '@wordpress/icons';
 import type { AutoUpdatesStatus, TranslationItem } from './TranslationsMain';
 
-export type TranslationActionId =
-	| 'enable'
-	| 'disable'
-	| 'block'
-	| 'unblock';
+export type TranslationActionId = 'enable' | 'disable' | 'block' | 'unblock';
 
 type GetTranslationActionsArgs = {
 	autoUpdatesStatus: AutoUpdatesStatus;
@@ -44,10 +40,7 @@ export const getTranslationActionMessage = (
 			if ( 1 === count ) {
 				return sprintf(
 					/* translators: %s: Translation name. */
-					__(
-						'Automatic updates enabled for %s.',
-						'updatebee'
-					),
+					__( 'Automatic updates enabled for %s.', 'updatebee' ),
 					name
 				);
 			}
@@ -66,10 +59,7 @@ export const getTranslationActionMessage = (
 			if ( 1 === count ) {
 				return sprintf(
 					/* translators: %s: Translation name. */
-					__(
-						'Automatic updates disabled for %s.',
-						'updatebee'
-					),
+					__( 'Automatic updates disabled for %s.', 'updatebee' ),
 					name
 				);
 			}

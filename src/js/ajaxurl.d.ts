@@ -34,6 +34,8 @@ declare const updatebeeTranslations: UpdateBeeTranslations;
 interface UpdateBeeLogs {
 	retrieveNonce: string;
 	detailNonce: string;
+	exportNonce: string;
+	clearNonce: string;
 }
 
 declare const updatebeeLogs: UpdateBeeLogs;
@@ -41,6 +43,7 @@ declare const updatebeeLogs: UpdateBeeLogs;
 interface UpdateBeeTools {
 	forceUpdatesNonce: string;
 	triggerCronNonce: string;
+	resetNonce: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;

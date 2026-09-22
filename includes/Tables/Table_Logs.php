@@ -245,4 +245,123 @@ class Table_Logs extends Tables {
 
 		return $row;
 	}
+
+	/**
+	 * Delete all log rows.
+	 *
+	 * @return bool True when the query succeeds.
+	 */
+	public static function clear_logs(): bool {
+		global $wpdb;
+
+		$table_name = static::get_table_name();
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is generated internally.
+		$result = $wpdb->query( "DELETE FROM {$table_name}" );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
+		return false !== $result;
+	}
+
+	/**
+	 * Get log rows for CSV export.
+	 *
+	 * @param array<string, mixed> $args Export filters.
+	 * @return array<int, array<string, mixed>> Log rows.
+	 */
+	public static function get_logs_for_export( array $args ): array {
+		global $wpdb;
+
+		$args = wp_parse_args(
+			$args,
+			array(
+				'update_offer'  => 'all',
+				'update_type'   => 'all',
+				'update_status' => 'all',
+				'date_from'     => '',
+				'date_to'       => '',
+			)
+		);
+
+		$table_name = static::get_table_name();
+		$limit      = absint( apply_filters( 'updatebee_export_log_limit', 500 ) );
+		if ( $limit < 1 ) {
+			$limit = 500;
+		}
+
+		$where  = array( '1=1' );
+		$values = array();
+
+		$update_offer = is_string( $args['update_offer'] ) ? $args['update_offer'] : 'all';
+		if ( in_array( $update_offer, array( 'automatic', 'manual' ), true ) ) {
+			$where[]  = 'update_offer = %s';
+			$values[] = $update_offer;
+		}
+
+		$update_type = is_string( $args['update_type'] ) ? $args['update_type'] : 'all';
+		if ( in_array( $update_type, array( 'core', 'plugin', 'theme', 'translation' ), true ) ) {
+			$where[]  = 'update_type = %s';
+			$values[] = $update_type;
+		}
+
+		$update_status = is_string( $args['update_status'] ) ? $args['update_status'] : 'all';
+		if ( in_array( $update_status, array( 'success', 'failure', 'blocked' ), true ) ) {
+			$where[]  = 'update_status = %s';
+			$values[] = $update_status;
+		}
+
+		$date_from = self::sanitize_export_date( $args['date_from'] );
+		if ( '' !== $date_from ) {
+			$where[]  = 'date >= %s';
+			$values[] = $date_from . ' 00:00:00';
+		}
+
+		$date_to = self::sanitize_export_date( $args['date_to'] );
+		if ( '' !== $date_to ) {
+			$where[]  = 'date <= %s';
+			$values[] = $date_to . ' 23:59:59';
+		}
+
+		$where_sql = implode( ' AND ', $where );
+		$values[]  = $limit;
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and safe placeholders are generated internally.
+		$sql = $wpdb->prepare(
+			"SELECT name, slug, user_id, from_version, to_version, update_offer, update_type, update_status, date FROM {$table_name} WHERE {$where_sql} ORDER BY id ASC LIMIT %d",
+			$values
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
+		$results = $wpdb->get_results( $sql, ARRAY_A );
+
+		if ( empty( $results ) || is_wp_error( $results ) ) {
+			return array();
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Sanitize a Y-m-d export date.
+	 *
+	 * @param mixed $value Submitted date.
+	 * @return string Valid Y-m-d date or empty string.
+	 */
+	private static function sanitize_export_date( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+
+		$value = sanitize_text_field( $value );
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return '';
+		}
+
+		$date = \DateTime::createFromFormat( 'Y-m-d', $value );
+		if ( ! $date instanceof \DateTime || $date->format( 'Y-m-d' ) !== $value ) {
+			return '';
+		}
+
+		return $value;
+	}
 }

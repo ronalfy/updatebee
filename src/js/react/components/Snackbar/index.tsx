@@ -34,7 +34,10 @@ const Snackbar = ( props: SnackbarProps ) => {
 
 	return (
 		<WPSnackbar
-			className={ clsx( 'updatebee-snackbar', `updatebee-snackbar-${ type }` ) }
+			className={ clsx(
+				'updatebee-snackbar',
+				`updatebee-snackbar-${ type }`
+			) }
 			onDismiss={ onClose }
 		>
 			{ message }

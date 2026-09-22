@@ -5,11 +5,11 @@ const Loader = () => {
 	return (
 		<div className="updatebee-loader">
 			<ReactSpinner1
-				size={64}
-				speedMultiplier={1.3}
+				size={ 64 }
+				speedMultiplier={ 1.3 }
 				color="var(--wpds-color-background-interactive-neutral-strong)"
 			/>
-			<p>{__('Loading…', 'updatebee')}</p>
+			<p>{ __( 'Loading…', 'updatebee' ) }</p>
 		</div>
 	);
 };

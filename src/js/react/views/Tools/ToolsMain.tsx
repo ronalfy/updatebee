@@ -1,22 +1,24 @@
 /**
- * Tools maintenance actions (force updates, trigger cron).
+ * Tools maintenance actions (force updates, trigger cron, reset).
  */
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { Button, Card } from '@wordpress/ui';
+import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import sendCommand from '../../../utils/SendCommand';
 import ToolsFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './ToolsFooter';
+import ToolsReset, { type ResetItem } from './ToolsReset';
 
-type ToolsAction = 'forceUpdates' | 'triggerCron';
+type ToolsAction = 'forceUpdates' | 'triggerCron' | 'reset';
 
 type ToolsMessagePayload = {
 	message: string;
 };
 
 const ToolsMain = () => {
+	useEnableWpCompatOverlaySlot();
 	const [ activeAction, setActiveAction ] = useState< ToolsAction | null >(
 		null
 	);
@@ -55,9 +57,9 @@ const ToolsMain = () => {
 	/**
 	 * Run a tools Ajax action.
 	 *
-	 * @param action      Admin-ajax action name.
-	 * @param nonce       Request nonce.
-	 * @param actionKey   Local loading state key.
+	 * @param action       Admin-ajax action name.
+	 * @param nonce        Request nonce.
+	 * @param actionKey    Local loading state key.
 	 * @param errorMessage Fallback error notice.
 	 */
 	const runToolAction = useCallback(
@@ -95,10 +97,7 @@ const ToolsMain = () => {
 			'updatebee_force_updates',
 			updatebeeTools.forceUpdatesNonce,
 			'forceUpdates',
-			__(
-				'Force updates could not be completed.',
-				'updatebee'
-			)
+			__( 'Force updates could not be completed.', 'updatebee' )
 		);
 	};
 
@@ -107,12 +106,57 @@ const ToolsMain = () => {
 			'updatebee_trigger_update_cron',
 			updatebeeTools.triggerCronNonce,
 			'triggerCron',
-			__(
-				'Update cron could not be triggered.',
-				'updatebee'
-			)
+			__( 'Update cron could not be triggered.', 'updatebee' )
 		);
 	};
+
+	/**
+	 * Reset selected option groups.
+	 *
+	 * @param items Selected reset item ids.
+	 * @return True when the request succeeds.
+	 */
+	const handleReset = useCallback(
+		( items: ResetItem[] ): Promise< boolean > => {
+			if ( isBusy ) {
+				return Promise.resolve( false );
+			}
+
+			setActiveAction( 'reset' );
+
+			return sendCommand< ToolsMessagePayload >(
+				'updatebee_reset_options',
+				{
+					nonce: updatebeeTools.resetNonce,
+					items,
+				}
+			)
+				.then( ( response ) => {
+					const message =
+						response.data.data?.message ||
+						__(
+							'Your selected options have been reset.',
+							'updatebee'
+						);
+					showSnackbar( message, 'success' );
+					return true;
+				} )
+				.catch( () => {
+					showSnackbar(
+						__(
+							'Selected options could not be reset.',
+							'updatebee'
+						),
+						'error'
+					);
+					return false;
+				} )
+				.finally( () => {
+					setActiveAction( null );
+				} );
+		},
+		[ isBusy, showSnackbar ]
+	);
 
 	return (
 		<div className="updatebee-tools-main">
@@ -176,6 +220,12 @@ const ToolsMain = () => {
 						</p>
 					</Card.Content>
 				</Card.Root>
+
+				<ToolsReset
+					disabled={ isBusy }
+					isResetting={ 'reset' === activeAction }
+					onReset={ handleReset }
+				/>
 			</div>
 
 			<ToolsFooter

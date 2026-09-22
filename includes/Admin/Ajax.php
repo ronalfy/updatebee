@@ -53,10 +53,13 @@ class Ajax {
 		// Log Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_logs', array( $this, 'retrieve_logs' ) );
 		add_action( 'wp_ajax_updatebee_retrieve_log_detail', array( $this, 'retrieve_log_detail' ) );
+		add_action( 'wp_ajax_updatebee_export_logs', array( $this, 'export_logs' ) );
+		add_action( 'wp_ajax_updatebee_clear_logs', array( $this, 'clear_logs' ) );
 
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
+		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
 	}
 
 	/**
@@ -862,6 +865,118 @@ class Ajax {
 	}
 
 	/**
+	 * Download filtered log rows as CSV.
+	 */
+	public function export_logs(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_die( esc_html__( 'You do not have permission to export logs.', 'updatebee' ) );
+		}
+
+		check_ajax_referer( 'updatebee-export-logs', 'nonce' );
+
+		$update_offer  = isset( $_GET['update_offer'] ) ? sanitize_text_field( wp_unslash( $_GET['update_offer'] ) ) : 'all';
+		$update_type   = isset( $_GET['update_type'] ) ? sanitize_text_field( wp_unslash( $_GET['update_type'] ) ) : 'all';
+		$update_status = isset( $_GET['update_status'] ) ? sanitize_text_field( wp_unslash( $_GET['update_status'] ) ) : 'all';
+		$date_from     = isset( $_GET['date_from'] ) ? sanitize_text_field( wp_unslash( $_GET['date_from'] ) ) : '';
+		$date_to       = isset( $_GET['date_to'] ) ? sanitize_text_field( wp_unslash( $_GET['date_to'] ) ) : '';
+
+		$rows = Table_Logs::get_logs_for_export(
+			array(
+				'update_offer'  => $update_offer,
+				'update_type'   => $update_type,
+				'update_status' => $update_status,
+				'date_from'     => $date_from,
+				'date_to'       => $date_to,
+			)
+		);
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=updatebee-update-logs.csv' );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Stream CSV to the browser.
+		$output = fopen( 'php://output', 'w' );
+		if ( false === $output ) {
+			wp_die( esc_html__( 'Could not export logs.', 'updatebee' ) );
+		}
+
+		fputcsv(
+			$output,
+			array(
+				'Name',
+				'Slug',
+				'User',
+				'Version From',
+				'Version To',
+				'Update Offer',
+				'Update Type',
+				'Status',
+				'Date',
+			)
+		);
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) ) {
+				continue;
+			}
+
+			$user_id = isset( $row['user_id'] ) ? absint( $row['user_id'] ) : 0;
+			$user    = _x( 'None', 'No user found', 'updatebee' );
+			if ( $user_id > 0 ) {
+				$user_object = get_user_by( 'id', $user_id );
+				if ( $user_object instanceof \WP_User ) {
+					$user = $user_object->user_nicename;
+				}
+			}
+
+			fputcsv(
+				$output,
+				array(
+					isset( $row['name'] ) ? (string) $row['name'] : '',
+					isset( $row['slug'] ) ? (string) $row['slug'] : '',
+					$user,
+					isset( $row['from_version'] ) ? (string) $row['from_version'] : '',
+					isset( $row['to_version'] ) ? (string) $row['to_version'] : '',
+					isset( $row['update_offer'] ) ? (string) $row['update_offer'] : '',
+					isset( $row['update_type'] ) ? (string) $row['update_type'] : '',
+					isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
+					isset( $row['date'] ) ? (string) $row['date'] : '',
+				)
+			);
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- Close the php://output stream.
+		fclose( $output );
+		exit;
+	}
+
+	/**
+	 * Delete all log rows.
+	 */
+	public function clear_logs(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-clear-logs', 'nonce' );
+
+		$cleared = Table_Logs::clear_logs();
+		if ( ! $cleared ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Logs could not be cleared.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Logs have been cleared.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
 	 * Enable or disable auto-updates for a single translation locale.
 	 */
 	public function toggle_translation_auto_updates(): void {
@@ -1116,6 +1231,85 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'message' => __( 'Update cron events have been scheduled.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Reset selected option groups from the Tools screen.
+	 */
+	public function reset_options(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-reset-options', 'nonce' );
+
+		$raw_items = isset( $_POST['items'] ) ? wp_unslash( $_POST['items'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( ! is_array( $raw_items ) ) {
+			$raw_items = array();
+		}
+
+		$items    = Functions::sanitize_array_recursive( $raw_items );
+		$allowed  = array(
+			'plugin_auto',
+			'plugin_blocked',
+			'theme_auto',
+			'theme_blocked',
+			'translation_auto',
+			'translation_blocked',
+			'all',
+		);
+		$selected = array();
+
+		foreach ( $items as $item ) {
+			if ( ! is_string( $item ) ) {
+				continue;
+			}
+
+			$item = sanitize_key( $item );
+			if ( in_array( $item, $allowed, true ) ) {
+				$selected[] = $item;
+			}
+		}
+
+		$selected = array_values( array_unique( $selected ) );
+
+		if ( empty( $selected ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You did not select any options to reset.', 'updatebee' ),
+				)
+			);
+		}
+
+		if ( in_array( 'all', $selected, true ) ) {
+			Options::reset_options();
+			wp_send_json_success(
+				array(
+					'message' => __( 'Options have been reset.', 'updatebee' ),
+				)
+			);
+		}
+
+		$handlers = array(
+			'plugin_auto'         => array( Options::class, 'reset_plugin_auto_updates' ),
+			'plugin_blocked'      => array( Options::class, 'reset_plugin_blocked_updates' ),
+			'theme_auto'          => array( Options::class, 'reset_theme_auto_updates' ),
+			'theme_blocked'       => array( Options::class, 'reset_theme_blocked_updates' ),
+			'translation_auto'    => array( Options::class, 'reset_translation_auto_updates' ),
+			'translation_blocked' => array( Options::class, 'reset_translation_blocked_updates' ),
+		);
+
+		foreach ( $selected as $item ) {
+			if ( isset( $handlers[ $item ] ) && is_callable( $handlers[ $item ] ) ) {
+				call_user_func( $handlers[ $item ] );
+			}
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Your selected options have been reset.', 'updatebee' ),
 			)
 		);
 	}
