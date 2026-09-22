@@ -63,8 +63,6 @@ class Themes {
 			}
 		}
 
-		add_thickbox();
-
 		wp_enqueue_script(
 			'updatebee-themes',
 			Functions::get_plugin_url( 'build/themes.js' ),

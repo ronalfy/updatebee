@@ -48,7 +48,6 @@ export type ThemeItem = {
 	AuthorName?: string;
 	AuthorURI?: string;
 	ThemeURI?: string;
-	Details?: string;
 	url?: string;
 	id?: string;
 	Screenshot?: string;
@@ -356,12 +355,20 @@ const ThemesList = ( props: {
 
 			switch ( filter ) {
 				case 'activated':
-					if ( ! theme.Active ) {
+					if ( updatebeeThemes.isNetworkAdmin ) {
+						if ( ! theme.NetworkEnabled ) {
+							return false;
+						}
+					} else if ( ! theme.Active ) {
 						return false;
 					}
 					break;
 				case 'deactivated':
-					if ( theme.Active ) {
+					if ( updatebeeThemes.isNetworkAdmin ) {
+						if ( theme.NetworkEnabled ) {
+							return false;
+						}
+					} else if ( theme.Active ) {
 						return false;
 					}
 					break;
@@ -685,6 +692,10 @@ const ThemesList = ( props: {
 				label = __( 'Deactivated', 'updatebee' );
 				activationBadge = <Badge intent={ intent }>{ label }</Badge>;
 			}
+		} else if ( updatebeeThemes.isNetworkAdmin && ! theme.NetworkEnabled ) {
+			intent = 'high';
+			label = __( 'Network Disabled', 'updatebee' );
+			activationBadge = <Badge intent={ intent }>{ label }</Badge>;
 		}
 
 		const networkEnabledBadge =
@@ -719,6 +730,60 @@ const ThemesList = ( props: {
 		);
 	};
 
+	const themeFilterOptions = useMemo(
+		() => [
+			{
+				label: __( 'Select a Filter', 'updatebee' ),
+				value: '',
+			},
+			{
+				label: __( 'All', 'updatebee' ),
+				value: 'all',
+			},
+			{
+				label: updatebeeThemes.isNetworkAdmin
+					? __( 'Network Enabled', 'updatebee' )
+					: __( 'Activated', 'updatebee' ),
+				value: 'activated',
+			},
+			{
+				label: updatebeeThemes.isNetworkAdmin
+					? __( 'Network Disabled', 'updatebee' )
+					: __( 'Deactivated', 'updatebee' ),
+				value: 'deactivated',
+			},
+			{
+				label: __( 'Automatic Updates Enabled', 'updatebee' ),
+				value: 'auto-updates-enabled',
+			},
+			{
+				label: __( 'Automatic Updates Disabled', 'updatebee' ),
+				value: 'auto-updates-disabled',
+			},
+			{
+				label: __( 'Blocked', 'updatebee' ),
+				value: 'blocked',
+			},
+			{
+				label: __( 'Unblocked', 'updatebee' ),
+				value: 'unblocked',
+			},
+			{
+				label: __( 'Patches Only', 'updatebee' ),
+				value: 'patches-only',
+			},
+			{
+				label: __( 'Third-party Themes', 'updatebee' ),
+				value: 'third-party',
+			},
+			{
+				label: __( 'WordPress.org Themes', 'updatebee' ),
+				value: 'org-theme',
+			},
+		],
+		[]
+	);
+
 	return (
 		<>
 			<div className="updatebee-themes-main">
@@ -735,66 +800,9 @@ const ThemesList = ( props: {
 						<SelectControl
 							label={ __( 'Filter', 'updatebee' ) }
 							value={ filter }
-							options={ [
-								{
-									label: __( 'Select a Filter', 'updatebee' ),
-									value: '',
-								},
-								{
-									label: __( 'All', 'updatebee' ),
-									value: 'all',
-								},
-								{
-									label: __( 'Activated', 'updatebee' ),
-									value: 'activated',
-								},
-								{
-									label: __( 'Deactivated', 'updatebee' ),
-									value: 'deactivated',
-								},
-								{
-									label: __(
-										'Automatic Updates Enabled',
-										'updatebee'
-									),
-									value: 'auto-updates-enabled',
-								},
-								{
-									label: __(
-										'Automatic Updates Disabled',
-										'updatebee'
-									),
-									value: 'auto-updates-disabled',
-								},
-								{
-									label: __( 'Blocked', 'updatebee' ),
-									value: 'blocked',
-								},
-								{
-									label: __( 'Unblocked', 'updatebee' ),
-									value: 'unblocked',
-								},
-								{
-									label: __( 'Patches Only', 'updatebee' ),
-									value: 'patches-only',
-								},
-								{
-									label: __(
-										'Third-party Themes',
-										'updatebee'
-									),
-									value: 'third-party',
-								},
-								{
-									label: __(
-										'WordPress.org Themes',
-										'updatebee'
-									),
-									value: 'org-theme',
-								},
-							] }
+							options={ themeFilterOptions }
 							onChange={ ( value ) => {
-								setFilter( value );
+								setFilter( value as "all" | "activated" | "deactivated" | "auto-updates-enabled" | "auto-updates-disabled" | "blocked" | "unblocked" | "patches-only" | "third-party" | "org-theme" );
 							} }
 						/>
 					</div>
@@ -927,37 +935,6 @@ const ThemesList = ( props: {
 																}
 															</span>
 														) }
-														{ isDotOrg &&
-															theme.Details && (
-																<>
-																	<span>
-																		{ ' ' }
-																		|{ ' ' }
-																	</span>
-																	<a
-																		href={
-																			theme.Details
-																		}
-																		className="thickbox"
-																		data-title={
-																			theme.Name
-																		}
-																		aria-label={ sprintf(
-																			/* translators: %s: Theme name. */
-																			__(
-																				'More information about %s',
-																				'updatebee'
-																			),
-																			theme.Name
-																		) }
-																	>
-																		{ __(
-																			'Theme Details',
-																			'updatebee'
-																		) }
-																	</a>
-																</>
-															) }
 														{ theme.ThemeURI && (
 															<>
 																<span> | </span>

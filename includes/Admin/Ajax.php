@@ -21,15 +21,20 @@ class Ajax {
 	 * Class runner.
 	 */
 	public function run(): void {
+		// Dashboard and Settings Ajax.
 		add_action( 'wp_ajax_updatebee_get_dashboard_updates', array( $this, 'get_dashboard_updates' ) );
 		add_action( 'wp_ajax_updatebee_save_dashboard_settings', array( $this, 'save_dashboard_settings' ) );
 		add_action( 'wp_ajax_updatebee_reset_dashboard_settings', array( $this, 'reset_dashboard_settings' ) );
+
+		// Plugin Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_plugins', array( $this, 'retrieve_plugins' ) );
 		add_action( 'wp_ajax_updatebee_toggle_plugin_auto_updates', array( $this, 'toggle_plugin_auto_updates' ) );
 		add_action( 'wp_ajax_updatebee_toggle_plugin_block_updates', array( $this, 'toggle_plugin_block_updates' ) );
 		add_action( 'wp_ajax_updatebee_toggle_plugin_patches', array( $this, 'toggle_plugin_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
+
+		// Theme Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_themes', array( $this, 'retrieve_themes' ) );
 		add_action( 'wp_ajax_updatebee_toggle_theme_auto_updates', array( $this, 'toggle_theme_auto_updates' ) );
 		add_action( 'wp_ajax_updatebee_toggle_theme_block_updates', array( $this, 'toggle_theme_block_updates' ) );
@@ -514,28 +519,6 @@ class Ajax {
 					$all_themes[ $stylesheet ] = $theme_data;
 				}
 
-				$theme_slug = $all_themes[ $stylesheet ]['theme'] ?? $stylesheet;
-				$theme_id   = $all_themes[ $stylesheet ]['id'] ?? '';
-				$theme_url  = $all_themes[ $stylesheet ]['url'] ?? '';
-				$is_dot_org = ( is_string( $theme_id ) && false !== stripos( $theme_id, 'w.org' ) )
-					|| ( is_string( $theme_url ) && false !== stripos( $theme_url, 'wordpress.org/themes' ) );
-
-				if ( $is_dot_org && is_string( $theme_slug ) && '' !== $theme_slug ) {
-					// AJAX is not a network admin request, so self_admin_url() cannot be used here.
-					$theme_install_url                    = Functions::is_multisite() ? network_admin_url( 'theme-install.php' ) : admin_url( 'theme-install.php' );
-					$all_themes[ $stylesheet ]['Details'] = esc_url_raw(
-						add_query_arg(
-							array(
-								'tab'       => 'theme-information',
-								'theme'     => $theme_slug,
-								'TB_iframe' => 'true',
-								'width'     => 600,
-								'height'    => 550,
-							),
-							$theme_install_url
-						)
-					);
-				}
 			}
 		}
 
