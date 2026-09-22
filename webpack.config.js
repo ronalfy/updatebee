@@ -13,5 +13,6 @@ module.exports = {
 			'src/js/react/views/Translations/index.tsx'
 		),
 		logs: path.resolve( process.cwd(), 'src/js/react/views/Logs/index.tsx' ),
+		tools: path.resolve( process.cwd(), 'src/js/react/views/Tools/index.tsx' ),
 	},
 };

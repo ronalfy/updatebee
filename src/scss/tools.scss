@@ -1,0 +1,53 @@
+/**
+ * Tools screen bento layout.
+ */
+
+.updatebee-tools-main {
+	padding-bottom: 48px;
+}
+
+.updatebee-tools-bento {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 24px;
+	align-items: stretch;
+}
+
+.updatebee-tools-card {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.updatebee-tools-card-content {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+}
+
+@media (max-width: 782px) {
+	.updatebee-tools-bento {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.updatebee-tools-card-description {
+	margin: 0;
+	color: #50575e;
+}
+
+.updatebee-tools-card-actions {
+	margin: 0;
+	margin-top: auto;
+	padding-top: 16px;
+}
+
+.updatebee-tools-footer {
+	.updatebee-snackbar {
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 100000;
+	}
+}

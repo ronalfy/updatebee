@@ -53,6 +53,10 @@ class Ajax {
 		// Log Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_logs', array( $this, 'retrieve_logs' ) );
 		add_action( 'wp_ajax_updatebee_retrieve_log_detail', array( $this, 'retrieve_log_detail' ) );
+
+		// Tools Ajax actions.
+		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
+		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
 	}
 
 	/**
@@ -1047,6 +1051,73 @@ class Ajax {
 		}
 
 		return array_values( array_unique( $sanitized ) );
+	}
+
+	/**
+	 * Force updates for core, translations, plugins, and themes with automatic updates enabled.
+	 */
+	public function force_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-force-updates', 'nonce' );
+
+		if ( ! defined( 'UPDATEBEE_DOING_FORCE_UPDATES' ) ) {
+			define( 'UPDATEBEE_DOING_FORCE_UPDATES', true );
+		}
+
+		// Disable auto-backups from occurring with UpdraftPlus Premium during force updates.
+		add_filter( 'updraftplus_boot_backup', '__return_false', 10, 1 );
+
+		$updater_lock = get_option( 'auto_updater.lock' );
+		/**
+		 * Whether to delete the auto update lock file.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param bool   $disable_lock Ignore deleting the lock file (default true).
+		 * @param string $updater_lock The lock file expiration if exists.
+		 */
+		$disable_lock = apply_filters( 'updatebee_force_updates_disable_lock', true, $updater_lock );
+		if ( true === $disable_lock ) {
+			delete_option( 'auto_updater.lock' );
+		}
+
+		add_filter( 'wp_doing_cron', '__return_true' );
+		wp_maybe_auto_update();
+		remove_filter( 'wp_doing_cron', '__return_true' );
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Force updates completed.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Schedule WordPress update cron events to run immediately.
+	 */
+	public function trigger_update_cron(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-trigger-update-cron', 'nonce' );
+
+		if ( ! defined( 'DOING_CRON' ) ) {
+			define( 'DOING_CRON', true );
+		}
+
+		wp_schedule_single_event( time(), 'wp_update_plugins' );
+		wp_schedule_single_event( time(), 'wp_update_themes' );
+		wp_schedule_single_event( time(), 'wp_version_check', array( array(), true ) );
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Update cron events have been scheduled.', 'updatebee' ),
+			)
+		);
 	}
 
 	/**

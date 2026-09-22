@@ -41,7 +41,7 @@ class Tools {
 	}
 
 	/**
-	 * Output tools placeholder content.
+	 * Output tools screen content.
 	 *
 	 * @param string      $tab     Current tab.
 	 * @param string|null $sub_tab Current sub-tab.
@@ -51,11 +51,43 @@ class Tools {
 			return;
 		}
 
+		$asset_file = Functions::get_plugin_dir( 'build/tools.asset.php' );
+		$deps       = array(
+			'dependencies' => array(),
+			'version'      => Functions::get_plugin_version(),
+		);
+		if ( file_exists( $asset_file ) ) {
+			$loaded = require $asset_file;
+			if ( is_array( $loaded ) ) {
+				$deps = wp_parse_args( $loaded, $deps );
+			}
+		}
+
+		wp_enqueue_script(
+			'updatebee-tools',
+			Functions::get_plugin_url( 'build/tools.js' ),
+			$deps['dependencies'],
+			$deps['version'],
+			true
+		);
+		wp_enqueue_style(
+			'updatebee-tools',
+			Functions::get_plugin_url( 'build/tools.css' ),
+			array( 'updatebee-admin' ),
+			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
+		);
+		wp_localize_script(
+			'updatebee-tools',
+			'updatebeeTools',
+			array(
+				'forceUpdatesNonce' => wp_create_nonce( 'updatebee-force-updates' ),
+				'triggerCronNonce'  => wp_create_nonce( 'updatebee-trigger-update-cron' ),
+			)
+		);
+
 		unset( $sub_tab );
 		?>
-		<div class="updatebee-tools-placeholder">
-			<p><?php esc_html_e( 'Maintenance tools will appear here.', 'updatebee' ); ?></p>
-		</div>
+		<div id="updatebee-tools-container"></div>
 		<?php
 	}
 }

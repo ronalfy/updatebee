@@ -37,3 +37,10 @@ interface UpdateBeeLogs {
 }
 
 declare const updatebeeLogs: UpdateBeeLogs;
+
+interface UpdateBeeTools {
+	forceUpdatesNonce: string;
+	triggerCronNonce: string;
+}
+
+declare const updatebeeTools: UpdateBeeTools;
