@@ -35,7 +35,7 @@ class Advanced {
 			'action' => 'updatebee_output_advanced',
 			'url'    => Functions::get_settings_url( 'advanced' ),
 			'label'  => _x( 'Advanced', 'Tab label as Advanced', 'updatebee' ),
-			'icon'   => 'icon-timer',
+			'icon'   => 'icon-labs',
 		);
 
 		return $tabs;

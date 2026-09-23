@@ -35,7 +35,7 @@ class Cron {
 			'get'    => 'cron',
 			'action' => 'updatebee_output_cron',
 			'url'    => Functions::get_settings_url( 'cron' ),
-			'label'  => _x( 'Cron', 'Tab label as Cron', 'updatebee' ),
+			'label'  => _x( 'Schedules', 'Tab label as Schedules', 'updatebee' ),
 			'icon'   => 'icon-timer',
 		);
 
