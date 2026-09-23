@@ -12,6 +12,7 @@ use ReflectionClass;
 use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Updates\Core;
+use UpdateBee\Updates\Delay_Updates;
 use UpdateBee\Updates\Init;
 use UpdateBee\Updates\Plugins;
 use UpdateBee\Updates\Themes;
@@ -31,6 +32,7 @@ class UpdatesRuntimeTest extends TestCase {
 		$this->reset_updates_singleton( Plugins::class );
 		$this->reset_updates_singleton( Themes::class );
 		$this->reset_updates_singleton( Translations::class );
+		$this->reset_updates_singleton( Delay_Updates::class );
 		parent::tearDown();
 	}
 

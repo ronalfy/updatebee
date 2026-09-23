@@ -24,5 +24,6 @@ class Init {
 		new Emails();
 		new Cron();
 		new Tools();
+		new Advanced();
 	}
 }

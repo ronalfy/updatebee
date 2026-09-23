@@ -72,3 +72,10 @@ interface UpdateBeeCron {
 }
 
 declare const updatebeeCron: UpdateBeeCron;
+
+interface UpdateBeeAdvanced {
+	saveNonce: string;
+	delayUpdates: number;
+}
+
+declare const updatebeeAdvanced: UpdateBeeAdvanced;

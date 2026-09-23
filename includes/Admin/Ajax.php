@@ -69,6 +69,9 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
 		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
+
+		// Advanced Ajax actions.
+		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
 	}
 
 	/**
@@ -1450,6 +1453,41 @@ class Ajax {
 			array(
 				'enable_core_emails' => Updates_Init::core_emails_enabled(),
 				'message'              => __( 'Email settings saved.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Save delayed automatic update days.
+	 */
+	public function save_advanced_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-advanced-settings', 'nonce' );
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Days are passed through absint.
+		$days = isset( $_POST['delay_updates'] ) ? absint( wp_unslash( $_POST['delay_updates'] ) ) : 0;
+
+		$updated = Options::update_options(
+			'',
+			array(
+				'delay_updates' => $days,
+			)
+		);
+		if ( null === $updated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Update delay could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'       => __( 'Update delay has been saved.', 'updatebee' ),
+				'delay_updates' => $days,
 			)
 		);
 	}

@@ -25,6 +25,7 @@ class Init {
 		Plugins::get_instance();
 		Themes::get_instance();
 		Translations::get_instance();
+		Delay_Updates::get_instance();
 
 		if ( ! self::core_emails_enabled() ) {
 			$priority = Functions::get_highest_priority( 10 );

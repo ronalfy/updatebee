@@ -37,5 +37,9 @@ module.exports = {
 			process.cwd(),
 			'src/js/react/views/Cron/index.tsx'
 		),
+		advanced: path.resolve(
+			process.cwd(),
+			'src/js/react/views/Advanced/index.tsx'
+		),
 	},
 };

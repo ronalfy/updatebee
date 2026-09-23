@@ -61,6 +61,7 @@ class Options {
 			'enable_core_emails'               => true,
 			'clear_logs_days'                  => 0,
 			'slack_webhook_url'                => '',
+			'delay_updates'                    => 0,
 		);
 
 		/**
