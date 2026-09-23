@@ -175,3 +175,9 @@
 		gap: 8px;
 	}
 }
+
+.updatebee-plugin-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--wpds-dimension-gap-md);
+}
