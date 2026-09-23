@@ -54,7 +54,7 @@ class Table_Themes extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_version = '1.0.0';
+	protected static $table_version = '1.0.1';
 
 	/**
 	 * Table columns and their schema.
@@ -95,6 +95,14 @@ class Table_Themes extends Tables {
 			'sanitize'       => 'sanitize_textarea_field',
 			'validate'       => 'is_string',
 			'prepare_symbol' => '%s',
+			'mapped_column'  => null,
+		),
+		'delay_days' => array(
+			'name'           => 'delay_days',
+			'schema'         => 'INT(11) NULL DEFAULT NULL',
+			'sanitize'       => 'absint',
+			'validate'       => 'is_int',
+			'prepare_symbol' => '%d',
 			'mapped_column'  => null,
 		),
 	);
@@ -181,7 +189,195 @@ class Table_Themes extends Tables {
 	}
 
 	/**
-	 * Save notes for a theme. Empty notes remove the row.
+	 * Delay settings for one theme.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @return array{delay_days: int|null} Delay settings.
+	 */
+	public static function get_delay_settings( string $stylesheet ): array {
+		return array(
+			'delay_days' => self::get_delay_days( $stylesheet ),
+		);
+	}
+
+	/**
+	 * Delay settings for every theme that has a row.
+	 *
+	 * @return array<string, array{delay_days: int|null}> Stylesheet => delay settings.
+	 */
+	public static function get_all_delay_settings(): array {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return array();
+		}
+
+		$table_name = static::get_table_name();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
+		$results = $wpdb->get_results( "SELECT theme_slug, delay_days FROM {$table_name}", ARRAY_A );
+
+		if ( empty( $results ) || is_wp_error( $results ) ) {
+			return array();
+		}
+
+		$settings = array();
+		foreach ( $results as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['theme_slug'] ) ) {
+				continue;
+			}
+
+			$stylesheet = (string) $row['theme_slug'];
+			if ( '' === $stylesheet ) {
+				continue;
+			}
+
+			$settings[ $stylesheet ] = array(
+				'delay_days' => self::delay_days_from_row( $row ),
+			);
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Saved delay override for one theme.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @return int|null Days to wait, or null when the theme uses the global delay.
+	 */
+	public static function get_delay_days( string $stylesheet ): ?int {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return null;
+		}
+
+		$stylesheet = self::sanitize_stylesheet( $stylesheet );
+		if ( '' === $stylesheet ) {
+			return null;
+		}
+
+		$row = self::get_theme_by_slug( $stylesheet );
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
+
+		return self::delay_days_from_row( $row );
+	}
+
+	/**
+	 * Save or clear a theme delay override.
+	 *
+	 * @param string   $stylesheet Theme stylesheet slug.
+	 * @param int|null $delay_days Days to wait, or null to inherit the global delay.
+	 * @return array{delay_days: int|null}|\WP_Error Saved delay settings, or WP_Error on failure.
+	 */
+	public static function save_delay_settings( string $stylesheet, ?int $delay_days ) {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return new \WP_Error( 'db_unavailable', __( 'Delay settings could not be saved.', 'updatebee' ) );
+		}
+
+		$stylesheet = self::sanitize_stylesheet( $stylesheet );
+		if ( '' === $stylesheet ) {
+			return new \WP_Error( 'invalid_theme', __( 'Invalid theme stylesheet.', 'updatebee' ) );
+		}
+
+		$existing   = self::get_theme_by_slug( $stylesheet );
+		$notes      = is_array( $existing ) && isset( $existing['notes'] ) ? (string) $existing['notes'] : '';
+		$user_id    = (string) get_current_user_id();
+		$table_name = static::get_table_name();
+
+		if ( null === $delay_days ) {
+			if ( ! is_array( $existing ) ) {
+				return array(
+					'delay_days' => null,
+				);
+			}
+
+			if ( '' === trim( $notes ) ) {
+				$deleted = self::delete_theme_row( $stylesheet );
+				if ( is_wp_error( $deleted ) ) {
+					return $deleted;
+				}
+
+				return array(
+					'delay_days' => null,
+				);
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update. Null becomes SQL NULL.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id'    => $user_id,
+					'delay_days' => null,
+				),
+				array(
+					'theme_slug' => $stylesheet,
+				),
+				array( '%s', '%d' ),
+				array( '%s' )
+			);
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to save delay settings.', 'updatebee' ) );
+			}
+
+			return array(
+				'delay_days' => null,
+			);
+		}
+
+		$days = absint( $delay_days );
+
+		if ( is_array( $existing ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id'    => $user_id,
+					'delay_days' => $days,
+				),
+				array(
+					'theme_slug' => $stylesheet,
+				),
+				array( '%s', '%d' ),
+				array( '%s' )
+			);
+
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to save delay settings.', 'updatebee' ) );
+			}
+
+			return array(
+				'delay_days' => $days,
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table insert.
+		$result = $wpdb->insert(
+			$table_name,
+			array(
+				'user_id'    => $user_id,
+				'theme_slug' => $stylesheet,
+				'notes'      => '',
+				'delay_days' => $days,
+			),
+			array( '%s', '%s', '%s', '%d' )
+		);
+
+		if ( false === $result ) {
+			return new \WP_Error( 'insert_failed', __( 'Failed to save delay settings.', 'updatebee' ) );
+		}
+
+		return array(
+			'delay_days' => $days,
+		);
+	}
+
+	/**
+	 * Save notes for a theme. Empty notes remove the row when no delay is stored.
 	 *
 	 * @param string $stylesheet Theme stylesheet slug.
 	 * @param string $notes      Note text.
@@ -257,6 +453,60 @@ class Table_Themes extends Tables {
 		if ( '' === $stylesheet ) {
 			return new \WP_Error( 'invalid_theme', __( 'Invalid theme stylesheet.', 'updatebee' ) );
 		}
+
+		$existing = self::get_theme_by_slug( $stylesheet );
+		if ( ! is_array( $existing ) ) {
+			return true;
+		}
+
+		if ( null !== self::delay_days_from_row( $existing ) ) {
+			$table_name = static::get_table_name();
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id' => (string) get_current_user_id(),
+					'notes'   => '',
+				),
+				array(
+					'theme_slug' => $stylesheet,
+				),
+				array( '%s', '%s' ),
+				array( '%s' )
+			);
+
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to update theme notes.', 'updatebee' ) );
+			}
+
+			return true;
+		}
+
+		return self::delete_theme_row( $stylesheet );
+	}
+
+	/**
+	 * Read delay_days from a table row.
+	 *
+	 * @param array<string, mixed> $row Table row.
+	 * @return int|null Delay days, or null when the theme uses the global delay.
+	 */
+	private static function delay_days_from_row( array $row ): ?int {
+		if ( ! array_key_exists( 'delay_days', $row ) || null === $row['delay_days'] || '' === $row['delay_days'] ) {
+			return null;
+		}
+
+		return absint( $row['delay_days'] );
+	}
+
+	/**
+	 * Delete a theme row.
+	 *
+	 * @param string $stylesheet Sanitized theme stylesheet slug.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	private static function delete_theme_row( string $stylesheet ) {
+		global $wpdb;
 
 		$table_name = static::get_table_name();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table delete.

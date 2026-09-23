@@ -290,4 +290,31 @@ class DelayUpdatesTest extends TestCase {
 
 		$this->assertSame( array(), $this->site_options[ Delay_Updates::PLUGIN_OPTION ] );
 	}
+
+	/**
+	 * A missing per-item delay inherits the global delay.
+	 */
+	public function test_resolve_delay_days_inherits_global(): void {
+		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+
+		$this->assertSame( 2, $delay->resolve_delay_days( null ) );
+	}
+
+	/**
+	 * An explicit zero override updates immediately.
+	 */
+	public function test_resolve_delay_days_zero_overrides_global(): void {
+		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+
+		$this->assertSame( 0, $delay->resolve_delay_days( 0 ) );
+	}
+
+	/**
+	 * A positive per-item delay replaces the global delay.
+	 */
+	public function test_resolve_delay_days_positive_overrides_global(): void {
+		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+
+		$this->assertSame( 5, $delay->resolve_delay_days( 5 ) );
+	}
 }

@@ -27,6 +27,7 @@ import {
 } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
+import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
 import { type Action } from './bulk-actions';
 import PluginNote from './PluginNote';
@@ -66,6 +67,8 @@ export type PluginItem = {
 	PatchNonce: string;
 	NoteNonce: string;
 	Notes: string;
+	DelayDays: number | null;
+	SettingsNonce: string;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -73,6 +76,7 @@ type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
 type PluginsPayload = {
 	plugins?: Record< string, PluginItem >;
 	auto_updates_enabled?: AutoUpdatesStatus;
+	delay_updates?: number;
 };
 
 export type PluginsFormValues = Record< string, boolean >;
@@ -221,9 +225,17 @@ const getBulkSuccessMessage = (
 const PluginsList = ( props: {
 	plugins: PluginItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
+	globalDelayDays: number;
+	onDelayChange: ( file: string, delayDays: number | null ) => void;
 	onNotesChange: ( file: string, notes: string ) => void;
 } ) => {
-	const { plugins, autoUpdatesStatus, onNotesChange } = props;
+	const {
+		plugins,
+		autoUpdatesStatus,
+		globalDelayDays,
+		onDelayChange,
+		onNotesChange,
+	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< PluginsFormValues >();
 	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
@@ -839,6 +851,17 @@ const PluginsList = ( props: {
 										: 'updatebee-plugin-has-svg-icon',
 								].join( ' ' ) }
 							>
+								<ItemSettingsDrawer
+									kind="plugin"
+									assetName={ plugin.Name }
+									assetId={ plugin.File }
+									delayDays={ plugin.DelayDays }
+									settingsNonce={ plugin.SettingsNonce }
+									globalDelayDays={ globalDelayDays }
+									disabled={ isBusy }
+									onDelayChange={ onDelayChange }
+									showSnackbar={ showSnackbar }
+								/>
 								<div className="updatebee-plugin-column updatebee-plugin-column-checkbox">
 									<Controller
 										name={ selectedKey }
@@ -1355,6 +1378,26 @@ const PluginsMain = () => {
 	const [ plugins, setPlugins ] = useState< PluginItem[] >( [] );
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
+	const [ globalDelayDays, setGlobalDelayDays ] = useState( 0 );
+
+	/**
+	 * Update a plugin's delay in local list state.
+	 *
+	 * @param file      Plugin file.
+	 * @param delayDays Saved delay override.
+	 */
+	const handleDelayChange = useCallback(
+		( file: string, delayDays: number | null ) => {
+			setPlugins( ( current ) =>
+				current.map( ( plugin ) =>
+					plugin.File === file
+						? { ...plugin, DelayDays: delayDays }
+						: plugin
+				)
+			);
+		},
+		[]
+	);
 
 	/**
 	 * Update a plugin's notes in local list state.
@@ -1409,6 +1452,7 @@ const PluginsMain = () => {
 
 				setPlugins( pluginItems );
 				setAutoUpdatesStatus( data.auto_updates_enabled || 'disabled' );
+				setGlobalDelayDays( data.delay_updates || 0 );
 				reset( values );
 			} )
 			.catch( () => {
@@ -1451,6 +1495,8 @@ const PluginsMain = () => {
 			<PluginsList
 				plugins={ plugins }
 				autoUpdatesStatus={ autoUpdatesStatus }
+				globalDelayDays={ globalDelayDays }
+				onDelayChange={ handleDelayChange }
 				onNotesChange={ handleNotesChange }
 			/>
 		</FormProvider>

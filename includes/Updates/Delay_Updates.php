@@ -9,6 +9,8 @@ namespace UpdateBee\Updates;
 
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Tables\Table_Plugins;
+use UpdateBee\Tables\Table_Themes;
 
 /**
  * Stamp first-seen update versions and veto auto-updates until the delay elapses.
@@ -96,6 +98,22 @@ class Delay_Updates {
 	}
 
 	/**
+	 * Resolve the delay for one item.
+	 *
+	 * A null custom value inherits the global delay. Zero and positive values override it.
+	 *
+	 * @param int|null $custom Per-item delay in days, or null to inherit.
+	 * @return int Days to wait. Zero means no delay.
+	 */
+	public function resolve_delay_days( ?int $custom ): int {
+		if ( null === $custom ) {
+			return $this->get_delay_days();
+		}
+
+		return absint( $custom );
+	}
+
+	/**
 	 * Decide whether to auto-update a plugin or delay it.
 	 *
 	 * @param bool   $update Whether to update.
@@ -103,12 +121,16 @@ class Delay_Updates {
 	 * @return bool False while delayed, otherwise the incoming decision.
 	 */
 	public function auto_update_plugin( $update, $item ) {
-		$delay = $this->get_delay_days();
-		if ( 0 === $delay || ! $update || ! is_object( $item ) || ! isset( $item->plugin ) ) {
+		if ( ! $update || ! is_object( $item ) || ! isset( $item->plugin ) ) {
 			return $update;
 		}
 
-		$plugin_file    = (string) $item->plugin;
+		$plugin_file = (string) $item->plugin;
+		$delay       = $this->resolve_delay_days( Table_Plugins::get_delay_days( $plugin_file ) );
+		if ( 0 === $delay ) {
+			return $update;
+		}
+
 		$plugin_updates = $this->get_stamps( self::PLUGIN_OPTION );
 		if ( ! isset( $plugin_updates[ $plugin_file ]['time'] ) ) {
 			return $update;
@@ -132,12 +154,16 @@ class Delay_Updates {
 	 * @return bool False while delayed, otherwise the incoming decision.
 	 */
 	public function auto_update_theme( $update, $item ) {
-		$delay = $this->get_delay_days();
-		if ( 0 === $delay || ! $update || ! is_object( $item ) || ! isset( $item->theme ) ) {
+		if ( ! $update || ! is_object( $item ) || ! isset( $item->theme ) ) {
 			return $update;
 		}
 
-		$theme_slug    = (string) $item->theme;
+		$theme_slug = (string) $item->theme;
+		$delay      = $this->resolve_delay_days( Table_Themes::get_delay_days( $theme_slug ) );
+		if ( 0 === $delay ) {
+			return $update;
+		}
+
 		$theme_updates = $this->get_stamps( self::THEME_OPTION );
 		if ( ! isset( $theme_updates[ $theme_slug ]['time'] ) ) {
 			return $update;

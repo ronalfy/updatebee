@@ -39,6 +39,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_plugin_patches', array( $this, 'toggle_plugin_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
+		add_action( 'wp_ajax_updatebee_save_plugin_settings', array( $this, 'save_plugin_settings' ) );
 
 		// Theme Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_themes', array( $this, 'retrieve_themes' ) );
@@ -47,6 +48,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_toggle_theme_patches', array( $this, 'toggle_theme_patches' ) );
 		add_action( 'wp_ajax_updatebee_bulk_theme_action', array( $this, 'bulk_theme_action' ) );
 		add_action( 'wp_ajax_updatebee_save_theme_note', array( $this, 'save_theme_note' ) );
+		add_action( 'wp_ajax_updatebee_save_theme_settings', array( $this, 'save_theme_settings' ) );
 
 		// Translation Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_translations', array( $this, 'retrieve_translations' ) );
@@ -209,6 +211,11 @@ class Ajax {
 			$plugin_notes = array();
 		}
 
+		$plugin_delays = Table_Plugins::get_all_delay_settings();
+		if ( ! is_array( $plugin_delays ) ) {
+			$plugin_delays = array();
+		}
+
 		foreach ( $all_plugins as $file => $plugin ) {
 			if ( ! is_string( $file ) ) {
 				continue;
@@ -223,8 +230,10 @@ class Ajax {
 			$plugin['EnableNonce'] = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
 			$plugin['BlockNonce']  = wp_create_nonce( 'updatebee-plugin-block-' . $file );
 			$plugin['PatchNonce']  = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
-			$plugin['NoteNonce']   = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
-			$plugin['Notes']       = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
+			$plugin['NoteNonce']     = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
+			$plugin['Notes']         = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
+			$plugin['SettingsNonce'] = wp_create_nonce( 'updatebee-plugin-settings-' . $file );
+			$plugin['DelayDays']     = isset( $plugin_delays[ $file ]['delay_days'] ) ? $plugin_delays[ $file ]['delay_days'] : null;
 			$plugin['Active']      = in_array( $file, $active_plugin_slugs, true );
 			$plugin['Autoupdates'] = isset( $auto_updated_plugins[ $file ] );
 			$plugin['Blocked']     = Functions::auto_updates_blocked( $file, 'plugin' );
@@ -304,6 +313,7 @@ class Ajax {
 			array(
 				'plugins'              => $all_plugins,
 				'auto_updates_enabled' => $status,
+				'delay_updates'        => absint( $options['delay_updates'] ?? 0 ),
 			)
 		);
 	}
@@ -460,6 +470,38 @@ class Ajax {
 	}
 
 	/**
+	 * Save delay settings for a single plugin.
+	 */
+	public function save_plugin_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-settings-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) ) {
+			wp_send_json_error();
+		}
+
+		$saved = Table_Plugins::save_delay_settings( $file, $this->get_posted_delay_days() );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Plugin settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'    => __( 'Plugin settings have been saved.', 'updatebee' ),
+				'delay_days' => $saved['delay_days'],
+			)
+		);
+	}
+
+	/**
 	 * Return theme list data for the Themes screen.
 	 */
 	public function retrieve_themes(): void {
@@ -478,6 +520,11 @@ class Ajax {
 		$theme_notes = Table_Themes::get_all_notes();
 		if ( ! is_array( $theme_notes ) ) {
 			$theme_notes = array();
+		}
+
+		$theme_delays = Table_Themes::get_all_delay_settings();
+		if ( ! is_array( $theme_delays ) ) {
+			$theme_delays = array();
 		}
 
 		$current_stylesheet = get_stylesheet();
@@ -518,6 +565,8 @@ class Ajax {
 				'PatchNonce'     => wp_create_nonce( 'updatebee-theme-patches-' . $stylesheet ),
 				'NoteNonce'      => wp_create_nonce( 'updatebee-theme-notes-' . $stylesheet ),
 				'Notes'          => isset( $theme_notes[ $stylesheet ] ) ? (string) $theme_notes[ $stylesheet ] : '',
+				'SettingsNonce'  => wp_create_nonce( 'updatebee-theme-settings-' . $stylesheet ),
+				'DelayDays'      => isset( $theme_delays[ $stylesheet ]['delay_days'] ) ? $theme_delays[ $stylesheet ]['delay_days'] : null,
 				'Active'         => $stylesheet === $current_stylesheet,
 				'NetworkEnabled' => Functions::is_multisite() ? (bool) $theme->is_allowed( 'network' ) : false,
 				'Autoupdates'    => isset( $auto_updated_themes[ $stylesheet ] ),
@@ -572,6 +621,7 @@ class Ajax {
 			array(
 				'themes'               => $all_themes,
 				'auto_updates_enabled' => $status,
+				'delay_updates'        => absint( $options['delay_updates'] ?? 0 ),
 			)
 		);
 	}
@@ -723,6 +773,38 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'notes' => Table_Themes::get_notes( $stylesheet ),
+			)
+		);
+	}
+
+	/**
+	 * Save delay settings for a single theme.
+	 */
+	public function save_theme_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-settings-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) ) {
+			wp_send_json_error();
+		}
+
+		$saved = Table_Themes::save_delay_settings( $stylesheet, $this->get_posted_delay_days() );
+		if ( is_wp_error( $saved ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Theme settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message'    => __( 'Theme settings have been saved.', 'updatebee' ),
+				'delay_days' => $saved['delay_days'],
 			)
 		);
 	}
@@ -1169,6 +1251,44 @@ class Ajax {
 		}
 
 		return array_values( array_unique( $sanitized ) );
+	}
+
+	/**
+	 * Read delay_days from the posted settings JSON.
+	 *
+	 * The caller verifies the per-item nonce before this runs. A missing, null,
+	 * or empty value means inherit the site default delay.
+	 *
+	 * @return int|null Delay days, or null to inherit the global delay.
+	 */
+	private function get_posted_delay_days(): ?int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller verifies the nonce.
+		if ( ! isset( $_POST['settings'] ) ) {
+			return null;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller verifies the nonce.
+		$raw = wp_unslash( $_POST['settings'] );
+		$settings = array();
+		if ( is_array( $raw ) ) {
+			$settings = $raw;
+		} elseif ( is_string( $raw ) && '' !== $raw ) {
+			$decoded = json_decode( $raw, true );
+			if ( is_array( $decoded ) ) {
+				$settings = $decoded;
+			}
+		}
+
+		if ( ! array_key_exists( 'delay_days', $settings ) ) {
+			return null;
+		}
+
+		$value = $settings['delay_days'];
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+
+		return absint( $value );
 	}
 
 	/**

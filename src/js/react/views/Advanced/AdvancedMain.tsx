@@ -141,7 +141,10 @@ const AdvancedMain = () => {
 								onChange={ ( value ) => {
 									setDelayUpdates( normalizeDays( value ) );
 								} }
-								help={ __( 'Time in days for how long to delay an update for. Use 0 for no delay.', 'updatebee' ) }
+								help={ __(
+									'Time in days for how long to delay an update. Use 0 for no delay. Individual plugins and themes can override this from their own settings.',
+									'updatebee'
+								) }
 								disabled={ isSaving }
 							/>
 						</div>

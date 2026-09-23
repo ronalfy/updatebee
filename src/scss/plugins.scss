@@ -129,10 +129,34 @@
 .updatebee-plugin-badge {
 	position: absolute;
 	top: 12px;
-	right: 12px;
+	right: 60px;
 	z-index: 1000;
 	display: flex;
 	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.updatebee-item-settings-trigger {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	z-index: 1001;
+}
+
+.updatebee-item-settings-drawer-portal {
+	--wp-ui-drawer-z-index: 100000;
+}
+
+.updatebee-item-settings-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.updatebee-item-settings-footer {
+	display: flex;
 	justify-content: flex-end;
 	gap: 8px;
 }

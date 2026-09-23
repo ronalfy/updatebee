@@ -27,6 +27,7 @@ import {
 } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import { ErrorFallback } from '../../components/ErrorBoundary';
+import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
 import { type Action } from './bulk-actions';
 import ThemeNote from './ThemeNote';
@@ -63,6 +64,8 @@ export type ThemeItem = {
 	PatchNonce: string;
 	NoteNonce: string;
 	Notes: string;
+	DelayDays: number | null;
+	SettingsNonce: string;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -70,6 +73,7 @@ type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
 type ThemesPayload = {
 	themes?: Record< string, ThemeItem >;
 	auto_updates_enabled?: AutoUpdatesStatus;
+	delay_updates?: number;
 };
 
 export type ThemesFormValues = Record< string, boolean >;
@@ -214,9 +218,17 @@ const getBulkSuccessMessage = (
 const ThemesList = ( props: {
 	themes: ThemeItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
+	globalDelayDays: number;
+	onDelayChange: ( stylesheet: string, delayDays: number | null ) => void;
 	onNotesChange: ( stylesheet: string, notes: string ) => void;
 } ) => {
-	const { themes, autoUpdatesStatus, onNotesChange } = props;
+	const {
+		themes,
+		autoUpdatesStatus,
+		globalDelayDays,
+		onDelayChange,
+		onNotesChange,
+	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< ThemesFormValues >();
 	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
@@ -871,6 +883,17 @@ const ThemesList = ( props: {
 										: 'updatebee-theme-has-svg-icon',
 								].join( ' ' ) }
 							>
+								<ItemSettingsDrawer
+									kind="theme"
+									assetName={ theme.Name }
+									assetId={ theme.Stylesheet }
+									delayDays={ theme.DelayDays }
+									settingsNonce={ theme.SettingsNonce }
+									globalDelayDays={ globalDelayDays }
+									disabled={ isBusy }
+									onDelayChange={ onDelayChange }
+									showSnackbar={ showSnackbar }
+								/>
 								<div className="updatebee-theme-column updatebee-theme-column-checkbox">
 									<Controller
 										name={ selectedKey }
@@ -1368,6 +1391,26 @@ const ThemesMain = () => {
 	const [ themes, setThemes ] = useState< ThemeItem[] >( [] );
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
+	const [ globalDelayDays, setGlobalDelayDays ] = useState( 0 );
+
+	/**
+	 * Update a theme's delay in local list state.
+	 *
+	 * @param stylesheet Theme stylesheet.
+	 * @param delayDays  Saved delay override.
+	 */
+	const handleDelayChange = useCallback(
+		( stylesheet: string, delayDays: number | null ) => {
+			setThemes( ( current ) =>
+				current.map( ( theme ) =>
+					theme.Stylesheet === stylesheet
+						? { ...theme, DelayDays: delayDays }
+						: theme
+				)
+			);
+		},
+		[]
+	);
 
 	/**
 	 * Update a theme's notes in local list state.
@@ -1429,6 +1472,7 @@ const ThemesMain = () => {
 
 				setThemes( themeItems );
 				setAutoUpdatesStatus( data.auto_updates_enabled || 'disabled' );
+				setGlobalDelayDays( data.delay_updates || 0 );
 				reset( values );
 			} )
 			.catch( () => {
@@ -1471,6 +1515,8 @@ const ThemesMain = () => {
 			<ThemesList
 				themes={ themes }
 				autoUpdatesStatus={ autoUpdatesStatus }
+				globalDelayDays={ globalDelayDays }
+				onDelayChange={ handleDelayChange }
 				onNotesChange={ handleNotesChange }
 			/>
 		</FormProvider>

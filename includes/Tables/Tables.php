@@ -138,28 +138,56 @@ abstract class Tables {
 	 * @return bool|\WP_Error True if the table was created, false otherwise.
 	 */
 	protected static function create_table() {
-		global $wpdb;
+		$table_name     = static::get_table_name( false );
+		$version_option = $table_name . '_version';
+		$schema_option  = $table_name . '_schema';
 
-		$table_name = static::get_table_name( false );
+		$schema      = static::get_table_schema();
+		$schema_hash = md5( $schema );
 
-		// Check table versions and only create if they need updating.
-		$version = get_option( $table_name . '_version', 0 );
-		if ( version_compare( $version, static::$table_version, '>=' ) ) {
+		// The stored version can sit ahead of the real schema when columns change without a
+		// version bump, so the schema itself is fingerprinted and checked alongside the version.
+		$version            = get_option( $version_option, 0 );
+		$is_current_version = version_compare( (string) $version, (string) static::$table_version, '>=' );
+		$is_current_schema  = ( get_option( $schema_option, '' ) === $schema_hash );
+
+		if ( $is_current_version && $is_current_schema ) {
 			return false;
 		}
 
-		$schema = static::get_table_schema();
-
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		$results = dbDelta( $schema );
+		dbDelta( $schema );
 
-		if ( empty( $results ) ) {
+		// An empty dbDelta result only means there was nothing to change, so the table itself
+		// is checked to decide whether the migration succeeded.
+		if ( ! static::table_exists() ) {
 			return new \WP_Error( 'table_creation_failed', __( 'Table creation failed.', 'updatebee' ) );
 		}
 
-		update_option( $table_name . '_version', static::$table_version );
+		update_option( $version_option, static::$table_version );
+		update_option( $schema_option, $schema_hash );
 
 		return true;
+	}
+
+	/**
+	 * Check whether the table exists in the database.
+	 *
+	 * @return boolean True when the table exists.
+	 */
+	protected static function table_exists() {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return false;
+		}
+
+		$table_name = static::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema lookup for a known table name.
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table_name ) ) );
+
+		return $found === $table_name;
 	}
 
 	/**
@@ -170,7 +198,12 @@ abstract class Tables {
 	public static function needs_update() {
 		$table_name      = static::get_table_name( false );
 		$current_version = get_option( $table_name . '_version', 0 );
-		return version_compare( $current_version, self::$table_version, '<' );
+
+		if ( version_compare( (string) $current_version, (string) static::$table_version, '<' ) ) {
+			return true;
+		}
+
+		return get_option( $table_name . '_schema', '' ) !== md5( static::get_table_schema() );
 	}
 
 	/**
@@ -196,8 +229,9 @@ abstract class Tables {
 		$table_name = sanitize_key( static::get_table_name( true ) );
 		$result     = $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
 
-		// Remove option.
+		// Remove the version and schema fingerprint options.
 		delete_option( static::get_table_name( false ) . '_version' );
+		delete_option( static::get_table_name( false ) . '_schema' );
 		return $result;
 	}
 
@@ -207,7 +241,7 @@ abstract class Tables {
 	 * @return int
 	 */
 	public static function get_table_version() {
-		return self::$table_version;
+		return static::$table_version;
 	}
 
 	/**
