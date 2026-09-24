@@ -47,7 +47,6 @@ interface UpdateBeeTools {
 	forceUpdatesNonce: string;
 	triggerCronNonce: string;
 	refreshUpdatesNonce: string;
-	resetNonce: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;
@@ -84,6 +83,7 @@ declare const updatebeeCron: UpdateBeeCron;
 
 interface UpdateBeeAdvanced {
 	saveNonce: string;
+	resetNonce: string;
 	delayUpdates: number;
 }
 

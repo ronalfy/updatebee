@@ -42,25 +42,6 @@
 	padding-top: 16px;
 }
 
-.updatebee-tools-reset-list {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-	margin: 16px 0 0;
-	padding: 0;
-	list-style: none;
-}
-
-.updatebee-tools-reset-footer {
-	display: flex;
-	justify-content: flex-end;
-	gap: 8px;
-}
-
-.updatebee-tools-reset-drawer-portal {
-	--wp-ui-drawer-z-index: 100000;
-}
-
 .updatebee-tools-footer {
 	.updatebee-snackbar {
 		position: fixed;

@@ -71,10 +71,10 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
 		add_action( 'wp_ajax_updatebee_refresh_updates', array( $this, 'refresh_updates' ) );
-		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
 
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
+		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
 	}
 
 	/**
@@ -1435,7 +1435,7 @@ class Ajax {
 	}
 
 	/**
-	 * Reset selected option groups from the Tools screen.
+	 * Reset selected option groups from the Advanced screen.
 	 */
 	public function reset_options(): void {
 		if ( ! Functions::can_access_options() ) {

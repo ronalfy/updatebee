@@ -1,5 +1,5 @@
 /**
- * Tools reset options card and drawer.
+ * Advanced reset options card and drawer.
  */
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
@@ -17,7 +17,7 @@ export type ResetItem =
 
 type ResetSelection = Record< ResetItem, boolean >;
 
-type ToolsResetProps = {
+type AdvancedResetProps = {
 	disabled: boolean;
 	isResetting: boolean;
 	onReset: ( items: ResetItem[] ) => Promise< boolean >;
@@ -64,7 +64,7 @@ const resetItems: Array< { id: ResetItem; label: string } > = [
 	},
 ];
 
-const ToolsReset = ( props: ToolsResetProps ) => {
+const AdvancedReset = ( props: AdvancedResetProps ) => {
 	const { disabled, isResetting, onReset } = props;
 	const [ isOpen, setIsOpen ] = useState( false );
 	const [ selection, setSelection ] =
@@ -136,20 +136,20 @@ const ToolsReset = ( props: ToolsResetProps ) => {
 			swipeDirection="right"
 			disablePointerDismissal={ true }
 		>
-			<Card.Root className="updatebee-tools-card">
+			<Card.Root className="updatebee-advanced-card">
 				<Card.Header>
 					<Card.Title>
 						{ __( 'Reset Options', 'updatebee' ) }
 					</Card.Title>
 				</Card.Header>
-				<Card.Content className="updatebee-tools-card-content">
-					<p className="updatebee-tools-card-description">
+				<Card.Content className="updatebee-advanced-card-content">
+					<p className="updatebee-advanced-card-description">
 						{ __(
 							'If you would like to reset various sections of options, you may do so below.',
 							'updatebee'
 						) }
 					</p>
-					<p className="updatebee-tools-card-actions">
+					<p className="updatebee-advanced-card-actions">
 						<Button
 							variant="solid"
 							disabled={ disabled }
@@ -167,7 +167,7 @@ const ToolsReset = ( props: ToolsResetProps ) => {
 			<Drawer.Popup
 				size="medium"
 				portal={
-					<Drawer.Portal className="updatebee-tools-reset-drawer-portal" />
+					<Drawer.Portal className="updatebee-advanced-reset-drawer-portal" />
 				}
 			>
 				<Drawer.Header>
@@ -182,7 +182,7 @@ const ToolsReset = ( props: ToolsResetProps ) => {
 							'updatebee'
 						) }
 					</Drawer.Description>
-					<ul className="updatebee-tools-reset-list">
+					<ul className="updatebee-advanced-reset-list">
 						{ resetItems.map( ( item ) => {
 							const isAll = 'all' === item.id;
 							const isItemDisabled =
@@ -207,7 +207,7 @@ const ToolsReset = ( props: ToolsResetProps ) => {
 						} ) }
 					</ul>
 				</Drawer.Content>
-				<Drawer.Footer className="updatebee-tools-reset-footer">
+				<Drawer.Footer className="updatebee-advanced-reset-footer">
 					<Drawer.Action variant="outline" disabled={ isResetting }>
 						{ __( 'Cancel', 'updatebee' ) }
 					</Drawer.Action>
@@ -229,4 +229,4 @@ const ToolsReset = ( props: ToolsResetProps ) => {
 	);
 };
 
-export default ToolsReset;
+export default AdvancedReset;

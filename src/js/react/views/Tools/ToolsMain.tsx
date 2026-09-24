@@ -1,5 +1,5 @@
 /**
- * Tools maintenance actions (force updates, trigger cron, refresh updates, reset).
+ * Tools maintenance actions (force updates, trigger cron, refresh updates).
  */
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
@@ -9,9 +9,8 @@ import ToolsFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './ToolsFooter';
-import ToolsReset, { type ResetItem } from './ToolsReset';
 
-type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates' | 'reset';
+type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates';
 
 type ToolsMessagePayload = {
 	message: string;
@@ -119,54 +118,6 @@ const ToolsMain = () => {
 		);
 	};
 
-	/**
-	 * Reset selected option groups.
-	 *
-	 * @param items Selected reset item ids.
-	 * @return True when the request succeeds.
-	 */
-	const handleReset = useCallback(
-		( items: ResetItem[] ): Promise< boolean > => {
-			if ( isBusy ) {
-				return Promise.resolve( false );
-			}
-
-			setActiveAction( 'reset' );
-
-			return sendCommand< ToolsMessagePayload >(
-				'updatebee_reset_options',
-				{
-					nonce: updatebeeTools.resetNonce,
-					items,
-				}
-			)
-				.then( ( response ) => {
-					const message =
-						response.data.data?.message ||
-						__(
-							'Your selected options have been reset.',
-							'updatebee'
-						);
-					showSnackbar( message, 'success' );
-					return true;
-				} )
-				.catch( () => {
-					showSnackbar(
-						__(
-							'Selected options could not be reset.',
-							'updatebee'
-						),
-						'error'
-					);
-					return false;
-				} )
-				.finally( () => {
-					setActiveAction( null );
-				} );
-		},
-		[ isBusy, showSnackbar ]
-	);
-
 	return (
 		<div className="updatebee-tools-main">
 			<div className="updatebee-tools-bento">
@@ -259,12 +210,6 @@ const ToolsMain = () => {
 						</p>
 					</Card.Content>
 				</Card.Root>
-
-				<ToolsReset
-					disabled={ isBusy }
-					isResetting={ 'reset' === activeAction }
-					onReset={ handleReset }
-				/>
 			</div>
 
 			<ToolsFooter

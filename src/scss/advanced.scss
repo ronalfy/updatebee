@@ -48,8 +48,26 @@
 
 .updatebee-advanced-card-actions {
 	margin: 0;
-	margin-top: auto;
 	padding-top: 16px;
+}
+
+.updatebee-advanced-reset-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin: 16px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.updatebee-advanced-reset-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+.updatebee-advanced-reset-drawer-portal {
+	--wp-ui-drawer-z-index: 100000;
 }
 
 .updatebee-advanced-footer {

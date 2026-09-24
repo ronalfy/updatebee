@@ -1,5 +1,5 @@
 /**
- * Advanced settings (delayed automatic updates).
+ * Advanced settings (delayed automatic updates and reset options).
  */
 import { TextControl, Notice } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
@@ -10,6 +10,7 @@ import AdvancedFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './AdvancedFooter';
+import AdvancedReset, { type ResetItem } from './AdvancedReset';
 
 type AdvancedMessagePayload = {
 	message?: string;
@@ -37,11 +38,14 @@ const AdvancedMain = () => {
 		normalizeDays( updatebeeAdvanced.delayUpdates )
 	);
 	const [ isSaving, setIsSaving ] = useState( false );
+	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
 		type: 'success',
 	} );
+
+	const isBusy = isSaving || isResetting;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -71,7 +75,7 @@ const AdvancedMain = () => {
 	 * Persist delayed automatic update days.
 	 */
 	const handleSave = useCallback( () => {
-		if ( isSaving ) {
+		if ( isBusy ) {
 			return;
 		}
 
@@ -103,7 +107,55 @@ const AdvancedMain = () => {
 			.finally( () => {
 				setIsSaving( false );
 			} );
-	}, [ delayUpdates, isSaving, showSnackbar ] );
+	}, [ delayUpdates, isBusy, showSnackbar ] );
+
+	/**
+	 * Reset selected option groups.
+	 *
+	 * @param items Selected reset item ids.
+	 * @return True when the request succeeds.
+	 */
+	const handleReset = useCallback(
+		( items: ResetItem[] ): Promise< boolean > => {
+			if ( isBusy ) {
+				return Promise.resolve( false );
+			}
+
+			setIsResetting( true );
+
+			return sendCommand< AdvancedMessagePayload >(
+				'updatebee_reset_options',
+				{
+					nonce: updatebeeAdvanced.resetNonce,
+					items,
+				}
+			)
+				.then( ( response ) => {
+					const message =
+						response.data.data?.message ||
+						__(
+							'Your selected options have been reset.',
+							'updatebee'
+						);
+					showSnackbar( message, 'success' );
+					return true;
+				} )
+				.catch( () => {
+					showSnackbar(
+						__(
+							'Selected options could not be reset.',
+							'updatebee'
+						),
+						'error'
+					);
+					return false;
+				} )
+				.finally( () => {
+					setIsResetting( false );
+				} );
+		},
+		[ isBusy, showSnackbar ]
+	);
 
 	return (
 		<div className="updatebee-advanced-main">
@@ -120,21 +172,22 @@ const AdvancedMain = () => {
 					<Card.Content className="updatebee-advanced-card-content">
 						<p className="updatebee-advanced-card-description">
 							{ __(
-								'A plugin or theme release may be shortlived if a developer finds another issue with the code and has to put out another release.',
+								'Occasionally, a plugin or theme update is problematic and can lead to quick fixes being released in rapid succession.',
 								'updatebee'
 							) }
 						</p>
-						<Notice
-							status="warning"
-							isDismissible={ false }
-						>
-							{ __( 'Warning: If an update was fixing a security issue, then your site will be unfixed for longer than normal.',
-							'updatebee'
+						<Notice status="warning" isDismissible={ false }>
+							{ __(
+								'Warning: If an update is fixing a security issue, then your site will be unfixed for the time of the delay.',
+								'updatebee'
 							) }
 						</Notice>
 						<div className="updatebee-advanced-card-field">
 							<TextControl
-								label={ __( 'Delay automatic updates', 'updatebee' ) }
+								label={ __(
+									'Delay Automatic Updates',
+									'updatebee'
+								) }
 								type="number"
 								min={ 0 }
 								value={ String( delayUpdates ) }
@@ -145,7 +198,7 @@ const AdvancedMain = () => {
 									'Time in days for how long to delay an update. Use 0 for no delay. Individual plugins and themes can override this from their own settings.',
 									'updatebee'
 								) }
-								disabled={ isSaving }
+								disabled={ isBusy }
 							/>
 						</div>
 						<p className="updatebee-advanced-card-actions">
@@ -156,7 +209,7 @@ const AdvancedMain = () => {
 									'Saving delay…',
 									'updatebee'
 								) }
-								disabled={ isSaving }
+								disabled={ isBusy }
 								onClick={ handleSave }
 							>
 								{ __( 'Save delay', 'updatebee' ) }
@@ -164,6 +217,12 @@ const AdvancedMain = () => {
 						</p>
 					</Card.Content>
 				</Card.Root>
+
+				<AdvancedReset
+					disabled={ isBusy }
+					isResetting={ isResetting }
+					onReset={ handleReset }
+				/>
 			</div>
 
 			<AdvancedFooter

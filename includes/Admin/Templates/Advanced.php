@@ -82,6 +82,7 @@ class Advanced {
 			'updatebeeAdvanced',
 			array(
 				'saveNonce'    => wp_create_nonce( 'updatebee-save-advanced-settings' ),
+				'resetNonce'   => wp_create_nonce( 'updatebee-reset-options' ),
 				'delayUpdates' => absint( Options::get_options( 'delay_updates' ) ),
 			)
 		);
