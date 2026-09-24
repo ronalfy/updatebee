@@ -34,6 +34,10 @@ class Init {
 			add_filter( 'automatic_updates_send_debug_email', '__return_false', $priority );
 			add_filter( 'auto_theme_update_send_email', '__return_false', $priority );
 			add_filter( 'auto_plugin_update_send_email', '__return_false', $priority );
+		} else {
+			add_filter( 'auto_core_update_email', array( $this, 'filter_update_email_recipients' ) );
+			add_filter( 'auto_plugin_theme_update_email', array( $this, 'filter_update_email_recipients' ) );
+			add_filter( 'automatic_updates_debug_email', array( $this, 'filter_update_email_recipients' ) );
 		}
 	}
 
@@ -54,6 +58,70 @@ class Init {
 		}
 
 		return (bool) $value;
+	}
+
+	/**
+	 * Stored recipients for WordPress automatic update emails.
+	 *
+	 * An empty list means WordPress should keep its own admin address.
+	 *
+	 * @return array<int, string> Valid email addresses.
+	 */
+	public static function get_core_email_recipients(): array {
+		$value = Options::get_options( 'core_email_recipients' );
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$recipients = array();
+		foreach ( $value as $email ) {
+			if ( ! is_string( $email ) ) {
+				continue;
+			}
+
+			$email = sanitize_email( $email );
+			if ( is_email( $email ) ) {
+				$recipients[] = $email;
+			}
+		}
+
+		return array_values( array_unique( $recipients ) );
+	}
+
+	/**
+	 * Recipients shown on the WordPress email card.
+	 *
+	 * Falls back to the site admin email when none are stored.
+	 *
+	 * @return array<int, string> Valid email addresses.
+	 */
+	public static function get_core_email_recipients_for_display(): array {
+		$recipients = self::get_core_email_recipients();
+		if ( ! empty( $recipients ) ) {
+			return $recipients;
+		}
+
+		$admin_email = sanitize_email( (string) get_site_option( 'admin_email' ) );
+		if ( is_email( $admin_email ) ) {
+			return array( $admin_email );
+		}
+
+		return array();
+	}
+
+	/**
+	 * Replace the WordPress update email recipient list.
+	 *
+	 * @param array<string, mixed> $email Email arguments passed to wp_mail().
+	 * @return array<string, mixed> Email arguments.
+	 */
+	public function filter_update_email_recipients( array $email ): array {
+		$recipients = self::get_core_email_recipients();
+		if ( ! empty( $recipients ) ) {
+			$email['to'] = $recipients;
+		}
+
+		return $email;
 	}
 
 	/**

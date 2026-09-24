@@ -54,6 +54,7 @@ declare const updatebeeTools: UpdateBeeTools;
 
 interface UpdateBeeEmails {
 	enableCoreEmails: boolean;
+	coreEmailRecipients: string[];
 	wordpressSaveNonce: string;
 	successRetrieveNonce: string;
 	successSaveNonce: string;

@@ -85,6 +85,7 @@ class Emails {
 			'updatebeeEmails',
 			array(
 				'enableCoreEmails'     => Updates_Init::core_emails_enabled(),
+				'coreEmailRecipients'  => Updates_Init::get_core_email_recipients_for_display(),
 				'wordpressSaveNonce'   => wp_create_nonce( 'updatebee-save-wordpress-email-settings' ),
 				'successRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-success-settings' ),
 				'successSaveNonce'     => wp_create_nonce( 'updatebee-save-email-success-settings' ),

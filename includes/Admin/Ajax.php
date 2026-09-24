@@ -226,19 +226,19 @@ class Ajax {
 				$plugin = array();
 			}
 
-			$plugin['File']        = $file;
-			$plugin['Slug']        = dirname( $file );
-			$plugin['EnableNonce'] = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
-			$plugin['BlockNonce']  = wp_create_nonce( 'updatebee-plugin-block-' . $file );
-			$plugin['PatchNonce']  = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
+			$plugin['File']          = $file;
+			$plugin['Slug']          = dirname( $file );
+			$plugin['EnableNonce']   = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
+			$plugin['BlockNonce']    = wp_create_nonce( 'updatebee-plugin-block-' . $file );
+			$plugin['PatchNonce']    = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
 			$plugin['NoteNonce']     = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
 			$plugin['Notes']         = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
 			$plugin['SettingsNonce'] = wp_create_nonce( 'updatebee-plugin-settings-' . $file );
 			$plugin['DelayDays']     = isset( $plugin_delays[ $file ]['delay_days'] ) ? $plugin_delays[ $file ]['delay_days'] : null;
-			$plugin['Active']      = in_array( $file, $active_plugin_slugs, true );
-			$plugin['Autoupdates'] = isset( $auto_updated_plugins[ $file ] );
-			$plugin['Blocked']     = Functions::auto_updates_blocked( $file, 'plugin' );
-			$plugin['PatchesOnly'] = Functions::auto_updates_patches_only( $file, 'plugin' );
+			$plugin['Active']        = in_array( $file, $active_plugin_slugs, true );
+			$plugin['Autoupdates']   = isset( $auto_updated_plugins[ $file ] );
+			$plugin['Blocked']       = Functions::auto_updates_blocked( $file, 'plugin' );
+			$plugin['PatchesOnly']   = Functions::auto_updates_patches_only( $file, 'plugin' );
 
 			$plugin_file_path = WP_PLUGIN_DIR . '/' . $file;
 			$mtime            = file_exists( $plugin_file_path ) ? filemtime( $plugin_file_path ) : false;
@@ -1269,7 +1269,7 @@ class Ajax {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller verifies the nonce.
-		$raw = wp_unslash( $_POST['settings'] );
+		$raw      = wp_unslash( $_POST['settings'] );
 		$settings = array();
 		if ( is_array( $raw ) ) {
 			$settings = $raw;
@@ -1559,9 +1559,9 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'enable_core_emails'       => Updates_Init::core_emails_enabled(),
-				'email_successes_enabled'  => Email_Successes::is_enabled( $success_options ),
-				'email_failures_enabled'   => Email_Failures::is_enabled( $failure_options ),
+				'enable_core_emails'      => Updates_Init::core_emails_enabled(),
+				'email_successes_enabled' => Email_Successes::is_enabled( $success_options ),
+				'email_failures_enabled'  => Email_Failures::is_enabled( $failure_options ),
 			)
 		);
 	}
@@ -1576,7 +1576,16 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-save-wordpress-email-settings', 'nonce' );
 
-		$enabled = $this->get_posted_enabled();
+		$enabled    = $this->get_posted_enabled();
+		$recipients = $this->get_posted_email_recipients();
+
+		if ( $enabled && empty( $recipients ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You must enter at least one email address.', 'updatebee' ),
+				)
+			);
+		}
 
 		$updated = Options::update_options(
 			'enable_core_emails',
@@ -1589,10 +1598,22 @@ class Ajax {
 			wp_send_json_error();
 		}
 
+		$updated = Options::update_options(
+			'core_email_recipients',
+			array(
+				'core_email_recipients' => $recipients,
+			)
+		);
+
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
 		wp_send_json_success(
 			array(
-				'enable_core_emails' => Updates_Init::core_emails_enabled(),
-				'message'              => __( 'Email settings saved.', 'updatebee' ),
+				'enable_core_emails'    => Updates_Init::core_emails_enabled(),
+				'core_email_recipients' => Updates_Init::get_core_email_recipients(),
+				'message'               => __( 'Email settings saved.', 'updatebee' ),
 			)
 		);
 	}
@@ -1651,5 +1672,33 @@ class Ajax {
 		}
 
 		return (bool) rest_sanitize_boolean( $value );
+	}
+
+	/**
+	 * Sanitize posted WordPress update email recipients.
+	 *
+	 * @return array<int, string> Valid email addresses.
+	 */
+	private function get_posted_email_recipients(): array {
+		// Callers verify a nonce before reading recipients.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$recipients = isset( $_POST['recipients'] ) ? wp_unslash( $_POST['recipients'] ) : array();
+		if ( ! is_array( $recipients ) ) {
+			return array();
+		}
+
+		$sanitized = array();
+		foreach ( $recipients as $email ) {
+			if ( ! is_string( $email ) ) {
+				continue;
+			}
+
+			$email = sanitize_email( $email );
+			if ( is_email( $email ) ) {
+				$sanitized[] = $email;
+			}
+		}
+
+		return array_values( array_unique( $sanitized ) );
 	}
 }

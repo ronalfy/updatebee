@@ -225,4 +225,101 @@ class UpdatesRuntimeTest extends TestCase {
 
 		$this->assertTrue( $registered );
 	}
+
+	/**
+	 * Test Init registers recipient filters when core emails are enabled.
+	 */
+	public function test_init_registers_recipient_filters_when_core_emails_enabled(): void {
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'add_action' )->justReturn( true );
+		MonkeyFunctions\when( 'get_site_option' )->justReturn(
+			array(
+				'enable_core_emails' => true,
+			)
+		);
+
+		$email_filters = array();
+		MonkeyFunctions\when( 'add_filter' )->alias(
+			static function ( $hook ) use ( &$email_filters ) {
+				if ( in_array(
+					$hook,
+					array(
+						'auto_core_update_email',
+						'auto_plugin_theme_update_email',
+						'automatic_updates_debug_email',
+					),
+					true
+				) ) {
+					$email_filters[] = $hook;
+				}
+
+				return true;
+			}
+		);
+
+		$init = new Init();
+		$init->run();
+
+		$this->assertSame(
+			array(
+				'auto_core_update_email',
+				'auto_plugin_theme_update_email',
+				'automatic_updates_debug_email',
+			),
+			$email_filters
+		);
+	}
+
+	/**
+	 * Test recipient filter replaces the WordPress to address.
+	 */
+	public function test_filter_update_email_recipients_replaces_to(): void {
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'sanitize_email' )->returnArg( 1 );
+		MonkeyFunctions\when( 'is_email' )->justReturn( true );
+		MonkeyFunctions\when( 'get_site_option' )->justReturn(
+			array(
+				'core_email_recipients' => array( 'one@example.com', 'two@example.com' ),
+			)
+		);
+
+		$init  = new Init();
+		$email = $init->filter_update_email_recipients(
+			array(
+				'to'      => 'admin@example.com',
+				'subject' => 'Hi',
+				'body'    => 'Body',
+				'headers' => '',
+			)
+		);
+
+		$this->assertSame(
+			array( 'one@example.com', 'two@example.com' ),
+			$email['to']
+		);
+	}
+
+	/**
+	 * Test recipient filter keeps WordPress's address when none are stored.
+	 */
+	public function test_filter_update_email_recipients_keeps_admin_when_empty(): void {
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'get_site_option' )->justReturn(
+			array(
+				'core_email_recipients' => array(),
+			)
+		);
+
+		$init  = new Init();
+		$email = $init->filter_update_email_recipients(
+			array(
+				'to'      => 'admin@example.com',
+				'subject' => 'Hi',
+				'body'    => 'Body',
+				'headers' => '',
+			)
+		);
+
+		$this->assertSame( 'admin@example.com', $email['to'] );
+	}
 }
