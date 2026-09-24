@@ -354,6 +354,17 @@ class Logs {
 	 */
 	public function perform_shutdown_task(): void {
 		$this->maybe_flush_log_messages();
+
+		if ( $this->is_auto_update || empty( self::$current_updates ) ) {
+			return;
+		}
+
+		/**
+		 * Run when manual updates logged in this request have finished.
+		 *
+		 * @param array<int, array<string, mixed>> $updates Log rows from this request.
+		 */
+		do_action( 'updatebee_manual_updates_complete', self::$current_updates );
 	}
 
 	/**

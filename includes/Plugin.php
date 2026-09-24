@@ -16,6 +16,7 @@ use UpdateBee\Cron\Schedules as Cron_Schedules;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Emails\Email_Failures;
 use UpdateBee\Emails\Email_Successes;
+use UpdateBee\Slack\Slack_Report;
 use UpdateBee\Tables\{
 	Tables,
 	Table_Logs,
@@ -115,6 +116,13 @@ class Plugin {
 	private Email_Failures $email_failures;
 
 	/**
+	 * Slack reports after updates finish.
+	 *
+	 * @var Slack_Report
+	 */
+	private Slack_Report $slack_report;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -186,5 +194,8 @@ class Plugin {
 
 		$this->email_failures = new Email_Failures();
 		$this->email_failures->run();
+
+		$this->slack_report = new Slack_Report();
+		$this->slack_report->run();
 	}
 }
