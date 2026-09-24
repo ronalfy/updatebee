@@ -1,7 +1,7 @@
 /**
  * Advanced settings (delayed automatic updates and reset options).
  */
-import { TextControl, Notice } from '@wordpress/components';
+import { TextControl, Notice, ToggleControl } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
@@ -15,6 +15,7 @@ import AdvancedReset, { type ResetItem } from './AdvancedReset';
 type AdvancedMessagePayload = {
 	message?: string;
 	delay_updates?: number;
+	block_untested_updates?: boolean;
 };
 
 /**
@@ -37,7 +38,11 @@ const AdvancedMain = () => {
 	const [ delayUpdates, setDelayUpdates ] = useState(
 		normalizeDays( updatebeeAdvanced.delayUpdates )
 	);
+	const [ blockUntestedUpdates, setBlockUntestedUpdates ] = useState(
+		Boolean( updatebeeAdvanced.blockUntestedUpdates )
+	);
 	const [ isSaving, setIsSaving ] = useState( false );
+	const [ isSavingUntested, setIsSavingUntested ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
@@ -45,7 +50,7 @@ const AdvancedMain = () => {
 		type: 'success',
 	} );
 
-	const isBusy = isSaving || isResetting;
+	const isBusy = isSaving || isSavingUntested || isResetting;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -108,6 +113,51 @@ const AdvancedMain = () => {
 				setIsSaving( false );
 			} );
 	}, [ delayUpdates, isBusy, showSnackbar ] );
+
+	/**
+	 * Persist the untested-updates block.
+	 */
+	const handleSaveUntested = useCallback( () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setIsSavingUntested( true );
+
+		sendCommand< AdvancedMessagePayload >(
+			'updatebee_save_advanced_settings',
+			{
+				nonce: updatebeeAdvanced.saveNonce,
+				block_untested_updates: blockUntestedUpdates ? '1' : '0',
+			}
+		)
+			.then( ( response ) => {
+				const payload = response.data.data;
+				setBlockUntestedUpdates(
+					Boolean( payload.block_untested_updates )
+				);
+				showSnackbar(
+					payload.message ||
+						__(
+							'Untested updates setting has been saved.',
+							'updatebee'
+						),
+					'success'
+				);
+			} )
+			.catch( () => {
+				showSnackbar(
+					__(
+						'Untested updates setting could not be saved.',
+						'updatebee'
+					),
+					'error'
+				);
+			} )
+			.finally( () => {
+				setIsSavingUntested( false );
+			} );
+	}, [ blockUntestedUpdates, isBusy, showSnackbar ] );
 
 	/**
 	 * Reset selected option groups.
@@ -213,6 +263,53 @@ const AdvancedMain = () => {
 								onClick={ handleSave }
 							>
 								{ __( 'Save delay', 'updatebee' ) }
+							</Button>
+						</p>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root className="updatebee-advanced-card">
+					<Card.Header>
+						<Card.Title>
+							{ __( 'Block Untested Updates', 'updatebee' ) }
+						</Card.Title>
+					</Card.Header>
+					<Card.Content className="updatebee-advanced-card-content">
+						<p className="updatebee-advanced-card-description">
+							{ __(
+								'Automatic plugin and theme updates are skipped when the package has not been tested with this site’s WordPress version.',
+								'updatebee'
+							) }
+						</p>
+						<div className="updatebee-advanced-card-field">
+							<ToggleControl
+								label={ __(
+									'Block untested updates',
+									'updatebee'
+								) }
+								checked={ blockUntestedUpdates }
+								disabled={ isBusy }
+								onChange={ ( checked: boolean ) => {
+									setBlockUntestedUpdates( checked );
+								} }
+								help={ __(
+									'Individual plugins and themes can still allow untested updates from their own settings.',
+									'updatebee'
+								) }
+							/>
+						</div>
+						<p className="updatebee-advanced-card-actions">
+							<Button
+								variant="solid"
+								loading={ isSavingUntested }
+								loadingAnnouncement={ __(
+									'Saving untested updates setting…',
+									'updatebee'
+								) }
+								disabled={ isBusy }
+								onClick={ handleSaveUntested }
+							>
+								{ __( 'Save', 'updatebee' ) }
 							</Button>
 						</p>
 					</Card.Content>

@@ -54,7 +54,7 @@ class Table_Themes extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_version = '1.0.1';
+	protected static $table_version = '1.0.2';
 
 	/**
 	 * Table columns and their schema.
@@ -62,7 +62,7 @@ class Table_Themes extends Tables {
 	 * @var array
 	 */
 	protected static $columns = array(
-		'id'         => array(
+		'id'                     => array(
 			'name'           => 'id',
 			'schema'         => 'INT(11) NOT NULL AUTO_INCREMENT',
 			'sanitize'       => 'absint',
@@ -71,7 +71,7 @@ class Table_Themes extends Tables {
 			'primary_key'    => true,
 			'mapped_column'  => null,
 		),
-		'user_id'    => array(
+		'user_id'                => array(
 			'name'           => 'user_id',
 			'schema'         => 'VARCHAR(255) NOT NULL',
 			'sanitize'       => 'sanitize_text_field',
@@ -80,7 +80,7 @@ class Table_Themes extends Tables {
 			'index'          => true,
 			'mapped_column'  => null,
 		),
-		'theme_slug' => array(
+		'theme_slug'             => array(
 			'name'           => 'theme_slug',
 			'schema'         => 'VARCHAR(255) NOT NULL UNIQUE',
 			'sanitize'       => 'sanitize_text_field',
@@ -89,7 +89,7 @@ class Table_Themes extends Tables {
 			'index'          => true,
 			'mapped_column'  => null,
 		),
-		'notes'      => array(
+		'notes'                  => array(
 			'name'           => 'notes',
 			'schema'         => 'TEXT NOT NULL',
 			'sanitize'       => 'sanitize_textarea_field',
@@ -97,9 +97,17 @@ class Table_Themes extends Tables {
 			'prepare_symbol' => '%s',
 			'mapped_column'  => null,
 		),
-		'delay_days' => array(
+		'delay_days'             => array(
 			'name'           => 'delay_days',
 			'schema'         => 'INT(11) NULL DEFAULT NULL',
+			'sanitize'       => 'absint',
+			'validate'       => 'is_int',
+			'prepare_symbol' => '%d',
+			'mapped_column'  => null,
+		),
+		'block_untested_updates' => array(
+			'name'           => 'block_untested_updates',
+			'schema'         => 'TINYINT(1) NULL DEFAULT NULL',
 			'sanitize'       => 'absint',
 			'validate'       => 'is_int',
 			'prepare_symbol' => '%d',
@@ -203,7 +211,7 @@ class Table_Themes extends Tables {
 	/**
 	 * Delay settings for every theme that has a row.
 	 *
-	 * @return array<string, array{delay_days: int|null}> Stylesheet => delay settings.
+	 * @return array<string, array{delay_days: int|null, allow_untested: bool}> Stylesheet => settings.
 	 */
 	public static function get_all_delay_settings(): array {
 		global $wpdb;
@@ -214,7 +222,7 @@ class Table_Themes extends Tables {
 
 		$table_name = static::get_table_name();
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$results = $wpdb->get_results( "SELECT theme_slug, delay_days FROM {$table_name}", ARRAY_A );
+		$results = $wpdb->get_results( "SELECT theme_slug, delay_days, block_untested_updates FROM {$table_name}", ARRAY_A );
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();
@@ -232,7 +240,8 @@ class Table_Themes extends Tables {
 			}
 
 			$settings[ $stylesheet ] = array(
-				'delay_days' => self::delay_days_from_row( $row ),
+				'delay_days'     => self::delay_days_from_row( $row ),
+				'allow_untested' => self::allows_untested_from_row( $row ),
 			);
 		}
 
@@ -296,7 +305,7 @@ class Table_Themes extends Tables {
 				);
 			}
 
-			if ( '' === trim( $notes ) ) {
+			if ( '' === trim( $notes ) && ! self::allows_untested_from_row( $existing ) ) {
 				$deleted = self::delete_theme_row( $stylesheet );
 				if ( is_wp_error( $deleted ) ) {
 					return $deleted;
@@ -459,7 +468,7 @@ class Table_Themes extends Tables {
 			return true;
 		}
 
-		if ( null !== self::delay_days_from_row( $existing ) ) {
+		if ( null !== self::delay_days_from_row( $existing ) || self::allows_untested_from_row( $existing ) ) {
 			$table_name = static::get_table_name();
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
 			$result = $wpdb->update(
@@ -486,6 +495,144 @@ class Table_Themes extends Tables {
 	}
 
 	/**
+	 * Whether this theme is allowed to receive untested updates.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @return bool True when the theme opts out of the site block.
+	 */
+	public static function allows_untested_updates( string $stylesheet ): bool {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return false;
+		}
+
+		$stylesheet = self::sanitize_stylesheet( $stylesheet );
+		if ( '' === $stylesheet ) {
+			return false;
+		}
+
+		$row = self::get_theme_by_slug( $stylesheet );
+		if ( ! is_array( $row ) ) {
+			return false;
+		}
+
+		return self::allows_untested_from_row( $row );
+	}
+
+	/**
+	 * Save or clear a theme untested-update exemption.
+	 *
+	 * @param string    $stylesheet     Theme stylesheet slug.
+	 * @param bool|null $allow_untested True to allow untested updates, or null to inherit the site setting.
+	 * @return array{allow_untested: bool}|\WP_Error Saved setting, or WP_Error on failure.
+	 */
+	public static function save_untested_setting( string $stylesheet, ?bool $allow_untested ) {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return new \WP_Error( 'db_unavailable', __( 'Theme settings could not be saved.', 'updatebee' ) );
+		}
+
+		$stylesheet = self::sanitize_stylesheet( $stylesheet );
+		if ( '' === $stylesheet ) {
+			return new \WP_Error( 'invalid_theme', __( 'Invalid theme stylesheet.', 'updatebee' ) );
+		}
+
+		$existing   = self::get_theme_by_slug( $stylesheet );
+		$notes      = is_array( $existing ) && isset( $existing['notes'] ) ? (string) $existing['notes'] : '';
+		$user_id    = (string) get_current_user_id();
+		$table_name = static::get_table_name();
+		$stored     = true === $allow_untested ? 0 : null;
+
+		if ( null === $stored ) {
+			if ( ! is_array( $existing ) ) {
+				return array(
+					'allow_untested' => false,
+				);
+			}
+
+			$has_notes = '' !== trim( $notes );
+			$has_delay = null !== self::delay_days_from_row( $existing );
+			if ( ! $has_notes && ! $has_delay ) {
+				$deleted = self::delete_theme_row( $stylesheet );
+				if ( is_wp_error( $deleted ) ) {
+					return $deleted;
+				}
+
+				return array(
+					'allow_untested' => false,
+				);
+			}
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update. Null becomes SQL NULL.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id'                => $user_id,
+					'block_untested_updates' => null,
+				),
+				array(
+					'theme_slug' => $stylesheet,
+				),
+				array( '%s', '%d' ),
+				array( '%s' )
+			);
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to save theme settings.', 'updatebee' ) );
+			}
+
+			return array(
+				'allow_untested' => false,
+			);
+		}
+
+		if ( is_array( $existing ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update.
+			$result = $wpdb->update(
+				$table_name,
+				array(
+					'user_id'                => $user_id,
+					'block_untested_updates' => 0,
+				),
+				array(
+					'theme_slug' => $stylesheet,
+				),
+				array( '%s', '%d' ),
+				array( '%s' )
+			);
+
+			if ( false === $result ) {
+				return new \WP_Error( 'update_failed', __( 'Failed to save theme settings.', 'updatebee' ) );
+			}
+
+			return array(
+				'allow_untested' => true,
+			);
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table insert.
+		$result = $wpdb->insert(
+			$table_name,
+			array(
+				'user_id'                => $user_id,
+				'theme_slug'             => $stylesheet,
+				'notes'                  => '',
+				'block_untested_updates' => 0,
+			),
+			array( '%s', '%s', '%s', '%d' )
+		);
+
+		if ( false === $result ) {
+			return new \WP_Error( 'insert_failed', __( 'Failed to save theme settings.', 'updatebee' ) );
+		}
+
+		return array(
+			'allow_untested' => true,
+		);
+	}
+
+	/**
 	 * Read delay_days from a table row.
 	 *
 	 * @param array<string, mixed> $row Table row.
@@ -497,6 +644,22 @@ class Table_Themes extends Tables {
 		}
 
 		return absint( $row['delay_days'] );
+	}
+
+	/**
+	 * Whether a row stores an untested-update exemption.
+	 *
+	 * A stored 0 allows untested updates for this item. Null inherits the site setting.
+	 *
+	 * @param array<string, mixed> $row Table row.
+	 * @return bool True when untested updates are allowed for this item.
+	 */
+	private static function allows_untested_from_row( array $row ): bool {
+		if ( ! array_key_exists( 'block_untested_updates', $row ) || null === $row['block_untested_updates'] || '' === $row['block_untested_updates'] ) {
+			return false;
+		}
+
+		return 0 === (int) $row['block_untested_updates'];
 	}
 
 	/**

@@ -235,6 +235,7 @@ class Ajax {
 			$plugin['Notes']         = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
 			$plugin['SettingsNonce'] = wp_create_nonce( 'updatebee-plugin-settings-' . $file );
 			$plugin['DelayDays']     = isset( $plugin_delays[ $file ]['delay_days'] ) ? $plugin_delays[ $file ]['delay_days'] : null;
+			$plugin['AllowUntested'] = ! empty( $plugin_delays[ $file ]['allow_untested'] );
 			$plugin['Active']        = in_array( $file, $active_plugin_slugs, true );
 			$plugin['Autoupdates']   = isset( $auto_updated_plugins[ $file ] );
 			$plugin['Blocked']       = Functions::auto_updates_blocked( $file, 'plugin' );
@@ -312,9 +313,10 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'plugins'              => $all_plugins,
-				'auto_updates_enabled' => $status,
-				'delay_updates'        => absint( $options['delay_updates'] ?? 0 ),
+				'plugins'                => $all_plugins,
+				'auto_updates_enabled'   => $status,
+				'delay_updates'          => absint( $options['delay_updates'] ?? 0 ),
+				'block_untested_updates' => 'on' === ( $options['block_untested_updates'] ?? 'off' ),
 			)
 		);
 	}
@@ -494,10 +496,20 @@ class Ajax {
 			);
 		}
 
+		$untested = Table_Plugins::save_untested_setting( $file, $this->get_posted_allow_untested() );
+		if ( is_wp_error( $untested ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Plugin settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
 		wp_send_json_success(
 			array(
-				'message'    => __( 'Plugin settings have been saved.', 'updatebee' ),
-				'delay_days' => $saved['delay_days'],
+				'message'        => __( 'Plugin settings have been saved.', 'updatebee' ),
+				'delay_days'     => $saved['delay_days'],
+				'allow_untested' => $untested['allow_untested'],
 			)
 		);
 	}
@@ -568,6 +580,7 @@ class Ajax {
 				'Notes'          => isset( $theme_notes[ $stylesheet ] ) ? (string) $theme_notes[ $stylesheet ] : '',
 				'SettingsNonce'  => wp_create_nonce( 'updatebee-theme-settings-' . $stylesheet ),
 				'DelayDays'      => isset( $theme_delays[ $stylesheet ]['delay_days'] ) ? $theme_delays[ $stylesheet ]['delay_days'] : null,
+				'AllowUntested'  => ! empty( $theme_delays[ $stylesheet ]['allow_untested'] ),
 				'Active'         => $stylesheet === $current_stylesheet,
 				'NetworkEnabled' => Functions::is_multisite() ? (bool) $theme->is_allowed( 'network' ) : false,
 				'Autoupdates'    => isset( $auto_updated_themes[ $stylesheet ] ),
@@ -620,9 +633,10 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'themes'               => $all_themes,
-				'auto_updates_enabled' => $status,
-				'delay_updates'        => absint( $options['delay_updates'] ?? 0 ),
+				'themes'                 => $all_themes,
+				'auto_updates_enabled'   => $status,
+				'delay_updates'          => absint( $options['delay_updates'] ?? 0 ),
+				'block_untested_updates' => 'on' === ( $options['block_untested_updates'] ?? 'off' ),
 			)
 		);
 	}
@@ -802,10 +816,20 @@ class Ajax {
 			);
 		}
 
+		$untested = Table_Themes::save_untested_setting( $stylesheet, $this->get_posted_allow_untested() );
+		if ( is_wp_error( $untested ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Theme settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
 		wp_send_json_success(
 			array(
-				'message'    => __( 'Theme settings have been saved.', 'updatebee' ),
-				'delay_days' => $saved['delay_days'],
+				'message'        => __( 'Theme settings have been saved.', 'updatebee' ),
+				'delay_days'     => $saved['delay_days'],
+				'allow_untested' => $untested['allow_untested'],
 			)
 		);
 	}
@@ -1293,6 +1317,38 @@ class Ajax {
 	}
 
 	/**
+	 * Read allow_untested from the posted settings JSON.
+	 *
+	 * True allows untested updates for this item. Null inherits the site setting.
+	 *
+	 * @return bool|null Exemption, or null to inherit.
+	 */
+	private function get_posted_allow_untested(): ?bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller verifies the nonce.
+		if ( ! isset( $_POST['settings'] ) ) {
+			return null;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller verifies the nonce.
+		$raw      = wp_unslash( $_POST['settings'] );
+		$settings = array();
+		if ( is_array( $raw ) ) {
+			$settings = $raw;
+		} elseif ( is_string( $raw ) && '' !== $raw ) {
+			$decoded = json_decode( $raw, true );
+			if ( is_array( $decoded ) ) {
+				$settings = $decoded;
+			}
+		}
+
+		if ( ! array_key_exists( 'allow_untested', $settings ) || null === $settings['allow_untested'] || '' === $settings['allow_untested'] ) {
+			return null;
+		}
+
+		return rest_sanitize_boolean( $settings['allow_untested'] ) ? true : null;
+	}
+
+	/**
 	 * Sanitize a posted plugin file path.
 	 *
 	 * @return string Plugin basename path.
@@ -1628,29 +1684,51 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-save-advanced-settings', 'nonce' );
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Days are passed through absint.
-		$days = isset( $_POST['delay_updates'] ) ? absint( wp_unslash( $_POST['delay_updates'] ) ) : 0;
+		$to_save = array();
 
-		$updated = Options::update_options(
-			'',
-			array(
-				'delay_updates' => $days,
-			)
-		);
-		if ( null === $updated ) {
+		if ( isset( $_POST['delay_updates'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Days are passed through absint.
+			$to_save['delay_updates'] = absint( wp_unslash( $_POST['delay_updates'] ) );
+		}
+
+		if ( isset( $_POST['block_untested_updates'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean is sanitized below.
+			$enabled                           = rest_sanitize_boolean( wp_unslash( $_POST['block_untested_updates'] ) );
+			$to_save['block_untested_updates'] = $enabled ? 'on' : 'off';
+		}
+
+		if ( empty( $to_save ) ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Update delay could not be saved.', 'updatebee' ),
+					'message' => __( 'Advanced settings could not be saved.', 'updatebee' ),
 				)
 			);
 		}
 
-		wp_send_json_success(
-			array(
-				'message'       => __( 'Update delay has been saved.', 'updatebee' ),
-				'delay_updates' => $days,
-			)
+		$updated = Options::update_options( '', $to_save );
+		if ( null === $updated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Advanced settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		$response = array(
+			'message' => isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] )
+				? __( 'Untested updates setting has been saved.', 'updatebee' )
+				: __( 'Update delay has been saved.', 'updatebee' ),
 		);
+
+		if ( isset( $to_save['delay_updates'] ) ) {
+			$response['delay_updates'] = $to_save['delay_updates'];
+		}
+
+		if ( isset( $to_save['block_untested_updates'] ) ) {
+			$response['block_untested_updates'] = 'on' === $to_save['block_untested_updates'];
+		}
+
+		wp_send_json_success( $response );
 	}
 
 	/**

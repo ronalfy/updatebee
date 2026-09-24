@@ -63,6 +63,7 @@ class Options {
 			'clear_logs_days'                  => 0,
 			'slack_webhook_url'                => '',
 			'delay_updates'                    => 0,
+			'block_untested_updates'           => 'off',
 			'disable_wp_cron'                  => false,
 		);
 

@@ -65,6 +65,7 @@ export type ThemeItem = {
 	NoteNonce: string;
 	Notes: string;
 	DelayDays: number | null;
+	AllowUntested: boolean;
 	SettingsNonce: string;
 };
 
@@ -74,6 +75,7 @@ type ThemesPayload = {
 	themes?: Record< string, ThemeItem >;
 	auto_updates_enabled?: AutoUpdatesStatus;
 	delay_updates?: number;
+	block_untested_updates?: boolean;
 };
 
 export type ThemesFormValues = Record< string, boolean >;
@@ -219,14 +221,21 @@ const ThemesList = ( props: {
 	themes: ThemeItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
 	globalDelayDays: number;
+	blockUntestedUpdates: boolean;
 	onDelayChange: ( stylesheet: string, delayDays: number | null ) => void;
+	onAllowUntestedChange: (
+		stylesheet: string,
+		allowUntested: boolean
+	) => void;
 	onNotesChange: ( stylesheet: string, notes: string ) => void;
 } ) => {
 	const {
 		themes,
 		autoUpdatesStatus,
 		globalDelayDays,
+		blockUntestedUpdates,
 		onDelayChange,
+		onAllowUntestedChange,
 		onNotesChange,
 	} = props;
 	const { control, getValues, setValue } =
@@ -888,10 +897,13 @@ const ThemesList = ( props: {
 									assetName={ theme.Name }
 									assetId={ theme.Stylesheet }
 									delayDays={ theme.DelayDays }
+									allowUntested={ Boolean( theme.AllowUntested ) }
+									blockUntestedUpdates={ blockUntestedUpdates }
 									settingsNonce={ theme.SettingsNonce }
 									globalDelayDays={ globalDelayDays }
 									disabled={ isBusy }
 									onDelayChange={ onDelayChange }
+									onAllowUntestedChange={ onAllowUntestedChange }
 									showSnackbar={ showSnackbar }
 								/>
 								<div className="updatebee-theme-column updatebee-theme-column-checkbox">
@@ -1392,6 +1404,7 @@ const ThemesMain = () => {
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
 	const [ globalDelayDays, setGlobalDelayDays ] = useState( 0 );
+	const [ blockUntestedUpdates, setBlockUntestedUpdates ] = useState( false );
 
 	/**
 	 * Update a theme's delay in local list state.
@@ -1405,6 +1418,25 @@ const ThemesMain = () => {
 				current.map( ( theme ) =>
 					theme.Stylesheet === stylesheet
 						? { ...theme, DelayDays: delayDays }
+						: theme
+				)
+			);
+		},
+		[]
+	);
+
+	/**
+	 * Update a theme's untested-update exemption in local list state.
+	 *
+	 * @param stylesheet     Theme stylesheet.
+	 * @param allowUntested Saved exemption.
+	 */
+	const handleAllowUntestedChange = useCallback(
+		( stylesheet: string, allowUntested: boolean ) => {
+			setThemes( ( current ) =>
+				current.map( ( theme ) =>
+					theme.Stylesheet === stylesheet
+						? { ...theme, AllowUntested: allowUntested }
 						: theme
 				)
 			);
@@ -1473,6 +1505,9 @@ const ThemesMain = () => {
 				setThemes( themeItems );
 				setAutoUpdatesStatus( data.auto_updates_enabled || 'disabled' );
 				setGlobalDelayDays( data.delay_updates || 0 );
+				setBlockUntestedUpdates(
+					Boolean( data.block_untested_updates )
+				);
 				reset( values );
 			} )
 			.catch( () => {
@@ -1516,7 +1551,9 @@ const ThemesMain = () => {
 				themes={ themes }
 				autoUpdatesStatus={ autoUpdatesStatus }
 				globalDelayDays={ globalDelayDays }
+				blockUntestedUpdates={ blockUntestedUpdates }
 				onDelayChange={ handleDelayChange }
+				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
 			/>
 		</FormProvider>

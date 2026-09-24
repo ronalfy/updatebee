@@ -68,6 +68,7 @@ export type PluginItem = {
 	NoteNonce: string;
 	Notes: string;
 	DelayDays: number | null;
+	AllowUntested: boolean;
 	SettingsNonce: string;
 };
 
@@ -77,6 +78,7 @@ type PluginsPayload = {
 	plugins?: Record< string, PluginItem >;
 	auto_updates_enabled?: AutoUpdatesStatus;
 	delay_updates?: number;
+	block_untested_updates?: boolean;
 };
 
 export type PluginsFormValues = Record< string, boolean >;
@@ -226,14 +228,18 @@ const PluginsList = ( props: {
 	plugins: PluginItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
 	globalDelayDays: number;
+	blockUntestedUpdates: boolean;
 	onDelayChange: ( file: string, delayDays: number | null ) => void;
+	onAllowUntestedChange: ( file: string, allowUntested: boolean ) => void;
 	onNotesChange: ( file: string, notes: string ) => void;
 } ) => {
 	const {
 		plugins,
 		autoUpdatesStatus,
 		globalDelayDays,
+		blockUntestedUpdates,
 		onDelayChange,
+		onAllowUntestedChange,
 		onNotesChange,
 	} = props;
 	const { control, getValues, setValue } =
@@ -856,10 +862,13 @@ const PluginsList = ( props: {
 									assetName={ plugin.Name }
 									assetId={ plugin.File }
 									delayDays={ plugin.DelayDays }
+									allowUntested={ Boolean( plugin.AllowUntested ) }
+									blockUntestedUpdates={ blockUntestedUpdates }
 									settingsNonce={ plugin.SettingsNonce }
 									globalDelayDays={ globalDelayDays }
 									disabled={ isBusy }
 									onDelayChange={ onDelayChange }
+									onAllowUntestedChange={ onAllowUntestedChange }
 									showSnackbar={ showSnackbar }
 								/>
 								<div className="updatebee-plugin-column updatebee-plugin-column-checkbox">
@@ -1379,6 +1388,7 @@ const PluginsMain = () => {
 	const [ autoUpdatesStatus, setAutoUpdatesStatus ] =
 		useState< AutoUpdatesStatus >( 'disabled' );
 	const [ globalDelayDays, setGlobalDelayDays ] = useState( 0 );
+	const [ blockUntestedUpdates, setBlockUntestedUpdates ] = useState( false );
 
 	/**
 	 * Update a plugin's delay in local list state.
@@ -1392,6 +1402,25 @@ const PluginsMain = () => {
 				current.map( ( plugin ) =>
 					plugin.File === file
 						? { ...plugin, DelayDays: delayDays }
+						: plugin
+				)
+			);
+		},
+		[]
+	);
+
+	/**
+	 * Update a plugin's untested-update exemption in local list state.
+	 *
+	 * @param file           Plugin file.
+	 * @param allowUntested Saved exemption.
+	 */
+	const handleAllowUntestedChange = useCallback(
+		( file: string, allowUntested: boolean ) => {
+			setPlugins( ( current ) =>
+				current.map( ( plugin ) =>
+					plugin.File === file
+						? { ...plugin, AllowUntested: allowUntested }
 						: plugin
 				)
 			);
@@ -1453,6 +1482,9 @@ const PluginsMain = () => {
 				setPlugins( pluginItems );
 				setAutoUpdatesStatus( data.auto_updates_enabled || 'disabled' );
 				setGlobalDelayDays( data.delay_updates || 0 );
+				setBlockUntestedUpdates(
+					Boolean( data.block_untested_updates )
+				);
 				reset( values );
 			} )
 			.catch( () => {
@@ -1496,7 +1528,9 @@ const PluginsMain = () => {
 				plugins={ plugins }
 				autoUpdatesStatus={ autoUpdatesStatus }
 				globalDelayDays={ globalDelayDays }
+				blockUntestedUpdates={ blockUntestedUpdates }
 				onDelayChange={ handleDelayChange }
+				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
 			/>
 		</FormProvider>

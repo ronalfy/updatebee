@@ -3,7 +3,7 @@
  *
  * Delay is the first field. Additional options belong in this same drawer.
  */
-import { TextControl, ToggleControl } from '@wordpress/components';
+import { TextControl, ToggleControl, Notice } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { cog } from '@wordpress/icons';
@@ -17,16 +17,20 @@ type ItemSettingsDrawerProps = {
 	assetName: string;
 	assetId: string;
 	delayDays: number | null;
+	allowUntested: boolean;
+	blockUntestedUpdates: boolean;
 	settingsNonce: string;
 	globalDelayDays: number;
 	disabled?: boolean;
 	onDelayChange: ( assetId: string, delayDays: number | null ) => void;
+	onAllowUntestedChange: ( assetId: string, allowUntested: boolean ) => void;
 	showSnackbar: ( message: string, type: SnackbarType ) => void;
 };
 
 type SettingsPayload = {
 	message?: string;
 	delay_days?: number | null;
+	allow_untested?: boolean;
 };
 
 /**
@@ -69,10 +73,13 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 		assetName,
 		assetId,
 		delayDays,
+		allowUntested,
+		blockUntestedUpdates,
 		settingsNonce,
 		globalDelayDays,
 		disabled = false,
 		onDelayChange,
+		onAllowUntestedChange,
 		showSnackbar,
 	} = props;
 	const [ isOpen, setIsOpen ] = useState( false );
@@ -82,6 +89,9 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 	);
 	const [ customDelayDays, setCustomDelayDays ] = useState(
 		delayDays ?? 0
+	);
+	const [ useUntestedDefault, setUseUntestedDefault ] = useState(
+		! allowUntested
 	);
 
 	const title =
@@ -117,7 +127,8 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 	const resetDraft = useCallback( () => {
 		setUseSiteDefault( null === delayDays );
 		setCustomDelayDays( delayDays ?? 0 );
-	}, [ delayDays ] );
+		setUseUntestedDefault( ! allowUntested );
+	}, [ allowUntested, delayDays ] );
 
 	/**
 	 * Open or close the drawer and revert unsaved edits.
@@ -162,14 +173,18 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 			[ assetKey ]: assetId,
 			settings: JSON.stringify( {
 				delay_days: nextDelay,
+				allow_untested: useUntestedDefault ? null : true,
 			} ),
 		} )
 			.then( ( response ) => {
 				const payload = response.data.data;
 				const savedDelay = normalizeDelayDays( payload.delay_days );
+				const savedAllow = Boolean( payload.allow_untested );
 				onDelayChange( assetId, savedDelay );
+				onAllowUntestedChange( assetId, savedAllow );
 				setUseSiteDefault( null === savedDelay );
 				setCustomDelayDays( savedDelay ?? customDelayDays );
+				setUseUntestedDefault( ! savedAllow );
 				showSnackbar(
 					payload.message ||
 						( 'plugin' === kind
@@ -208,10 +223,12 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 		disabled,
 		isSaving,
 		kind,
+		onAllowUntestedChange,
 		onDelayChange,
 		settingsNonce,
 		showSnackbar,
 		useSiteDefault,
+		useUntestedDefault,
 	] );
 
 	return (
@@ -284,6 +301,29 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 								) }
 								disabled={ isSaving }
 							/>
+						) }
+						<ToggleControl
+							label={ __(
+								'Use site default for untested updates',
+								'updatebee'
+							) }
+							checked={ useUntestedDefault }
+							disabled={ isSaving }
+							help={ __(
+								'Turn this off to allow untested updates for this item.',
+								'updatebee'
+							) }
+							onChange={ ( checked: boolean ) => {
+								setUseUntestedDefault( checked );
+							} }
+						/>
+						{ ! blockUntestedUpdates && (
+							<Notice status="info" isDismissible={ false }>
+								{ __(
+									'Untested updates are already allowed for every plugin and theme.',
+									'updatebee'
+								) }
+							</Notice>
 						) }
 					</div>
 				</Drawer.Content>
