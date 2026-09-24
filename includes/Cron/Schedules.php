@@ -365,13 +365,15 @@ class Schedules {
 	}
 
 	/**
-	 * Build copyable crontab text for a saved schedule (site-local time).
+	 * Build labeled full crontab lines for a saved schedule (site-local time).
+	 *
+	 * Each entry is one pasteable crontab line: schedule expression + command.
 	 *
 	 * @param array<string, mixed> $options   Saved schedule options.
 	 * @param string               $cron_hook WordPress cron hook name.
-	 * @return string Multiline crontab-style text with command hints.
+	 * @return array<int, array{label: string, command: string}>
 	 */
-	public static function get_crontab_equivalent( array $options, string $cron_hook ): string {
+	public static function get_crontab_commands( array $options, string $cron_hook ): array {
 		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
 		$options  = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
 
@@ -379,31 +381,118 @@ class Schedules {
 		$minute     = $time_parts['minute'];
 		$hour       = $time_parts['hour'];
 
-		$lines   = self::get_crontab_command_comment_lines( $cron_hook );
-		$lines[] = '# Times use the WordPress site timezone.';
+		$expression = self::get_crontab_schedule_expression( $options, $minute, $hour );
+		if ( '' === $expression ) {
+			return array();
+		}
 
-		$cron_lines = self::build_crontab_schedule_lines( $options, $minute, $hour );
-		if ( empty( $cron_lines ) ) {
+		$wp_root     = self::get_wordpress_root_path();
+		$wp_cron_php = $wp_root . '/wp-cron.php';
+		$cron_url    = home_url( 'wp-cron.php?doing_wp_cron' );
+		$cd_path     = self::quote_crontab_path( $wp_root );
+		$php_path    = self::quote_crontab_path( $wp_cron_php );
+
+		$approx_suffix = 'two-weeks' === $schedule
+			? ' ' . __( '(weekly approximation)', 'updatebee' )
+			: '';
+
+		return array(
+			array(
+				'label'   => __( 'WP-CLI (preferred)', 'updatebee' ) . $approx_suffix,
+				'command' => sprintf(
+					'%s cd %s && wp cron event run %s >/dev/null 2>&1',
+					$expression,
+					$cd_path,
+					$cron_hook
+				),
+			),
+			array(
+				'label'   => __( 'PHP (wp-cron.php)', 'updatebee' ) . $approx_suffix,
+				'command' => sprintf(
+					'%s php -q %s >/dev/null 2>&1',
+					$expression,
+					$php_path
+				),
+			),
+			array(
+				'label'   => __( 'curl', 'updatebee' ) . $approx_suffix,
+				'command' => sprintf(
+					'%s curl -s "%s" >/dev/null 2>&1',
+					$expression,
+					$cron_url
+				),
+			),
+		);
+	}
+
+	/**
+	 * Build copyable crontab text for a saved schedule (site-local time).
+	 *
+	 * Kept for backward compatibility with consumers of crontab_equivalent.
+	 *
+	 * @param array<string, mixed> $options   Saved schedule options.
+	 * @param string               $cron_hook WordPress cron hook name.
+	 * @return string Multiline crontab-style text with command hints.
+	 */
+	public static function get_crontab_equivalent( array $options, string $cron_hook ): string {
+		$lines    = array( '# Times use the WordPress site timezone.' );
+		$commands = self::get_crontab_commands( $options, $cron_hook );
+
+		if ( empty( $commands ) ) {
 			$lines[] = '# No valid run days are configured for this schedule.';
 			return implode( "\n", $lines );
 		}
 
-		return implode( "\n", array_merge( $lines, $cron_lines ) );
+		foreach ( $commands as $item ) {
+			$lines[] = '# ' . $item['label'];
+			$lines[] = $item['command'];
+		}
+
+		return implode( "\n", $lines );
 	}
 
 	/**
-	 * Suggested WP-CLI / curl comments for system crontab entries.
-	 *
-	 * @param string $cron_hook WordPress cron hook name.
-	 * @return string[]
+	 * Resolve the WordPress root filesystem path for crontab examples.
 	 */
-	private static function get_crontab_command_comment_lines( string $cron_hook ): array {
-		$cron_url = home_url( 'wp-cron.php?doing_wp_cron' );
+	private static function get_wordpress_root_path(): string {
+		if ( defined( 'ABSPATH' ) && is_string( ABSPATH ) && '' !== ABSPATH ) {
+			return rtrim( str_replace( '\\', '/', ABSPATH ), '/' );
+		}
 
-		return array(
-			'# Preferred (WP-CLI): wp cron event run ' . $cron_hook,
-			'# Alternative: curl -s ' . $cron_url . ' >/dev/null 2>&1',
-		);
+		return '/path/to/wordpress';
+	}
+
+	/**
+	 * Quote a filesystem path when it contains spaces (crontab-safe).
+	 *
+	 * @param string $path Absolute path.
+	 */
+	private static function quote_crontab_path( string $path ): string {
+		if ( false === strpos( $path, ' ' ) ) {
+			return $path;
+		}
+
+		return '"' . $path . '"';
+	}
+
+	/**
+	 * First non-comment five-field crontab expression for the schedule.
+	 *
+	 * @param array<string, mixed> $options Schedule options.
+	 * @param int                  $minute  Minute field.
+	 * @param int                  $hour    Hour field.
+	 */
+	private static function get_crontab_schedule_expression( array $options, int $minute, int $hour ): string {
+		foreach ( self::build_crontab_schedule_lines( $options, $minute, $hour ) as $line ) {
+			$line = trim( (string) $line );
+			if ( '' === $line || str_starts_with( $line, '#' ) ) {
+				continue;
+			}
+
+			return $line;
+		}
+
+		return '';
 	}
 
 	/**

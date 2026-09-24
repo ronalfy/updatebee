@@ -62,6 +62,25 @@
 	margin: 0 0 4px;
 }
 
+.updatebee-cron-disable-wp-cron {
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid #dcdcde;
+
+	.components-toggle-control {
+		margin-bottom: 0;
+	}
+
+	.components-base-control__help {
+		margin-top: 8px;
+		max-width: 52rem;
+	}
+
+	.components-notice {
+		margin: 0;
+	}
+}
+
 .updatebee-cron-card .description {
 	margin: 8px 0 0;
 	color: #50575e;
@@ -86,18 +105,98 @@
 	}
 }
 
-.updatebee-cron-crontab-row {
-	align-items: flex-start;
+.updatebee-cron-advanced {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
 
-	.updatebee-cron-crontab-field {
-		flex: 1 1 280px;
-		min-width: 280px;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-			"Liberation Mono", "Courier New", monospace;
-		font-size: 12px;
-		line-height: 1.45;
-		resize: vertical;
+	&.components-panel__body {
+		margin: 0;
+		border-top: 0;
 	}
+
+	.components-panel__body-title {
+		.components-button {
+			font-weight: 600;
+		}
+	}
+
+	.components-panel__body-content {
+		padding: 0 16px 16px;
+	}
+}
+
+.updatebee-cron-crontab-commands {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.updatebee-cron-crontab-note {
+	margin: 0;
+}
+
+.updatebee-cron-crontab-block {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 100%;
+}
+
+.updatebee-cron-crontab-block-label {
+	font-weight: 600;
+	color: #1e1e1e;
+}
+
+.updatebee-cron-crontab-code {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	box-sizing: border-box;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.updatebee-cron-crontab-code-line {
+	margin: 0;
+	padding: 12px 14px;
+	overflow-x: auto;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+		"Liberation Mono", "Courier New", monospace;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #1e1e1e;
+	white-space: pre;
+
+	code {
+		font-family: inherit;
+		font-size: inherit;
+		background: transparent;
+		padding: 0;
+	}
+}
+
+.updatebee-cron-crontab-code-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	min-height: 36px;
+	padding: 4px 8px;
+	border-top: 1px solid #f0f0f1;
+	background: #f6f7f7;
+}
+
+.updatebee-cron-crontab-copy-status {
+	min-height: 1em;
+	font-size: 12px;
+	color: #50575e;
+}
+
+.updatebee-cron-crontab-copy {
+	flex-shrink: 0;
 }
 
 .updatebee-cron-weekdays {

@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Cron\Cron_Events;
+use UpdateBee\Cron\Disable_Wp_Cron;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
 
@@ -92,6 +93,7 @@ class Cron {
 				'eventsNonce'   => wp_create_nonce( Cron_Events::EVENTS_NONCE_ACTION ),
 				'initialSubtab' => Functions::get_admin_sub_tab() ?: 'schedule',
 				'settingsUrl'   => esc_url_raw( Functions::get_settings_url( 'cron' ) ),
+				'disableWpCron' => Disable_Wp_Cron::get_admin_state(),
 			)
 		);
 

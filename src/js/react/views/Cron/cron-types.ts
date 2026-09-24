@@ -18,6 +18,11 @@ export type CronFrequency =
 	| 'two-weeks'
 	| 'monthly';
 
+export type CronCrontabCommand = {
+	label: string;
+	command: string;
+};
+
 export type CronScheduleFormValues = {
 	schedule: CronFrequency;
 	day: string;
@@ -28,6 +33,7 @@ export type CronScheduleFormValues = {
 	datetime: string;
 	timestamp: number;
 	crontabEquivalent: string;
+	crontabCommands: CronCrontabCommand[];
 };
 
 export type CronSchedulePayload = {
@@ -40,4 +46,5 @@ export type CronSchedulePayload = {
 	datetime?: string;
 	timestamp?: number;
 	crontab_equivalent?: string;
+	crontab_commands?: CronCrontabCommand[];
 };

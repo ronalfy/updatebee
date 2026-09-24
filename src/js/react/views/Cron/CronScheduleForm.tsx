@@ -9,6 +9,7 @@ import type { CronAjaxConfig } from './cron-config';
 import type { CronScheduleFormValues, CronSchedulePayload } from './cron-types';
 import {
 	defaultCronScheduleValues,
+	mapCrontabCommands,
 	mapFormValuesToSavePayload,
 	mapPayloadToFormValues,
 } from './cron-form-utils';
@@ -62,11 +63,13 @@ const CronScheduleForm = ( props: CronScheduleFormProps ) => {
 			typeof payload.crontab_equivalent === 'string'
 				? payload.crontab_equivalent
 				: '';
+		const crontabCommands = mapCrontabCommands( payload );
 		setValues( ( current ) => ( {
 			...current,
 			datetime,
 			timestamp,
 			crontabEquivalent,
+			crontabCommands,
 		} ) );
 	};
 

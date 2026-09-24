@@ -5,6 +5,7 @@ import { __ } from '@wordpress/i18n';
 import { Card } from '@wordpress/ui';
 import CronScheduleCard from './CronScheduleCard';
 import CronTimeDisplay from './CronTimeDisplay';
+import DisableWpCronControl from './DisableWpCronControl';
 import type { SnackbarType } from '../Tools/ToolsFooter';
 
 type CronScheduleTabProps = {
@@ -38,6 +39,7 @@ const CronScheduleTab = ( props: CronScheduleTabProps ) => {
 						{ __( 'WordPress time', 'updatebee' ) }
 					</h2>
 					<CronTimeDisplay />
+					<DisableWpCronControl onNotify={ onNotify } />
 				</Card.Content>
 			</Card.Root>
 			<CronScheduleCard

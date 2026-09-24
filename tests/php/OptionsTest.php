@@ -61,6 +61,7 @@ class OptionsTest extends TestCase {
 		$this->assertSame( 0, $options['clear_logs_days'] );
 		$this->assertSame( '', $options['slack_webhook_url'] );
 		$this->assertSame( 0, $options['delay_updates'] );
+		$this->assertFalse( $options['disable_wp_cron'] );
 	}
 
 	/**

@@ -1,12 +1,14 @@
 /**
  * Frequency and time controls for update cron cards.
  */
+import { PanelBody } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import type { CronFrequency, CronScheduleFormValues } from './cron-types';
 import {
 	defaultDaysListForSchedule,
 	scheduleUsesWeekdays,
 } from './cron-form-utils';
+import CronCrontabCommandBlock from './CronCrontabCommandBlock';
 import CronWeekdayField from './CronWeekdayField';
 
 type CronScheduleFieldsProps = {
@@ -195,21 +197,40 @@ const CronScheduleFields = ( props: CronScheduleFieldsProps ) => {
 					</select>
 				</div>
 			) }
-			<div className="updatebee-cron-schedule-row updatebee-cron-crontab-row">
-				<label htmlFor={ `${ fieldIdPrefix }-crontab` }>
-					{ __( 'Crontab equivalent', 'updatebee' ) }
-				</label>
-				<textarea
-					id={ `${ fieldIdPrefix }-crontab` }
-					className="updatebee-cron-crontab-field"
-					readOnly
-					rows={ 5 }
-					value={ value.crontabEquivalent }
-					onFocus={ ( event ) => {
-						event.target.select();
-					} }
-				/>
-			</div>
+			{ /* Crontab hint is optional for most users; keep it behind Advanced. */ }
+			<PanelBody
+				title={ __( 'Advanced', 'updatebee' ) }
+				initialOpen={ false }
+				className="updatebee-cron-advanced"
+			>
+				<div className="updatebee-cron-crontab-commands">
+					<p className="description updatebee-cron-crontab-note">
+						{ __(
+							'Times use the WordPress site timezone. Copy a full crontab line for system cron.',
+							'updatebee'
+						) }
+					</p>
+					{ value.crontabCommands.length > 0 ? (
+						value.crontabCommands.map( ( item, index ) => (
+							<CronCrontabCommandBlock
+								key={ `${ item.label }-${ index }` }
+								id={ `${ fieldIdPrefix }-crontab-${ index }` }
+								label={ item.label }
+								command={ item.command }
+							/>
+						) )
+					) : (
+						<p className="description">
+							{ value.crontabEquivalent
+								? value.crontabEquivalent
+								: __(
+										'No valid run days are configured for this schedule.',
+										'updatebee'
+								  ) }
+						</p>
+					) }
+				</div>
+			</PanelBody>
 		</div>
 	);
 };

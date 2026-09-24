@@ -8,8 +8,10 @@
 namespace UpdateBee\Admin;
 
 use UpdateBee\Cron\Cron_Events;
+use UpdateBee\Cron\Disable_Wp_Cron;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
+use UpdateBee\Options;
 
 /**
  * Cron schedule admin AJAX.
@@ -38,6 +40,7 @@ class Cron_Ajax {
 		}
 
 		add_action( 'wp_ajax_updatebee_get_cron_time', array( $this, 'ajax_get_time' ) );
+		add_action( 'wp_ajax_updatebee_save_disable_wp_cron', array( $this, 'ajax_save_disable_wp_cron' ) );
 
 		add_action( 'wp_ajax_updatebee_list_cron_events', array( $this, 'ajax_list_cron_events' ) );
 		add_action( 'wp_ajax_updatebee_delete_cron_event', array( $this, 'ajax_delete_cron_event' ) );
@@ -152,6 +155,58 @@ class Cron_Ajax {
 		Updates_Cron::set_default_crons( $context );
 
 		wp_send_json_success( Updates_Cron::get_schedule_payload( $context ) );
+	}
+
+	/**
+	 * Save the network-wide disable WordPress native cron option.
+	 */
+	public function ajax_save_disable_wp_cron(): void {
+		$this->verify_request();
+
+		if ( ! Disable_Wp_Cron::can_manage_option() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'DISABLE_WP_CRON is already defined in wp-config.php and cannot be changed here.', 'updatebee' ),
+					'state'   => Disable_Wp_Cron::get_admin_state(),
+				)
+			);
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above.
+		$raw = isset( $_POST['enabled'] ) ? wp_unslash( $_POST['enabled'] ) : false;
+		if ( is_array( $raw ) ) {
+			$enabled = false;
+		} else {
+			$enabled = (bool) rest_sanitize_boolean( $raw );
+		}
+
+		$updated = Options::update_options(
+			Disable_Wp_Cron::OPTION_KEY,
+			array(
+				Disable_Wp_Cron::OPTION_KEY => $enabled,
+			)
+		);
+
+		if ( null === $updated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Could not save the native cron setting.', 'updatebee' ),
+				)
+			);
+		}
+
+		// Apply on this request when enabling and the constant is still free.
+		Disable_Wp_Cron::maybe_define_constant();
+		Disable_Wp_Cron::maybe_remove_wp_cron_action();
+
+		wp_send_json_success(
+			array(
+				'message' => $enabled
+					? __( 'WordPress native cron disabled. Install system cron so schedules keep running.', 'updatebee' )
+					: __( 'WordPress native cron setting saved.', 'updatebee' ),
+				'state'   => Disable_Wp_Cron::get_admin_state(),
+			)
+		);
 	}
 
 	/**

@@ -3,12 +3,44 @@
  */
 import { __ } from '@wordpress/i18n';
 import type {
+	CronCrontabCommand,
 	CronFrequency,
 	CronScheduleFormValues,
 	CronSchedulePayload,
 } from './cron-types';
 
 const ALL_WEEKDAYS: number[] = [ 1, 2, 3, 4, 5, 6, 7 ];
+
+/**
+ * Normalize crontab_commands from an API payload.
+ *
+ * @param payload Ajax success data.
+ */
+export const mapCrontabCommands = (
+	payload: CronSchedulePayload
+): CronCrontabCommand[] => {
+	if ( ! Array.isArray( payload.crontab_commands ) ) {
+		return [];
+	}
+
+	return payload.crontab_commands
+		.map( ( item ) => {
+			if (
+				! item ||
+				typeof item !== 'object' ||
+				typeof item.label !== 'string' ||
+				typeof item.command !== 'string'
+			) {
+				return null;
+			}
+
+			return {
+				label: item.label,
+				command: item.command,
+			};
+		} )
+		.filter( ( item ): item is CronCrontabCommand => null !== item );
+};
 
 /**
  * Default form values for a cron card.
@@ -23,6 +55,7 @@ export const defaultCronScheduleValues = (): CronScheduleFormValues => ( {
 	datetime: '',
 	timestamp: 0,
 	crontabEquivalent: '',
+	crontabCommands: [],
 } );
 
 /**
@@ -75,6 +108,7 @@ export const mapPayloadToFormValues = (
 			typeof payload.crontab_equivalent === 'string'
 				? payload.crontab_equivalent
 				: '',
+		crontabCommands: mapCrontabCommands( payload ),
 	};
 };
 

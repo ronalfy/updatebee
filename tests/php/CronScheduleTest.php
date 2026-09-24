@@ -193,6 +193,36 @@ class CronScheduleTest extends TestCase {
 	}
 
 	/**
+	 * Test structured crontab commands are full pasteable lines.
+	 */
+	public function test_crontab_commands_daily(): void {
+		$this->stub_home_url();
+
+		$commands = Schedules::get_crontab_commands(
+			array(
+				'schedule'   => 'daily',
+				'start_time' => '03:30',
+				'days_list'  => array(),
+			),
+			'wp_update_plugins'
+		);
+
+		$this->assertCount( 3, $commands );
+		$this->assertSame(
+			'30 3 * * * cd /tmp/wordpress && wp cron event run wp_update_plugins >/dev/null 2>&1',
+			$commands[0]['command']
+		);
+		$this->assertSame(
+			'30 3 * * * php -q /tmp/wordpress/wp-cron.php >/dev/null 2>&1',
+			$commands[1]['command']
+		);
+		$this->assertSame(
+			'30 3 * * * curl -s "https://example.com/wp-cron.php?doing_wp_cron" >/dev/null 2>&1',
+			$commands[2]['command']
+		);
+	}
+
+	/**
 	 * Test twelve-hours crontab uses midnight and noon hours.
 	 */
 	public function test_crontab_equivalent_twelve_hours(): void {

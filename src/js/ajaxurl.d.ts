@@ -66,11 +66,18 @@ interface UpdateBeeEmails {
 
 declare const updatebeeEmails: UpdateBeeEmails;
 
+interface UpdateBeeDisableWpCronState {
+	enabled: boolean;
+	constantDefined: boolean;
+	constantValue: boolean | null;
+}
+
 interface UpdateBeeCron {
 	nonce: string;
 	eventsNonce: string;
 	initialSubtab: string;
 	settingsUrl: string;
+	disableWpCron: UpdateBeeDisableWpCronState;
 }
 
 declare const updatebeeCron: UpdateBeeCron;
