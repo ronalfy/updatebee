@@ -48,6 +48,13 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 16px 24px;
+
+	legend {
+		font-size: 11px;
+		text-transform: uppercase;
+		font-weight: 600;
+		margin-bottom: var(--wpds-dimension-padding-md);
+	}
 }
 
 .updatebee-emails-actions {
@@ -86,4 +93,9 @@
 .updatebee-emails-schedule-row label {
 	font-weight: 500;
 	min-width: 120px;
+}
+
+.updatebee-emails-inline-error {
+	margin: 0;
+	color: var(--wpds-color-background-interactive-error-strong-active);
 }

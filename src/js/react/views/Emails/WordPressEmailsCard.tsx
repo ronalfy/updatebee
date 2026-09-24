@@ -1,7 +1,7 @@
 /**
  * WordPress native automatic update email toggle.
  */
-import { useCallback, useState } from '@wordpress/element';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { FormTokenField, ToggleControl } from '@wordpress/components';
 import { Button, Card } from '@wordpress/ui';
@@ -28,6 +28,35 @@ const WordPressEmailsCard = ( props: WordPressEmailsCardProps ) => {
 		updatebeeEmails.coreEmailRecipients ?? []
 	);
 	const [ isSaving, setIsSaving ] = useState( false );
+	const [ recipientError, setRecipientError ] = useState( '' );
+	const recipientErrorTimer = useRef< number | undefined >( undefined );
+
+	const clearRecipientError = useCallback( () => {
+		if ( undefined !== recipientErrorTimer.current ) {
+			window.clearTimeout( recipientErrorTimer.current );
+			recipientErrorTimer.current = undefined;
+		}
+		setRecipientError( '' );
+	}, [] );
+
+	const showRecipientError = useCallback( ( message: string ) => {
+		setRecipientError( message );
+		if ( undefined !== recipientErrorTimer.current ) {
+			window.clearTimeout( recipientErrorTimer.current );
+		}
+		recipientErrorTimer.current = window.setTimeout( () => {
+			setRecipientError( '' );
+			recipientErrorTimer.current = undefined;
+		}, 4000 );
+	}, [] );
+
+	useEffect( () => {
+		return () => {
+			if ( undefined !== recipientErrorTimer.current ) {
+				window.clearTimeout( recipientErrorTimer.current );
+			}
+		};
+	}, [] );
 
 	const handleSave = useCallback( async () => {
 		if ( enabled ) {
@@ -118,38 +147,51 @@ const WordPressEmailsCard = ( props: WordPressEmailsCardProps ) => {
 				/>
 				{ enabled && (
 					<>
-						<p className="description">
-							{ __(
-								'Separate multiple addresses with commas.',
-								'updatebee'
-							) }
-						</p>
 						<FormTokenField
-							label={ __( 'Recipients', 'updatebee' ) }
+							label={ __( 'Email Recipients', 'updatebee' ) }
 							value={ recipients }
 							onChange={ ( tokens ) => {
 								setRecipients(
 									formTokensToStringArray( tokens )
 								);
 							} }
+							onInputChange={ ( value ) => {
+								const nextValue = value.trim();
+								if (
+									'' === nextValue ||
+									isEmail( nextValue )
+								) {
+									clearRecipientError();
+								}
+							} }
 							tokenizeOnSpace={ true }
 							tokenizeOnBlur={ true }
-							__experimentalExpandOnFocus
 							__experimentalValidateInput={ ( token ) => {
-								const isValidEmail = isEmail( token );
-								if ( ! isValidEmail ) {
-									onNotify(
+								if ( ! isEmail( token ) ) {
+									showRecipientError(
 										__(
-											'One or more email addresses are invalid.',
+											'Enter a valid email address.',
 											'updatebee'
-										),
-										'error'
+										)
 									);
 									return false;
 								}
+								clearRecipientError();
 								return true;
 							} }
+							help={ __(
+								'Separate multiple addresses with commas, spaces, or the Enter key.',
+								'updatebee'
+							) }
 						/>
+						{ '' !== recipientError && (
+							<p
+								className="updatebee-emails-inline-error"
+								role="alert"
+							>
+								{ recipientError }
+							</p>
+						) }
 					</>
 				) }
 				<div className="updatebee-emails-actions">

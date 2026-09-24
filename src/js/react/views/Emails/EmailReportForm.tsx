@@ -11,6 +11,7 @@ import {
 	Spinner,
 	TextControl,
 } from '@wordpress/components';
+import { isEmail } from '@wordpress/url';
 import { FormProvider, useForm, useFormContext } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import validateEmail from '../../../utils/validateEmail';
@@ -192,7 +193,22 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 						shouldDirty: true,
 					} );
 				} }
-				__experimentalExpandOnFocus
+				tokenizeOnSpace={ true }
+				tokenizeOnBlur={ true }
+				__experimentalValidateInput={ ( token ) => {
+					if ( ! isEmail( token ) ) {
+						onNotify(
+							__( 'One or more email addresses are invalid.', 'updatebee' ),
+							'error'
+						);
+						return false;
+					}
+					return true;
+				} }
+				help={ __(
+					'Separate multiple addresses with commas, spaces, or the Enter key.',
+					'updatebee'
+				) }
 			/>
 			<FormTokenField
 				label={ __( 'Bcc', 'updatebee' ) }
@@ -202,7 +218,22 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 						shouldDirty: true,
 					} );
 				} }
-				__experimentalExpandOnFocus
+				tokenizeOnSpace={ true }
+				tokenizeOnBlur={ true }
+				__experimentalValidateInput={ ( token ) => {
+					if ( ! isEmail( token ) ) {
+						onNotify(
+							__( 'One or more email addresses are invalid.', 'updatebee' ),
+							'error'
+						);
+						return false;
+					}
+					return true;
+				} }
+				help={ __(
+					'Separate multiple addresses with commas, spaces, or the Enter key.',
+					'updatebee'
+				) }
 			/>
 			<TextControl
 				label={ __( 'Subject', 'updatebee' ) }
