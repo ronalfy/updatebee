@@ -80,9 +80,10 @@ class Tools {
 			'updatebee-tools',
 			'updatebeeTools',
 			array(
-				'forceUpdatesNonce' => wp_create_nonce( 'updatebee-force-updates' ),
-				'triggerCronNonce'  => wp_create_nonce( 'updatebee-trigger-update-cron' ),
-				'resetNonce'        => wp_create_nonce( 'updatebee-reset-options' ),
+				'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
+				'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
+				'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
+				'resetNonce'          => wp_create_nonce( 'updatebee-reset-options' ),
 			)
 		);
 

@@ -1,5 +1,5 @@
 /**
- * Tools maintenance actions (force updates, trigger cron, reset).
+ * Tools maintenance actions (force updates, trigger cron, refresh updates, reset).
  */
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
@@ -11,7 +11,7 @@ import ToolsFooter, {
 } from './ToolsFooter';
 import ToolsReset, { type ResetItem } from './ToolsReset';
 
-type ToolsAction = 'forceUpdates' | 'triggerCron' | 'reset';
+type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates' | 'reset';
 
 type ToolsMessagePayload = {
 	message: string;
@@ -107,6 +107,15 @@ const ToolsMain = () => {
 			updatebeeTools.triggerCronNonce,
 			'triggerCron',
 			__( 'Update cron could not be triggered.', 'updatebee' )
+		);
+	};
+
+	const handleRefreshUpdates = () => {
+		runToolAction(
+			'updatebee_refresh_updates',
+			updatebeeTools.refreshUpdatesNonce,
+			'refreshUpdates',
+			__( 'Updates could not be refreshed.', 'updatebee' )
 		);
 	};
 
@@ -216,6 +225,36 @@ const ToolsMain = () => {
 								onClick={ handleTriggerCron }
 							>
 								{ __( 'Trigger Update Cron', 'updatebee' ) }
+							</Button>
+						</p>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root className="updatebee-tools-card">
+					<Card.Header>
+						<Card.Title>
+							{ __( 'Force Refresh Updates', 'updatebee' ) }
+						</Card.Title>
+					</Card.Header>
+					<Card.Content className="updatebee-tools-card-content">
+						<p className="updatebee-tools-card-description">
+							{ __(
+								'Clears the WordPress update cache and checks WordPress.org again for core, plugin, and theme updates. This runs immediately and may take a moment on large sites.',
+								'updatebee'
+							) }
+						</p>
+						<p className="updatebee-tools-card-actions">
+							<Button
+								variant="solid"
+								loading={ 'refreshUpdates' === activeAction }
+								loadingAnnouncement={ __(
+									'Refreshing updates…',
+									'updatebee'
+								) }
+								disabled={ isBusy }
+								onClick={ handleRefreshUpdates }
+							>
+								{ __( 'Refresh Updates', 'updatebee' ) }
 							</Button>
 						</p>
 					</Card.Content>

@@ -46,6 +46,7 @@ declare const updatebeeLogs: UpdateBeeLogs;
 interface UpdateBeeTools {
 	forceUpdatesNonce: string;
 	triggerCronNonce: string;
+	refreshUpdatesNonce: string;
 	resetNonce: string;
 }
 

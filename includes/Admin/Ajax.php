@@ -70,6 +70,7 @@ class Ajax {
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
+		add_action( 'wp_ajax_updatebee_refresh_updates', array( $this, 'refresh_updates' ) );
 		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
 
 		// Advanced Ajax actions.
@@ -1410,6 +1411,25 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'message' => __( 'Update cron events have been scheduled.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Clear the update cache and force a fresh version check.
+	 */
+	public function refresh_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-refresh-updates', 'nonce' );
+
+		Functions::clear_update_cache( true );
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Updates have been force refreshed.', 'updatebee' ),
 			)
 		);
 	}
