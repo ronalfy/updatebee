@@ -125,6 +125,27 @@ class Delay_Updates {
 			return $update;
 		}
 
+		// Skip delay if a possible security update is detected.
+		$keywords_to_skip_delay = array(
+			'security',
+			'CSRF',
+			'XSS',
+		);
+		$upgrade_notice = $item->upgrade_notice ?? '';
+		if ( empty( $upgrade_notice ) ) {
+			// Might be a third-party plugin, so check the changelog.
+			$changelog = $item->sections->changelog ?? '';
+		} else {
+			$changelog = $upgrade_notice;
+		}
+		if ( ! empty( $changelog ) ) {
+			foreach ( $keywords_to_skip_delay as $keyword ) {
+				if ( stripos( $changelog, $keyword ) !== false ) {
+					return $update;
+				}
+			}
+		}
+
 		$plugin_file = (string) $item->plugin;
 		$delay       = $this->resolve_delay_days( Table_Plugins::get_delay_days( $plugin_file ) );
 		if ( 0 === $delay ) {

@@ -84,7 +84,7 @@ class Functions {
 	 */
 	public static function get_settings_url( string $tab = '', string $sub_tab = '' ): string {
 		$options_url = admin_url( 'tools.php?page=updatebee' );
-		if ( self::is_multisite( true ) ) {
+		if ( self::is_multisite( false ) ) {
 			$options_url = network_admin_url( 'settings.php?page=updatebee' );
 		}
 

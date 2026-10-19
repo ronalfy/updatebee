@@ -124,14 +124,21 @@ class Logs {
 
 						$name            = ( isset( $plugin->name ) && ! empty( $plugin->name ) ) ? (string) $plugin->name : (string) $plugin->item->slug;
 						$slug            = (string) $plugin->item->slug;
+						$plugin_file     = (string) $plugin->item->plugin;
 						$status          = 'success';
 						$update_type     = 'plugin';
 						$prev_version    = isset( $plugin->item->current_version ) ? sanitize_text_field( (string) $plugin->item->current_version ) : '';
-						$current_version = isset( $plugin->item->new_version ) ? sanitize_text_field( (string) $plugin->item->new_version ) : '';
+						$new_version = isset( $plugin->item->new_version ) ? sanitize_text_field( (string) $plugin->item->new_version ) : '';
 						$user_id         = 0;
 						$raw             = '';
 						// If new version is less than or equal to version_from, mark as failure.
-						if ( version_compare( $current_version, $prev_version, '<=' ) || $prev_version === $current_version ) {
+
+						// Get plugin info from WordPress Core.
+						$plugin_info = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_file, false, false );
+						$plugin_info_current_version = $plugin_info['Version'] ?? '';
+
+						// If current version isn't greater than the previous version, mark as a failure.
+						if ( version_compare( $new_version, $prev_version, '<=' ) || $prev_version === $plugin_info_current_version || empty( $plugin_info_current_version ) ) {
 							$status = 'failure';
 						}
 						if ( isset( $plugin->messages ) && is_array( $plugin->messages ) ) {
@@ -139,7 +146,7 @@ class Logs {
 								$raw .= $message . "\n\r\n\r";
 							}
 						}
-						$this->insert_log( $name, $slug, $user_id, $prev_version, $current_version, 'automatic', $update_type, $status, $raw );
+						$this->insert_log( $name, $slug, $user_id, $prev_version, $new_version, 'automatic', $update_type, $status, $raw );
 					}
 					break;
 				case 'theme':
