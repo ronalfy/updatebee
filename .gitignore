@@ -153,3 +153,5 @@ vite.config.ts.timestamp-*
 .phpunit.cache
 /.phpstan.cache
 
+# Kimi project memory
+.kimi-memory/

@@ -63,6 +63,15 @@ const EmailsMain = () => {
 				) }
 				onNotify={ showSnackbar }
 			/>
+			<EmailReportCard
+				kind="updates-available"
+				title={ __( 'Available updates', 'updatebee' ) }
+				description={ __(
+					'Email a digest when there are available updates.',
+					'updatebee'
+				) }
+				onNotify={ showSnackbar }
+			/>
 			<EmailsFooter
 				snackbar={ snackbar }
 				onSnackbarClose={ handleSnackbarClose }

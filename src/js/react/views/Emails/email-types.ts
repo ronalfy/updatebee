@@ -37,4 +37,4 @@ export type EmailReportOptionsPayload = {
 	previewurl?: string;
 };
 
-export type EmailReportKind = 'success' | 'failure';
+export type EmailReportKind = 'success' | 'failure' | 'updates-available';

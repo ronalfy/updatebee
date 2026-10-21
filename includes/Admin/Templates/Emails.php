@@ -93,6 +93,9 @@ class Emails {
 				'failureRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-failure-settings' ),
 				'failureSaveNonce'     => wp_create_nonce( 'updatebee-save-email-failure-settings' ),
 				'failureResetNonce'    => wp_create_nonce( 'updatebee-reset-email-failure-settings' ),
+				'updatesAvailableRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-updates-available-settings' ),
+				'updatesAvailableSaveNonce' => wp_create_nonce( 'updatebee-save-email-updates-available-settings' ),
+				'updatesAvailableResetNonce' => wp_create_nonce( 'updatebee-reset-email-updates-available-settings' ),
 			)
 		);
 

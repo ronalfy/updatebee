@@ -61,6 +61,9 @@ interface UpdateBeeEmails {
 	failureRetrieveNonce: string;
 	failureSaveNonce: string;
 	failureResetNonce: string;
+	updatesAvailableRetrieveNonce: string;
+	updatesAvailableSaveNonce: string;
+	updatesAvailableResetNonce: string;
 }
 
 declare const updatebeeEmails: UpdateBeeEmails;

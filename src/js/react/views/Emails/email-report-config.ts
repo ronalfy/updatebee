@@ -32,6 +32,17 @@ export const getReportAjaxConfig = (
 		};
 	}
 
+	if ( 'updates-available' === kind ) {
+		return {
+			retrieveAction: 'updatebee_retrieve_email_updates_available_options',
+			saveAction: 'updatebee_save_email_updates_available_options',
+			resetAction: 'updatebee_reset_email_updates_available_options',
+			retrieveNonce: updatebeeEmails.updatesAvailableRetrieveNonce,
+			saveNonce: updatebeeEmails.updatesAvailableSaveNonce,
+			resetNonce: updatebeeEmails.updatesAvailableResetNonce,
+		};
+	}
+
 	return {
 		retrieveAction: 'updatebee_retrieve_email_failure_options',
 		saveAction: 'updatebee_save_email_failure_options',
