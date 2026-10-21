@@ -29,6 +29,7 @@ type EmailReportFormProps = {
 	previewUrl: string;
 	onSaved: ( sendSchedule: SendSchedule ) => void;
 	onNotify: ( message: string, type: 'success' | 'error' ) => void;
+	deliveryOptions: { label: string; value: SendSchedule }[] | null;
 };
 
 /**
@@ -66,6 +67,7 @@ type EmailReportFormFieldsProps = {
 	previewUrl: string;
 	onSaved: ( sendSchedule: SendSchedule ) => void;
 	onNotify: ( message: string, type: 'success' | 'error' ) => void;
+	deliveryOptions: { label: string; value: SendSchedule }[] | null;
 };
 
 /**
@@ -74,7 +76,7 @@ type EmailReportFormFieldsProps = {
  * @param props Handlers and ajax config.
  */
 const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
-	const { config, previewUrl, onSaved, onNotify } = props;
+	const { config, previewUrl, onSaved, onNotify, deliveryOptions } = props;
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 
@@ -159,7 +161,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 		}
 	}, [ previewUrl ] );
 
-	const deliveryOptions = [
+	const updateDeliveryOptions = [
 		{
 			label: __( 'Off', 'updatebee' ),
 			value: 'none',
@@ -288,7 +290,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 			<RadioControl
 				label={ __( 'Delivery', 'updatebee' ) }
 				selected={ sendSchedule }
-				options={ deliveryOptions }
+				options={ deliveryOptions || updateDeliveryOptions }
 				onChange={ ( value ) => {
 					setValue( 'sendSchedule', value as SendSchedule, {
 						shouldDirty: true,
@@ -363,6 +365,7 @@ const EmailReportForm = ( props: EmailReportFormProps ) => {
 				previewUrl={ previewUrl }
 				onSaved={ onSaved }
 				onNotify={ onNotify }
+				deliveryOptions={ props.deliveryOptions || null }
 			/>
 		</FormProvider>
 	);

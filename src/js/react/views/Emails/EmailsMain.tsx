@@ -52,6 +52,7 @@ const EmailsMain = () => {
 					'Email a digest when automatic updates complete successfully.',
 					'updatebee'
 				) }
+				deliveryOptions={ null }
 				onNotify={ showSnackbar }
 			/>
 			<EmailReportCard
@@ -61,6 +62,7 @@ const EmailsMain = () => {
 					'Email a digest when automatic updates fail.',
 					'updatebee'
 				) }
+				deliveryOptions={ null }
 				onNotify={ showSnackbar }
 			/>
 			<EmailReportCard
@@ -71,6 +73,16 @@ const EmailsMain = () => {
 					'updatebee'
 				) }
 				onNotify={ showSnackbar }
+				deliveryOptions={ [
+					{
+						label: __( 'Off', 'updatebee' ),
+						value: 'none',
+					},
+					{
+						label: __( 'Send on a schedule', 'updatebee' ),
+						value: 'custom',
+					},
+				] }
 			/>
 			<EmailsFooter
 				snackbar={ snackbar }

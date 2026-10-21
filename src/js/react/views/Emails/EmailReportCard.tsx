@@ -21,6 +21,7 @@ type EmailReportCardProps = {
 	title: string;
 	description: string;
 	onNotify: ( message: string, type: 'success' | 'error' ) => void;
+	deliveryOptions: { label: string; value: SendSchedule }[] | null;
 };
 
 /**
@@ -121,6 +122,7 @@ const EmailReportCard = ( props: EmailReportCardProps ) => {
 						previewUrl={ previewUrl }
 						onSaved={ setSendSchedule }
 						onNotify={ onNotify }
+						deliveryOptions={ props.deliveryOptions || null }
 					/>
 				) }
 			</Card.Content>
