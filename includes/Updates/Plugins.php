@@ -55,10 +55,38 @@ class Plugins {
 			return false;
 		}
 
-		if ( Functions::auto_updates_enabled( (string) $item->plugin, 'plugin' ) ) {
-			return true;
+		$plugin_file = (string) $item->plugin;
+
+		if ( ! Functions::auto_updates_enabled( $plugin_file, 'plugin' ) ) {
+			return false;
 		}
 
-		return false;
+		if ( Functions::auto_updates_patches_only( $plugin_file, 'plugin' ) ) {
+			$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
+			$current_version = Functions::get_plugin_current_version( $plugin_file );
+
+			if ( $new_version === $current_version ) {
+				// Verions are the same, so return update value.
+				return true;
+			}
+
+			if ( ! Functions::is_patch_update( $current_version, $new_version ) ) {
+				$reason = '';
+				if ( ! Functions::is_version_parseable( $current_version ) && ! Functions::is_version_parseable( $new_version ) ) {
+					$reason = __( 'Installed and offered versions cannot be parsed', 'updatebee' );
+				} elseif ( ! Functions::is_version_parseable( $current_version ) ) {
+					$reason = __( 'Installed version cannot be parsed', 'updatebee' );
+				} elseif ( ! Functions::is_version_parseable( $new_version ) ) {
+					$reason = __( 'Offered version cannot be parsed', 'updatebee' );
+				} else {
+					$reason = __( 'Update is not a patch update', 'updatebee' );
+				}
+				Functions::log_patch_update_skipped( $plugin_file, 'plugin', $current_version, $new_version, $reason );
+
+				return false;
+			}
+		}
+
+		return true;
 	}
 }

@@ -137,6 +137,13 @@ class Delay_Updates {
 		}
 
 		if ( time() < (int) $plugin_updates[ $plugin_file ]['time'] + ( $delay * DAY_IN_SECONDS ) ) {
+			if ( ! self::is_site_health_item( $item ) ) {
+				$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
+				$current_version = Functions::get_plugin_current_version( $plugin_file );
+				$eligible_time   = (int) $plugin_updates[ $plugin_file ]['time'] + ( $delay * DAY_IN_SECONDS );
+				Functions::log_auto_update_delayed( $plugin_file, 'plugin', $current_version, $new_version, $delay, $eligible_time );
+			}
+
 			return self::is_site_health_item( $item );
 		}
 
@@ -170,6 +177,13 @@ class Delay_Updates {
 		}
 
 		if ( time() < (int) $theme_updates[ $theme_slug ]['time'] + ( $delay * DAY_IN_SECONDS ) ) {
+			if ( ! self::is_site_health_item( $item ) ) {
+				$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
+				$current_version = Functions::get_theme_current_version( $theme_slug );
+				$eligible_time   = (int) $theme_updates[ $theme_slug ]['time'] + ( $delay * DAY_IN_SECONDS );
+				Functions::log_auto_update_delayed( $theme_slug, 'theme', $current_version, $new_version, $delay, $eligible_time );
+			}
+
 			return self::is_site_health_item( $item );
 		}
 

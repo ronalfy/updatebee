@@ -25,6 +25,17 @@ use UpdateBee\Updates\Translations;
 class UpdatesRuntimeTest extends TestCase {
 
 	/**
+	 * Define WP_PLUGIN_DIR before each test.
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+	}
+
+	/**
 	 * Reset singletons and options cache after each test.
 	 */
 	protected function tearDown(): void {
@@ -73,6 +84,74 @@ class UpdatesRuntimeTest extends TestCase {
 		MonkeyFunctions\when( 'absint' )->returnArg( 1 );
 		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'sanitize_title' )->returnArg( 1 );
+	}
+
+	/**
+	 * Set up a minimal WPDB mock for log insert tests.
+	 */
+	private function setup_wpdb_mock(): object {
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Mocking WPDB for unit tests.
+		$GLOBALS['wpdb'] = new class() {
+			/**
+			 * WPDB base prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Recorded insert calls.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			public $insert_calls = array();
+
+			/**
+			 * Mock get_var.
+			 *
+			 * @param string $query Query.
+			 * @return null
+			 */
+			public function get_var( $query ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+				return null;
+			}
+
+			/**
+			 * Mock prepare.
+			 *
+			 * @param string $query Query.
+			 * @param mixed  ...$args Arguments.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+				return $query;
+			}
+
+			/**
+			 * Mock insert.
+			 *
+			 * @param string               $table   Table.
+			 * @param array<string, mixed> $data    Data.
+			 * @param array<string, mixed> $formats Formats.
+			 */
+			public function insert( $table, $data, $formats ) {
+				$this->insert_calls[] = array( $table, $data, $formats );
+			}
+		};
+
+		return $GLOBALS['wpdb'];
+	}
+
+	/**
+	 * Set up mocks needed when a skipped log row is expected.
+	 *
+	 * @return object WPDB mock.
+	 */
+	private function setup_skipped_log_mocks(): object {
+		$wpdb = $this->setup_wpdb_mock();
+		MonkeyFunctions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
+
+		return $wpdb;
 	}
 
 	/**
@@ -277,8 +356,6 @@ class UpdatesRuntimeTest extends TestCase {
 	 */
 	public function test_filter_update_email_recipients_replaces_to(): void {
 		$this->stub_option_helpers();
-		MonkeyFunctions\when( 'sanitize_email' )->returnArg( 1 );
-		MonkeyFunctions\when( 'is_email' )->justReturn( true );
 		MonkeyFunctions\when( 'get_site_option' )->justReturn(
 			array(
 				'core_email_recipients' => array( 'one@example.com', 'two@example.com' ),
@@ -323,5 +400,270 @@ class UpdatesRuntimeTest extends TestCase {
 		);
 
 		$this->assertSame( 'admin@example.com', $email['to'] );
+	}
+
+	/**
+	 * Test plugin patch update is allowed when patches-only is active.
+	 */
+	public function test_maybe_auto_update_plugin_allows_patch_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Name'    => 'Hello Dolly',
+				'Version' => '1.2.3',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->with( 'updatebee_options', array() )
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '1.2.4',
+		);
+
+		$this->assertTrue( $plugins->maybe_auto_update_plugin( false, $item ) );
+	}
+
+	/**
+	 * Test plugin minor update is blocked when patches-only is active.
+	 */
+	public function test_maybe_auto_update_plugin_blocks_minor_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.2.3',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '1.3.0',
+		);
+
+		$this->assertFalse( $plugins->maybe_auto_update_plugin( false, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'skipped', $wpdb->insert_calls[0][1]['update_status'] );
+	}
+
+	/**
+	 * Test plugin major update is blocked when patches-only is active.
+	 */
+	public function test_maybe_auto_update_plugin_blocks_major_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.2.3',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '2.0.0',
+		);
+
+		$this->assertFalse( $plugins->maybe_auto_update_plugin( false, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'skipped', $wpdb->insert_calls[0][1]['update_status'] );
+	}
+
+	/**
+	 * Test plugin build segment update is allowed when patches-only is active.
+	 */
+	public function test_maybe_auto_update_plugin_allows_build_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.2.3',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '1.2.3.1',
+		);
+
+		$this->assertTrue( $plugins->maybe_auto_update_plugin( false, $item ) );
+	}
+
+	/**
+	 * Test plugin unparseable version is blocked and logged as skipped.
+	 */
+	public function test_maybe_auto_update_plugin_blocks_unparseable_version(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Name'    => 'Hello Dolly',
+				'Version' => 'stable',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '1.2.4',
+		);
+
+		$this->assertFalse( $plugins->maybe_auto_update_plugin( false, $item ) );
+	}
+
+	/**
+	 * Test skipped log is inserted for unparseable patch-only update.
+	 */
+	public function test_log_patch_update_skipped_inserts_skipped_row(): void {
+		$this->stub_option_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Name'    => 'Hello Dolly',
+				'Version' => 'stable',
+			)
+		);
+
+		Functions::log_patch_update_skipped(
+			'hello.php',
+			'plugin',
+			'stable',
+			'1.2.4',
+			'Installed version cannot be parsed'
+		);
+
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'skipped', $wpdb->insert_calls[0][1]['update_status'] );
+	}
+
+	/**
+	 * Test theme patch update is allowed when patches-only is active.
+	 */
+	public function test_maybe_auto_update_theme_allows_patch_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		MonkeyFunctions\when( 'wp_get_theme' )->justReturn(
+			new class() {
+				/**
+				 * Get a theme attribute.
+				 *
+				 * @param string $key Attribute key.
+				 * @return string
+				 */
+				public function get( $key ) {
+					return 'Version' === $key ? '1.2.3' : '';
+				}
+			}
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'theme_auto_updates'              => 'on',
+					'theme_auto_updates_custom'       => 'off',
+					'theme_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$themes = Themes::get_instance();
+		$item   = (object) array(
+			'theme'       => 'twentytwentyfour',
+			'new_version' => '1.2.4',
+		);
+
+		$this->assertTrue( $themes->maybe_auto_update_theme( false, $item ) );
+	}
+
+	/**
+	 * Test theme minor update is blocked when patches-only is active.
+	 */
+	public function test_maybe_auto_update_theme_blocks_minor_update(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'wp_get_theme' )->justReturn(
+			new class() {
+				/**
+				 * Get a theme attribute.
+				 *
+				 * @param string $key Attribute key.
+				 * @return string
+				 */
+				public function get( $key ) {
+					return 'Version' === $key ? '1.2.3' : '';
+				}
+			}
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'theme_auto_updates'              => 'on',
+					'theme_auto_updates_custom'       => 'off',
+					'theme_auto_updates_patches_only' => 'on',
+				)
+			);
+
+		$themes = Themes::get_instance();
+		$item   = (object) array(
+			'theme'       => 'twentytwentyfour',
+			'new_version' => '1.3.0',
+		);
+
+		$this->assertFalse( $themes->maybe_auto_update_theme( false, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'skipped', $wpdb->insert_calls[0][1]['update_status'] );
 	}
 }

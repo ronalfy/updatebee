@@ -24,6 +24,7 @@ type RetrievePayload = {
 	start_time?: string;
 	day_num?: string | number;
 	previewurl?: string;
+	log_cutoff_days?: number;
 };
 
 /**
@@ -62,6 +63,7 @@ export const defaultEmailReportValues = (): EmailReportFormValues => ( {
 	sendSchedule: 'none',
 	scheduleOptions: defaultScheduleOptions(),
 	notifySlack: false,
+	logCutoffDays: 7,
 } );
 
 /**
@@ -107,6 +109,7 @@ export const mapPayloadToFormValues = (
 		sendSchedule: payload.send_schedule ?? 'none',
 		scheduleOptions,
 		notifySlack: true === payload.notify_slack,
+		logCutoffDays: payload.log_cutoff_days ?? 7,
 	};
 };
 
@@ -125,6 +128,7 @@ type ResetCamelPayload = {
 	week?: string;
 	startTime?: string;
 	dayNum?: string | number;
+	logCutoffDays?: number;
 };
 
 /**
@@ -150,6 +154,7 @@ export const mapResetPayloadToFormValues = (
 		week: payload.week,
 		start_time: payload.startTime,
 		day_num: payload.dayNum,
+		log_cutoff_days: payload.logCutoffDays,
 	} );
 };
 

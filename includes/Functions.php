@@ -7,6 +7,8 @@
 
 namespace UpdateBee;
 
+use UpdateBee\Tables\Table_Logs;
+
 /**
  * Class Functions.
  */
@@ -260,6 +262,24 @@ class Functions {
 			'class' => array(),
 		);
 		$allowed_tags['a']['class'] = array();
+
+		$allowed_tags['html']  = array(
+			'lang' => array(),
+		);
+		$allowed_tags['head']  = array();
+		$allowed_tags['title'] = array();
+		$allowed_tags['meta']  = array(
+			'http-equiv' => array(),
+			'content'    => array(),
+			'name'       => array(),
+			'charset'    => array(),
+		);
+		$allowed_tags['style'] = array(
+			'type' => array(),
+		);
+		$allowed_tags['body']  = array(
+			'style' => array(),
+		);
 
 		if ( ! $svg ) {
 			return $allowed_tags;
@@ -906,6 +926,251 @@ class Functions {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Parse a version string into numeric segments.
+	 *
+	 * @param string $version Version string.
+	 * @return array<int, int> Numeric version segments.
+	 */
+	private static function parse_version_segments( string $version ): array {
+		$version = strtolower( trim( $version ) );
+		$version = ltrim( $version, 'v' );
+
+		if ( ! preg_match( '/^(\d+(?:\.\d+)*)/', $version, $matches ) ) {
+			return array();
+		}
+
+		return array_map( 'intval', explode( '.', $matches[1] ) );
+	}
+
+	/**
+	 * Whether a version string can be parsed into numeric segments.
+	 *
+	 * @param string $version Version string.
+	 * @return bool True when the version is parseable.
+	 */
+	public static function is_version_parseable( string $version ): bool {
+		return ! empty( self::parse_version_segments( $version ) );
+	}
+
+	/**
+	 * Whether an offered version is a patch update from the current version.
+	 *
+	 * A patch update keeps the major and minor segments identical while changing
+	 * at least one later segment.
+	 *
+	 * @param string $current_version Installed version.
+	 * @param string $new_version     Offered version.
+	 * @return bool True when the update is a patch update.
+	 */
+	public static function is_patch_update( string $current_version, string $new_version ): bool {
+		$current = self::parse_version_segments( $current_version );
+		$new     = self::parse_version_segments( $new_version );
+
+		if ( empty( $current ) || empty( $new ) ) {
+			return false;
+		}
+
+		$max     = max( count( $current ), count( $new ) );
+		$current = array_pad( $current, $max, 0 );
+		$new     = array_pad( $new, $max, 0 );
+
+		if ( (int) $current[0] !== (int) $new[0] ) {
+			return false;
+		}
+
+		if ( ! isset( $current[1] ) || ! isset( $new[1] ) || (int) $current[1] !== (int) $new[1] ) {
+			return false;
+		}
+
+		for ( $i = 2; $i < $max; $i++ ) {
+			if ( (int) $current[ $i ] !== (int) $new[ $i ] ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get the installed version of a plugin.
+	 *
+	 * @param string $file Plugin basename path.
+	 * @return string Installed version, or empty string if unavailable.
+	 */
+	public static function get_plugin_current_version( string $file ): string {
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugin_path = WP_PLUGIN_DIR . '/' . $file;
+		$data        = get_plugin_data( $plugin_path, false, false );
+		if ( ! is_array( $data ) || ! isset( $data['Version'] ) ) {
+			return '';
+		}
+
+		return sanitize_text_field( (string) $data['Version'] );
+	}
+
+	/**
+	 * Get the installed version of a theme.
+	 *
+	 * @param string $stylesheet Theme stylesheet slug.
+	 * @return string Installed version, or empty string if unavailable.
+	 */
+	public static function get_theme_current_version( string $stylesheet ): string {
+		if ( ! function_exists( 'wp_get_theme' ) ) {
+			return '';
+		}
+
+		$theme = wp_get_theme( $stylesheet );
+		if ( ! is_object( $theme ) || ! method_exists( $theme, 'get' ) ) {
+			return '';
+		}
+
+		return sanitize_text_field( (string) $theme->get( 'Version' ) );
+	}
+
+	/**
+	 * Whether an identical automatic log row already exists for an asset and version.
+	 *
+	 * @param string $id          Plugin file or theme stylesheet.
+	 * @param string $type        plugin|theme.
+	 * @param string $status      update_status value.
+	 * @param string $new_version Offered version.
+	 * @return bool True when a matching row exists.
+	 */
+	private static function has_existing_auto_log( string $id, string $type, string $status, string $new_version ): bool {
+		global $wpdb;
+
+		if ( ! is_object( $wpdb ) ) {
+			return false;
+		}
+
+		$table_name = Table_Logs::get_table_name();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deduplicating custom logs table.
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is internal.
+				"SELECT id FROM {$table_name} WHERE slug = %s AND update_type = %s AND update_status = %s AND to_version = %s LIMIT 1",
+				$id,
+				$type,
+				$status,
+				$new_version
+			)
+		);
+
+		return null !== $found;
+	}
+
+	/**
+	 * Resolve a display name for a plugin or theme log row.
+	 *
+	 * @param string $id   Plugin file or theme stylesheet.
+	 * @param string $type plugin|theme.
+	 * @return string Asset name.
+	 */
+	private static function get_auto_update_log_name( string $id, string $type ): string {
+		$name = '';
+
+		if ( 'plugin' === $type ) {
+			if ( ! function_exists( 'get_plugin_data' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+
+			$data = get_plugin_data( WP_PLUGIN_DIR . '/' . $id, false, false );
+			if ( is_array( $data ) && isset( $data['Name'] ) ) {
+				$name = sanitize_text_field( (string) $data['Name'] );
+			}
+		} elseif ( 'theme' === $type && function_exists( 'wp_get_theme' ) ) {
+			$theme = wp_get_theme( $id );
+			if ( is_object( $theme ) && method_exists( $theme, 'get' ) ) {
+				$name = sanitize_text_field( (string) $theme->get( 'Name' ) );
+			}
+		}
+
+		if ( '' === $name ) {
+			$name = $id;
+		}
+
+		return $name;
+	}
+
+	/**
+	 * Log a patch-only update that was skipped.
+	 *
+	 * @param string $id              Plugin file or theme stylesheet.
+	 * @param string $type            plugin|theme.
+	 * @param string $current_version Installed version.
+	 * @param string $new_version     Offered version.
+	 * @param string $reason          Human-readable reason.
+	 */
+	public static function log_patch_update_skipped( string $id, string $type, string $current_version, string $new_version, string $reason ): void {
+		if ( 'plugin' !== $type && 'theme' !== $type ) {
+			return;
+		}
+
+		if ( self::has_existing_auto_log( $id, $type, 'skipped', $new_version ) ) {
+			return;
+		}
+
+		$name  = self::get_auto_update_log_name( $id, $type );
+		$notes = sprintf(
+			/* translators: 1: Reason text, 2: Installed version, 3: Offered version. */
+			__( 'Automatic update skipped: %1$s (installed: %2$s, offered: %3$s).', 'updatebee' ),
+			$reason,
+			$current_version,
+			$new_version
+		);
+
+		$logs = new Logs();
+		$logs->insert_log( $name, $id, 0, $current_version, $new_version, 'automatic', $type, 'skipped', $notes );
+	}
+
+	/**
+	 * Log an automatic update delayed by the configured wait period.
+	 *
+	 * @param string $id                 Plugin file or theme stylesheet.
+	 * @param string $type               plugin|theme.
+	 * @param string $current_version    Installed version.
+	 * @param string $new_version        Offered version.
+	 * @param int    $delay_days         Delay in whole days.
+	 * @param int    $eligible_timestamp Unix timestamp when the update may proceed.
+	 */
+	public static function log_auto_update_delayed( string $id, string $type, string $current_version, string $new_version, int $delay_days, int $eligible_timestamp ): void {
+		if ( 'plugin' !== $type && 'theme' !== $type ) {
+			return;
+		}
+
+		if ( self::has_existing_auto_log( $id, $type, 'delayed', $new_version ) ) {
+			return;
+		}
+
+		$name = self::get_auto_update_log_name( $id, $type );
+
+		$eligible_label = '';
+		if ( $eligible_timestamp > 0 ) {
+			if ( function_exists( 'wp_date' ) ) {
+				$eligible_label = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $eligible_timestamp );
+			} else {
+				$eligible_label = gmdate( 'Y-m-d H:i:s', $eligible_timestamp );
+			}
+		}
+
+		$notes = sprintf(
+			/* translators: 1: Delay in days, 2: Eligible date/time, 3: Installed version, 4: Offered version. */
+			__( 'Automatic update delayed for %1$d day(s). Eligible after %2$s (installed: %3$s, offered: %4$s).', 'updatebee' ),
+			$delay_days,
+			$eligible_label,
+			$current_version,
+			$new_version
+		);
+
+		$logs = new Logs();
+		$logs->insert_log( $name, $id, 0, $current_version, $new_version, 'automatic', $type, 'delayed', $notes );
 	}
 
 	/**

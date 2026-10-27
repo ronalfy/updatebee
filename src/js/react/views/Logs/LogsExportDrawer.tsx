@@ -12,7 +12,13 @@ type LogsExportDrawerProps = {
 
 type UpdateOfferFilter = 'all' | 'automatic' | 'manual';
 type UpdateTypeFilter = 'all' | 'core' | 'plugin' | 'theme' | 'translation';
-type UpdateStatusFilter = 'all' | 'success' | 'failure' | 'blocked';
+type UpdateStatusFilter =
+	| 'all'
+	| 'success'
+	| 'failure'
+	| 'blocked'
+	| 'skipped'
+	| 'delayed';
 
 type ExportFilters = {
 	updateOffer: UpdateOfferFilter;
@@ -251,6 +257,14 @@ const LogsExportDrawer = ( props: LogsExportDrawerProps ) => {
 								{
 									label: __( 'Blocked', 'updatebee' ),
 									value: 'blocked',
+								},
+								{
+									label: __( 'Skipped', 'updatebee' ),
+									value: 'skipped',
+								},
+								{
+									label: __( 'Delayed', 'updatebee' ),
+									value: 'delayed',
 								},
 							] }
 							onChange={ ( value ) => {

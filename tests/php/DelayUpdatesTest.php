@@ -25,11 +25,25 @@ class DelayUpdatesTest extends TestCase {
 	private array $site_options = array();
 
 	/**
+	 * Define WP_PLUGIN_DIR before each test.
+	 */
+	protected function setUp(): void {
+		parent::setUp();
+
+		unset( $GLOBALS['wpdb'] );
+
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+	}
+
+	/**
 	 * Reset singleton and options cache after each test.
 	 */
 	protected function tearDown(): void {
 		Options::flush_cache();
 		$this->reset_delay_singleton();
+		unset( $GLOBALS['wpdb'] );
 		parent::tearDown();
 	}
 
@@ -77,6 +91,98 @@ class DelayUpdatesTest extends TestCase {
 				return true;
 			}
 		);
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
+	}
+
+	/**
+	 * Set up a minimal WPDB mock for delayed log inserts.
+	 *
+	 * @return object WPDB mock.
+	 */
+	private function setup_log_insert_mocks(): object {
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test mock.
+		$GLOBALS['wpdb'] = new class() {
+			/**
+			 * WPDB base prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Recorded insert calls.
+			 *
+			 * @var array<int, array<string, mixed>>
+			 */
+			public $insert_calls = array();
+
+			/**
+			 * Mock get_var.
+			 *
+			 * @param string $query Query.
+			 * @return null
+			 */
+			public function get_var( $query ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+				return null;
+			}
+
+			/**
+			 * Mock get_row.
+			 *
+			 * @param string $query Query.
+			 * @return null
+			 */
+			public function get_row( $query ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+				return null;
+			}
+
+			/**
+			 * Mock prepare.
+			 *
+			 * @param string $query Query.
+			 * @param mixed  ...$args Arguments.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+				return $query;
+			}
+
+			/**
+			 * Mock insert.
+			 *
+			 * @param string               $table   Table.
+			 * @param array<string, mixed> $data    Data.
+			 * @param array<string, mixed> $formats Formats.
+			 */
+			public function insert( $table, $data, $formats ) {
+				$this->insert_calls[] = array( $table, $data, $formats );
+			}
+		};
+
+		MonkeyFunctions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
+		MonkeyFunctions\when( 'wp_date' )->alias(
+			static function ( $format, $timestamp ) {
+				return gmdate( $format, (int) $timestamp );
+			}
+		);
+		MonkeyFunctions\when( 'get_option' )->justReturn( 'Y-m-d' );
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Name'    => 'Hello Dolly',
+				'Version' => '1.0.0',
+			)
+		);
+		MonkeyFunctions\when( 'apply_filters' )->alias(
+			static function ( $hook, $value ) {
+				if ( 'updatebee_allow_log_insert' === $hook ) {
+					return true;
+				}
+				return $value;
+			}
+		);
+		MonkeyFunctions\when( 'do_action' )->justReturn( null );
+
+		return $GLOBALS['wpdb'];
 	}
 
 	/**
@@ -117,8 +223,10 @@ class DelayUpdatesTest extends TestCase {
 	 */
 	public function test_plugin_within_window_is_vetoed(): void {
 		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+		$wpdb  = $this->setup_log_insert_mocks();
 		$item  = (object) array(
-			'plugin' => 'hello.php',
+			'plugin'      => 'hello.php',
+			'new_version' => '1.0.1',
 		);
 
 		$this->site_options[ Delay_Updates::PLUGIN_OPTION ] = array(
@@ -129,6 +237,8 @@ class DelayUpdatesTest extends TestCase {
 		);
 
 		$this->assertFalse( $delay->auto_update_plugin( true, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'delayed', $wpdb->insert_calls[0][1]['update_status'] );
 	}
 
 	/**
@@ -136,8 +246,23 @@ class DelayUpdatesTest extends TestCase {
 	 */
 	public function test_theme_within_window_is_vetoed(): void {
 		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+		$wpdb  = $this->setup_log_insert_mocks();
+		MonkeyFunctions\when( 'wp_get_theme' )->justReturn(
+			new class() {
+				/**
+				 * Get a theme attribute.
+				 *
+				 * @param string $key Attribute key.
+				 * @return string
+				 */
+				public function get( $key ) {
+					return 'Version' === $key ? '1.0.0' : 'Twenty Twenty-Four';
+				}
+			}
+		);
 		$item  = (object) array(
-			'theme' => 'twentytwentyfour',
+			'theme'       => 'twentytwentyfour',
+			'new_version' => '1.0.1',
 		);
 
 		$this->site_options[ Delay_Updates::THEME_OPTION ] = array(
@@ -148,6 +273,8 @@ class DelayUpdatesTest extends TestCase {
 		);
 
 		$this->assertFalse( $delay->auto_update_theme( true, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+		$this->assertSame( 'delayed', $wpdb->insert_calls[0][1]['update_status'] );
 	}
 
 	/**

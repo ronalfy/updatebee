@@ -55,10 +55,33 @@ class Themes {
 			return false;
 		}
 
-		if ( Functions::auto_updates_enabled( (string) $item->theme, 'theme' ) ) {
-			return true;
+		$theme_stylesheet = (string) $item->theme;
+
+		if ( ! Functions::auto_updates_enabled( $theme_stylesheet, 'theme' ) ) {
+			return false;
 		}
 
-		return false;
+		if ( Functions::auto_updates_patches_only( $theme_stylesheet, 'theme' ) ) {
+			$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
+			$current_version = Functions::get_theme_current_version( $theme_stylesheet );
+
+			if ( ! Functions::is_patch_update( $current_version, $new_version ) ) {
+				$reason = '';
+				if ( ! Functions::is_version_parseable( $current_version ) && ! Functions::is_version_parseable( $new_version ) ) {
+					$reason = __( 'Installed and offered versions cannot be parsed', 'updatebee' );
+				} elseif ( ! Functions::is_version_parseable( $current_version ) ) {
+					$reason = __( 'Installed version cannot be parsed', 'updatebee' );
+				} elseif ( ! Functions::is_version_parseable( $new_version ) ) {
+					$reason = __( 'Offered version cannot be parsed', 'updatebee' );
+				} else {
+					$reason = __( 'Update is not a patch update', 'updatebee' );
+				}
+				Functions::log_patch_update_skipped( $theme_stylesheet, 'theme', $current_version, $new_version, $reason );
+
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
