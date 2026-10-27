@@ -1,7 +1,7 @@
 /**
- * Logs settings drawer for retention days and Slack webhook.
+ * Logs settings drawer for retention days and Slack notifications.
  */
-import { TextControl } from '@wordpress/components';
+import { TextControl, ToggleControl } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { cog } from '@wordpress/icons';
@@ -16,12 +16,12 @@ type LogsSettingsDrawerProps = {
 type LogsSettingsPayload = {
 	message?: string;
 	clear_logs_days?: number;
-	slack_webhook_url?: string;
+	slack_enabled?: boolean;
 };
 
 type LogsSettings = {
 	clearLogsDays: number;
-	slackWebhookUrl: string;
+	slackEnabled: boolean;
 };
 
 /**
@@ -46,14 +46,11 @@ const normalizeDays = ( value: unknown ): number => {
  */
 const getInitialSettings = (): LogsSettings => ( {
 	clearLogsDays: normalizeDays( updatebeeLogs.clearLogsDays ),
-	slackWebhookUrl:
-		'string' === typeof updatebeeLogs.slackWebhookUrl
-			? updatebeeLogs.slackWebhookUrl
-			: '',
+	slackEnabled: Boolean( updatebeeLogs.slackEnabled ),
 } );
 
 /**
- * Persistent drawer for log retention and Slack webhook settings.
+ * Persistent drawer for log retention and Slack notification settings.
  *
  * @param props Snackbar callback.
  */
@@ -94,23 +91,23 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 		}
 
 		const nextDays = normalizeDays( draftSettings.clearLogsDays );
-		const nextWebhook = draftSettings.slackWebhookUrl.trim();
+		const nextEnabled = draftSettings.slackEnabled;
 
 		setIsSaving( true );
 
 		sendCommand< LogsSettingsPayload >( 'updatebee_save_logs_settings', {
 			nonce: updatebeeLogs.saveNonce,
 			clear_logs_days: nextDays,
-			slack_webhook_url: nextWebhook,
+			slack_enabled: nextEnabled,
 		} )
 			.then( ( response ) => {
 				const payload = response.data.data;
 				const nextSettings: LogsSettings = {
 					clearLogsDays: normalizeDays( payload.clear_logs_days ),
-					slackWebhookUrl:
-						'string' === typeof payload.slack_webhook_url
-							? payload.slack_webhook_url
-							: nextWebhook,
+					slackEnabled:
+						'boolean' === typeof payload.slack_enabled
+							? payload.slack_enabled
+							: nextEnabled,
 				};
 
 				setSavedSettings( nextSettings );
@@ -165,7 +162,7 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 				<Drawer.Content>
 					<Drawer.Description>
 						{ __(
-							'Choose how long logs are kept and optionally store a Slack webhook URL.',
+							'Choose how long logs are kept and whether to enable Slack notifications.',
 							'updatebee'
 						) }
 					</Drawer.Description>
@@ -187,21 +184,27 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 							) }
 							disabled={ isSaving }
 						/>
-						<TextControl
-							type="url"
-							label={ __( 'Slack webhook', 'updatebee' ) }
-							value={ draftSettings.slackWebhookUrl }
-							onChange={ ( value ) => {
+						<ToggleControl
+							label={ __( 'Enable Slack notifications', 'updatebee' ) }
+							checked={ draftSettings.slackEnabled }
+							disabled={ isSaving || ! updatebeeLogs.slackWebhookConfigured }
+							onChange={ ( checked: boolean ) => {
 								setDraftSettings( ( current ) => ( {
 									...current,
-									slackWebhookUrl: value,
+									slackEnabled: checked,
 								} ) );
 							} }
-							help={ __(
-								'Incoming webhook URL. A report is posted when automatic or manual updates finish.',
-								'updatebee'
-							) }
-							disabled={ isSaving }
+							help={
+								updatebeeLogs.slackWebhookConfigured
+									? __(
+											'Post a summary to Slack when automatic or manual updates finish.',
+											'updatebee'
+									  )
+									: __(
+											'Add a Slack webhook URL in Advanced settings to enable this.',
+											'updatebee'
+									  )
+							}
 						/>
 					</div>
 				</Drawer.Content>

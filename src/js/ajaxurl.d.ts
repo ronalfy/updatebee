@@ -38,7 +38,8 @@ interface UpdateBeeLogs {
 	clearNonce: string;
 	saveNonce: string;
 	clearLogsDays: number;
-	slackWebhookUrl: string;
+	slackEnabled: boolean;
+	slackWebhookConfigured: boolean;
 }
 
 declare const updatebeeLogs: UpdateBeeLogs;
@@ -65,6 +66,7 @@ interface UpdateBeeEmails {
 	updatesAvailableSaveNonce: string;
 	updatesAvailableResetNonce: string;
 	updatesAvailableSendNowNonce: string;
+	slackWebhookConfigured: boolean;
 }
 
 declare const updatebeeEmails: UpdateBeeEmails;
@@ -92,6 +94,7 @@ interface UpdateBeeAdvanced {
 	blockUntestedUpdates: boolean;
 	upgradeNoticeKeywords: string;
 	upgradeNoticeKeywordsEnabled: boolean;
+	slackWebhookUrl: string;
 }
 
 declare const updatebeeAdvanced: UpdateBeeAdvanced;

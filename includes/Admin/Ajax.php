@@ -1158,7 +1158,7 @@ class Ajax {
 	}
 
 	/**
-	 * Save log retention and Slack webhook settings.
+	 * Save log retention and Slack enabled settings.
 	 */
 	public function save_logs_settings(): void {
 		if ( ! Functions::can_access_options() ) {
@@ -1170,19 +1170,17 @@ class Ajax {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Days are passed through absint.
 		$days = isset( $_POST['clear_logs_days'] ) ? absint( wp_unslash( $_POST['clear_logs_days'] ) ) : 0;
 
-		$slack_webhook_url = '';
-		if ( isset( $_POST['slack_webhook_url'] ) ) {
-			$raw_webhook = sanitize_text_field( wp_unslash( $_POST['slack_webhook_url'] ) );
-			if ( '' !== $raw_webhook ) {
-				$slack_webhook_url = esc_url_raw( $raw_webhook );
-			}
+		$slack_enabled = false;
+		if ( isset( $_POST['slack_enabled'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean is sanitized below.
+			$slack_enabled = rest_sanitize_boolean( wp_unslash( $_POST['slack_enabled'] ) );
 		}
 
 		$updated = Options::update_options(
 			'',
 			array(
-				'clear_logs_days'   => $days,
-				'slack_webhook_url' => $slack_webhook_url,
+				'clear_logs_days' => $days,
+				'slack_enabled'   => $slack_enabled,
 			)
 		);
 		if ( null === $updated ) {
@@ -1197,9 +1195,9 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'message'           => __( 'Log settings have been saved.', 'updatebee' ),
-				'clear_logs_days'   => $days,
-				'slack_webhook_url' => $slack_webhook_url,
+				'message'         => __( 'Log settings have been saved.', 'updatebee' ),
+				'clear_logs_days' => $days,
+				'slack_enabled'   => $slack_enabled,
 			)
 		);
 	}
@@ -1771,6 +1769,11 @@ class Ajax {
 			$to_save['upgrade_notice_keywords_enabled'] = $enabled;
 		}
 
+		if ( isset( $_POST['slack_webhook_url'] ) ) {
+			$raw = sanitize_text_field( wp_unslash( $_POST['slack_webhook_url'] ) );
+			$to_save['slack_webhook_url'] = '' !== $raw ? esc_url_raw( $raw ) : '';
+		}
+
 		if ( empty( $to_save ) ) {
 			wp_send_json_error(
 				array(
@@ -1792,10 +1795,13 @@ class Ajax {
 			( isset( $to_save['upgrade_notice_keywords'] ) || isset( $to_save['upgrade_notice_keywords_enabled'] ) )
 			&& ! isset( $to_save['delay_updates'] )
 			&& ! isset( $to_save['block_untested_updates'] )
+			&& ! isset( $to_save['slack_webhook_url'] )
 		) {
 			$message = __( 'Upgrade notice keywords have been saved.', 'updatebee' );
-		} elseif ( isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] ) ) {
+		} elseif ( isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] ) && ! isset( $to_save['slack_webhook_url'] ) ) {
 			$message = __( 'Untested updates setting has been saved.', 'updatebee' );
+		} elseif ( isset( $to_save['slack_webhook_url'] ) && ! isset( $to_save['delay_updates'] ) && ! isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['upgrade_notice_keywords'] ) && ! isset( $to_save['upgrade_notice_keywords_enabled'] ) ) {
+			$message = __( 'Slack webhook has been saved.', 'updatebee' );
 		} else {
 			$message = __( 'Update delay has been saved.', 'updatebee' );
 		}
@@ -1818,6 +1824,10 @@ class Ajax {
 
 		if ( isset( $to_save['upgrade_notice_keywords_enabled'] ) ) {
 			$response['upgrade_notice_keywords_enabled'] = (bool) $to_save['upgrade_notice_keywords_enabled'];
+		}
+
+		if ( isset( $to_save['slack_webhook_url'] ) ) {
+			$response['slack_webhook_url'] = $to_save['slack_webhook_url'];
 		}
 
 		wp_send_json_success( $response );

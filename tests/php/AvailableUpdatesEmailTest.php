@@ -144,7 +144,10 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'get_site_option' )->alias(
 			static function ( $key, $fallback = false ) {
 				if ( 'updatebee_options' === $key ) {
-					return array( 'slack_webhook_url' => 'https://hooks.slack.com/services/test' );
+					return array(
+						'slack_webhook_url' => 'https://hooks.slack.com/services/test',
+						'slack_enabled'     => true,
+					);
 				}
 				return $fallback;
 			}

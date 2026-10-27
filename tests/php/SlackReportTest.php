@@ -51,6 +51,7 @@ class SlackReportTest extends TestCase {
 		$this->posted_bodies                     = array();
 		$this->site_options['updatebee_options'] = array(
 			'slack_webhook_url' => $webhook,
+			'slack_enabled'     => true,
 		);
 
 		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
@@ -223,6 +224,20 @@ class SlackReportTest extends TestCase {
 	 */
 	public function test_empty_webhook_skips_post(): void {
 		$this->stub_helpers( '' );
+		MonkeyFunctions\expect( 'wp_remote_post' )->never();
+
+		$report = new Slack_Report();
+		$report->send_report( $this->sample_rows(), 'automatic' );
+
+		$this->assertSame( array(), $this->posted_bodies );
+	}
+
+	/**
+	 * A disabled Slack toggle skips the post even when a webhook is saved.
+	 */
+	public function test_slack_disabled_skips_post(): void {
+		$this->stub_helpers();
+		$this->site_options['updatebee_options']['slack_enabled'] = false;
 		MonkeyFunctions\expect( 'wp_remote_post' )->never();
 
 		$report = new Slack_Report();
