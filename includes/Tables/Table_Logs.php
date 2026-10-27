@@ -249,8 +249,8 @@ class Table_Logs extends Tables {
 
 		$search = is_string( $args['search'] ) ? trim( $args['search'] ) : '';
 		if ( '' !== $search ) {
-			$like    = '%' . $wpdb->esc_like( $search ) . '%';
-			$where[] = "( name LIKE %s OR slug LIKE %s OR user_id IN ( SELECT ID FROM {$wpdb->users} WHERE user_nicename LIKE %s OR display_name LIKE %s ) )";
+			$like     = '%' . $wpdb->esc_like( $search ) . '%';
+			$where[]  = "( name LIKE %s OR slug LIKE %s OR user_id IN ( SELECT ID FROM {$wpdb->users} WHERE user_nicename LIKE %s OR display_name LIKE %s ) )";
 			$values[] = $like;
 			$values[] = $like;
 			$values[] = $like;
@@ -261,7 +261,7 @@ class Table_Logs extends Tables {
 		$allowed_values = array(
 			'update_offer'  => array( 'automatic', 'manual' ),
 			'update_type'   => array( 'core', 'plugin', 'theme', 'translation' ),
-			'update_status' => array( 'success', 'failure', 'blocked' ),
+			'update_status' => array( 'success', 'failure', 'blocked', 'skipped', 'delayed' ),
 		);
 
 		foreach ( $allowed_values as $column => $valid ) {
@@ -427,7 +427,7 @@ class Table_Logs extends Tables {
 		}
 
 		$update_status = is_string( $args['update_status'] ) ? $args['update_status'] : 'all';
-		if ( in_array( $update_status, array( 'success', 'failure', 'blocked' ), true ) ) {
+		if ( in_array( $update_status, array( 'success', 'failure', 'blocked', 'skipped', 'delayed' ), true ) ) {
 			$where[]  = 'update_status = %s';
 			$values[] = $update_status;
 		}

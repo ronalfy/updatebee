@@ -15,6 +15,7 @@ import {
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Stack, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
+import { Tooltip } from '@wordpress/components';
 import sendCommand from '../../../utils/SendCommand';
 import { DATAVIEWS_STORAGE_KEYS } from '../../../utils/dataviews-view-storage';
 import { ErrorFallback } from '../../components/ErrorBoundary';
@@ -25,6 +26,10 @@ import LogsClearModal from './LogsClearModal';
 import LogsExportDrawer from './LogsExportDrawer';
 import LogsSettingsDrawer from './LogsSettingsDrawer';
 import { getLogActions } from './log-actions';
+import {
+	getLogUpdateStatusLabel,
+	LOG_UPDATE_STATUS_OPTIONS,
+} from './log-status-labels';
 import LogsFooter, {
 	type SnackbarState,
 	type SnackbarType,
@@ -212,6 +217,9 @@ type LogNameCellProps = {
 const LogNameCell = ( props: LogNameCellProps ) => {
 	const { name, slug, updateType } = props;
 
+	const displayName =
+		name.length > 30 ? name.slice( 0, 30 ) + '…' : name;
+
 	return (
 		<span className="updatebee-log-name">
 			<svg
@@ -222,7 +230,9 @@ const LogNameCell = ( props: LogNameCellProps ) => {
 				<use href={ `#${ getLogIconId( updateType ) }` } />
 			</svg>
 			<span className="updatebee-log-name-text">
-				<span className="updatebee-log-name-title">{ name }</span>
+				<Tooltip text={ name }>
+					<span className="updatebee-log-name-title">{ displayName }</span>
+				</Tooltip>
 				{ slug && (
 					<p className="description updatebee-log-name-slug">
 						{ slug }
@@ -405,11 +415,11 @@ const LogsMain = () => {
 				getValue: ( { item } ) =>
 					`${ item.Name } ${ item.Slug }`.trim(),
 				render: ( { item } ) => (
-					<LogNameCell
-						name={ item.Name }
-						slug={ item.Slug }
-						updateType={ item.UpdateType }
-					/>
+						<LogNameCell
+							name={ item.Name }
+							slug={ item.Slug }
+							updateType={ item.UpdateType }
+						/>
 				),
 			},
 			{
@@ -487,20 +497,9 @@ const LogsMain = () => {
 				filterBy: {
 					operators: [ 'is' ],
 				},
-				elements: [
-					{
-						value: 'success',
-						label: __( 'Success', 'updatebee' ),
-					},
-					{
-						value: 'failure',
-						label: __( 'Failure', 'updatebee' ),
-					},
-					{
-						value: 'blocked',
-						label: __( 'Blocked', 'updatebee' ),
-					},
-				],
+				elements: LOG_UPDATE_STATUS_OPTIONS,
+				render: ( { item } ) =>
+					getLogUpdateStatusLabel( item.UpdateStatus ),
 			},
 			{
 				id: 'Date',

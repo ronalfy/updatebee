@@ -180,6 +180,16 @@ class LogsTest extends TestCase {
 	public function test_automatic_updates_marks_stale_plugin_version_as_failure(): void {
 		$this->stub_log_helpers();
 
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.7.2',
+			)
+		);
+
 		$wpdb = new class() {
 			/**
 			 * Table prefix.

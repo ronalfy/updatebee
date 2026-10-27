@@ -122,19 +122,19 @@ class Logs {
 							continue;
 						}
 
-						$name            = ( isset( $plugin->name ) && ! empty( $plugin->name ) ) ? (string) $plugin->name : (string) $plugin->item->slug;
-						$slug            = (string) $plugin->item->slug;
-						$plugin_file     = (string) $plugin->item->plugin;
-						$status          = 'success';
-						$update_type     = 'plugin';
-						$prev_version    = isset( $plugin->item->current_version ) ? sanitize_text_field( (string) $plugin->item->current_version ) : '';
-						$new_version = isset( $plugin->item->new_version ) ? sanitize_text_field( (string) $plugin->item->new_version ) : '';
-						$user_id         = 0;
-						$raw             = '';
+						$name         = ( isset( $plugin->name ) && ! empty( $plugin->name ) ) ? (string) $plugin->name : (string) $plugin->item->slug;
+						$slug         = (string) $plugin->item->slug;
+						$plugin_file  = (string) $plugin->item->plugin;
+						$status       = 'success';
+						$update_type  = 'plugin';
+						$prev_version = isset( $plugin->item->current_version ) ? sanitize_text_field( (string) $plugin->item->current_version ) : '';
+						$new_version  = isset( $plugin->item->new_version ) ? sanitize_text_field( (string) $plugin->item->new_version ) : '';
+						$user_id      = 0;
+						$raw          = '';
 						// If new version is less than or equal to version_from, mark as failure.
 
 						// Get plugin info from WordPress Core.
-						$plugin_info = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_file, false, false );
+						$plugin_info                 = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_file, false, false );
 						$plugin_info_current_version = $plugin_info['Version'] ?? '';
 
 						// If current version isn't greater than the previous version, mark as a failure.
@@ -256,7 +256,7 @@ class Logs {
 	 * @param string $current_version The current version for the upgrade.
 	 * @param string $update_offer    Manual or Automatic (manual|automatic).
 	 * @param string $update_type     The type of the update. plugin|theme|translation|core.
-	 * @param string $status          Status of the upgrade. success|failure|blocked|install|deactivate|delete|rollback|update.
+	 * @param string $status          Status of the upgrade. success|failure|blocked|skipped|delayed|install|deactivate|delete|rollback|update.
 	 * @param string $notes           Raw upgrade notes.
 	 * @param string $stacktrace      Serialized stack trace for manual debugging.
 	 */

@@ -41,7 +41,6 @@ class TableLogsTest extends TestCase {
 				return array_merge( (array) $defaults, (array) $args );
 			}
 		);
-		MonkeyFunctions\when( 'is_wp_error' )->justReturn( false );
 	}
 
 	/**
@@ -240,5 +239,106 @@ class TableLogsTest extends TestCase {
 		$this->assertStringNotContainsString( 'update_status =', $wpdb->query_ran );
 		$this->assertStringNotContainsString( 'date >=', $wpdb->query_ran );
 		$this->assertStringNotContainsString( 'date <=', $wpdb->query_ran );
+	}
+
+	/**
+	 * Test paginated logs accept skipped and delayed status filters.
+	 */
+	public function test_get_logs_paginated_accepts_skipped_and_delayed_status_filters(): void {
+		$this->stub_table_helpers();
+
+		$wpdb = new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last SQL query.
+			 *
+			 * @var string
+			 */
+			public $query_ran = '';
+
+			/**
+			 * Mock esc_like.
+			 *
+			 * @param string $text Text.
+			 * @return string
+			 */
+			public function esc_like( $text ) {
+				return $text;
+			}
+
+			/**
+			 * Mock prepare.
+			 *
+			 * @param string $query Query.
+			 * @param mixed  ...$args Args.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				if ( isset( $args[0] ) && is_array( $args[0] ) && 1 === count( $args ) ) {
+					$args = $args[0];
+				}
+
+				foreach ( $args as $arg ) {
+					if ( is_int( $arg ) ) {
+						$query = preg_replace( '/%d/', (string) $arg, $query, 1 );
+						continue;
+					}
+
+					$query = preg_replace( '/%s/', "'" . $arg . "'", $query, 1 );
+				}
+
+				return $query;
+			}
+
+			/**
+			 * Mock get_var.
+			 *
+			 * @param string $query Query.
+			 * @return int
+			 */
+			public function get_var( $query ) {
+				$this->query_ran = $query;
+				return 0;
+			}
+
+			/**
+			 * Mock get_results.
+			 *
+			 * @param string $query Query.
+			 * @return array<int, array<string, mixed>>
+			 */
+			public function get_results( $query ) {
+				$this->query_ran = $query;
+				return array();
+			}
+		};
+
+		$this->set_mock_wpdb( $wpdb );
+
+		Table_Logs::get_logs_paginated(
+			array(
+				'filters' => array(
+					'update_status' => 'skipped',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( "update_status = 'skipped'", $wpdb->query_ran );
+
+		Table_Logs::get_logs_paginated(
+			array(
+				'filters' => array(
+					'update_status' => 'delayed',
+				),
+			)
+		);
+
+		$this->assertStringContainsString( "update_status = 'delayed'", $wpdb->query_ran );
 	}
 }
