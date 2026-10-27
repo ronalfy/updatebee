@@ -7,9 +7,11 @@ export type ReportAjaxConfig = {
 	retrieveAction: string;
 	saveAction: string;
 	resetAction: string;
+	sendNowAction?: string;
 	retrieveNonce: string;
 	saveNonce: string;
 	resetNonce: string;
+	sendNowNonce?: string;
 };
 
 /**
@@ -37,9 +39,11 @@ export const getReportAjaxConfig = (
 			retrieveAction: 'updatebee_retrieve_email_updates_available_options',
 			saveAction: 'updatebee_save_email_updates_available_options',
 			resetAction: 'updatebee_reset_email_updates_available_options',
+			sendNowAction: 'updatebee_send_email_updates_available_now',
 			retrieveNonce: updatebeeEmails.updatesAvailableRetrieveNonce,
 			saveNonce: updatebeeEmails.updatesAvailableSaveNonce,
 			resetNonce: updatebeeEmails.updatesAvailableResetNonce,
+			sendNowNonce: updatebeeEmails.updatesAvailableSendNowNonce,
 		};
 	}
 

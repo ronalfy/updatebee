@@ -123,6 +123,7 @@ const EmailReportCard = ( props: EmailReportCardProps ) => {
 						onSaved={ setSendSchedule }
 						onNotify={ onNotify }
 						deliveryOptions={ props.deliveryOptions || null }
+						reportKind={ kind }
 					/>
 				) }
 			</Card.Content>

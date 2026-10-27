@@ -15,7 +15,11 @@ import { isEmail } from '@wordpress/url';
 import { FormProvider, useForm, useFormContext } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
 import validateEmail from '../../../utils/validateEmail';
-import type { EmailReportFormValues, SendSchedule } from './email-types';
+import type {
+	EmailReportFormValues,
+	EmailReportKind,
+	SendSchedule,
+} from './email-types';
 import type { ReportAjaxConfig } from './email-report-config';
 import {
 	formTokensToStringArray,
@@ -30,6 +34,7 @@ type EmailReportFormProps = {
 	onSaved: ( sendSchedule: SendSchedule ) => void;
 	onNotify: ( message: string, type: 'success' | 'error' ) => void;
 	deliveryOptions: { label: string; value: SendSchedule }[] | null;
+	reportKind: EmailReportKind;
 };
 
 /**
@@ -38,8 +43,19 @@ type EmailReportFormProps = {
  * @param values Form values.
  * @return Error message or empty string.
  */
-const validateRecipients = ( values: EmailReportFormValues ): string => {
+const validateRecipients = (
+	values: EmailReportFormValues,
+	reportKind: EmailReportKind
+): string => {
 	if ( 'none' === values.sendSchedule ) {
+		return '';
+	}
+
+	if (
+		'updates-available' === reportKind &&
+		'custom' === values.sendSchedule &&
+		values.notifySlack
+	) {
 		return '';
 	}
 
@@ -62,12 +78,45 @@ const validateRecipients = ( values: EmailReportFormValues ): string => {
 	return '';
 };
 
+/**
+ * Validate recipients for an immediate available-updates send.
+ *
+ * @param values Form values.
+ * @return Error message or empty string.
+ */
+const validateSendNowRecipients = (
+	values: EmailReportFormValues
+): string => {
+	if ( values.notifySlack ) {
+		return '';
+	}
+
+	const allEmails = [ ...values.toField, ...values.bccField ];
+
+	if ( 0 === allEmails.length ) {
+		return __(
+			'Enter at least one recipient or enable Slack notifications.',
+			'updatebee'
+		);
+	}
+
+	const invalid = allEmails.find(
+		( email ) => ! validateEmail( email.trim() )
+	);
+	if ( invalid ) {
+		return __( 'One or more email addresses are invalid.', 'updatebee' );
+	}
+
+	return '';
+};
+
 type EmailReportFormFieldsProps = {
 	config: ReportAjaxConfig;
 	previewUrl: string;
 	onSaved: ( sendSchedule: SendSchedule ) => void;
 	onNotify: ( message: string, type: 'success' | 'error' ) => void;
 	deliveryOptions: { label: string; value: SendSchedule }[] | null;
+	reportKind: EmailReportKind;
 };
 
 /**
@@ -76,9 +125,11 @@ type EmailReportFormFieldsProps = {
  * @param props Handlers and ajax config.
  */
 const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
-	const { config, previewUrl, onSaved, onNotify, deliveryOptions } = props;
+	const { config, previewUrl, onSaved, onNotify, deliveryOptions, reportKind } =
+		props;
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
+	const [ isSendingNow, setIsSendingNow ] = useState( false );
 
 	const { watch, setValue, reset, handleSubmit } =
 		useFormContext< EmailReportFormValues >();
@@ -90,7 +141,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 
 	const onSubmit = useCallback(
 		async ( values: EmailReportFormValues ) => {
-			const recipientError = validateRecipients( values );
+			const recipientError = validateRecipients( values, reportKind );
 			if ( recipientError ) {
 				onNotify( recipientError, 'error' );
 				return;
@@ -109,6 +160,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					includeTranslations: values.includeTranslations,
 					sendSchedule: values.sendSchedule,
 					scheduleOptions: values.scheduleOptions,
+					notifySlack: values.notifySlack,
 				} );
 				onSaved( values.sendSchedule );
 				onNotify(
@@ -124,7 +176,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 				setIsSaving( false );
 			}
 		},
-		[ config, onNotify, onSaved ]
+		[ config, onNotify, onSaved, reportKind ]
 	);
 
 	const handleReset = useCallback( async () => {
@@ -160,6 +212,62 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 			window.open( previewUrl, '_blank', 'noopener,noreferrer' );
 		}
 	}, [ previewUrl ] );
+
+	const handleSendNow = useCallback( async () => {
+		if (
+			'updates-available' !== reportKind ||
+			! config.sendNowAction ||
+			! config.sendNowNonce
+		) {
+			return;
+		}
+
+		const values = watch();
+		const recipientError = validateSendNowRecipients( values );
+		if ( recipientError ) {
+			onNotify( recipientError, 'error' );
+			return;
+		}
+
+		setIsSendingNow( true );
+		try {
+			const response = await sendCommand< { message?: string } >(
+				config.sendNowAction,
+				{
+					nonce: config.sendNowNonce,
+					toField: values.toField,
+					bccField: values.bccField,
+					subject: values.subject,
+					includeCore: values.includeCore,
+					includePlugins: values.includePlugins,
+					includeThemes: values.includeThemes,
+					includeTranslations: values.includeTranslations,
+					notifySlack: values.notifySlack,
+				}
+			);
+			const payload = response.data.data;
+			onNotify(
+				payload.message ||
+					__(
+						'Available updates report has been sent.',
+						'updatebee'
+					),
+				'success'
+			);
+		} catch ( error ) {
+			const fallback = __(
+				'Could not send the available updates report.',
+				'updatebee'
+			);
+			const message =
+				error instanceof Error && error.message
+					? error.message
+					: fallback;
+			onNotify( message, 'error' );
+		} finally {
+			setIsSendingNow( false );
+		}
+	}, [ config, onNotify, reportKind, watch ] );
 
 	const updateDeliveryOptions = [
 		{
@@ -297,6 +405,24 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					} );
 				} }
 			/>
+			{ 'updates-available' === reportKind && (
+				<CheckboxControl
+					label={ __(
+						'Notify Slack when this report runs',
+						'updatebee'
+					) }
+					checked={ watch( 'notifySlack' ) }
+					onChange={ ( checked ) => {
+						setValue( 'notifySlack', checked, {
+							shouldDirty: true,
+						} );
+					} }
+							help={ __(
+								'Uses the Slack webhook saved under Logs → Log settings. Applies to scheduled runs and Send now.',
+								'updatebee'
+							) }
+				/>
+			) }
 			{ 'custom' === sendSchedule && (
 				<EmailScheduleFields
 					value={ scheduleOptions }
@@ -316,6 +442,22 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					>
 						{ __( 'Preview email', 'updatebee' ) }
 					</Button>
+					{ 'updates-available' === reportKind &&
+						config.sendNowAction &&
+						config.sendNowNonce && (
+							<Button
+								variant="secondary"
+								onClick={ () => {
+									void handleSendNow();
+								} }
+								disabled={
+									isSaving || isResetting || isSendingNow
+								}
+								isBusy={ isSendingNow }
+							>
+								{ __( 'Send now', 'updatebee' ) }
+							</Button>
+						) }
 				</div>
 				<div className="updatebee-emails-actions-start">
 					<Button
@@ -331,7 +473,9 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					<Button
 						variant="primary"
 						type="submit"
-						disabled={ isSaving || isResetting }
+						disabled={
+							isSaving || isResetting || isSendingNow
+						}
 						isBusy={ isSaving }
 					>
 						{ __( 'Save', 'updatebee' ) }
@@ -348,7 +492,8 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
  * @param props Form props including default values.
  */
 const EmailReportForm = ( props: EmailReportFormProps ) => {
-	const { defaultValues, config, previewUrl, onSaved, onNotify } = props;
+	const { defaultValues, config, previewUrl, onSaved, onNotify, reportKind } =
+		props;
 	const form = useForm< EmailReportFormValues >( {
 		defaultValues,
 	} );
@@ -366,6 +511,7 @@ const EmailReportForm = ( props: EmailReportFormProps ) => {
 				onSaved={ onSaved }
 				onNotify={ onNotify }
 				deliveryOptions={ props.deliveryOptions || null }
+				reportKind={ reportKind }
 			/>
 		</FormProvider>
 	);

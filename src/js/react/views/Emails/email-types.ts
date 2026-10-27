@@ -22,6 +22,7 @@ export type EmailReportFormValues = {
 	includeTranslations: boolean;
 	sendSchedule: SendSchedule;
 	scheduleOptions: ScheduleOptions;
+	notifySlack: boolean;
 };
 
 export type EmailReportOptionsPayload = {

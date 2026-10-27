@@ -51,6 +51,30 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_unslash' ) ) {
+	/**
+	 * Test stub for wp_unslash().
+	 *
+	 * @param mixed $value Value to unslash.
+	 * @return mixed
+	 */
+	function wp_unslash( $value ) {
+		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
+}
+
+if ( ! function_exists( 'esc_html__' ) ) {
+	/**
+	 * Test stub for escaped translatable strings.
+	 *
+	 * @param string $text Text to translate.
+	 * @return string
+	 */
+	function esc_html__( $text ) {
+		return $text;
+	}
+}
+
 if ( ! class_exists( 'WP_Error' ) ) {
 	/**
 	 * Minimal WP_Error stub for unit tests.
@@ -98,6 +122,30 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		public function get_error_message() {
 			return $this->message;
 		}
+	}
+}
+
+if ( ! function_exists( 'sanitize_email' ) ) {
+	/**
+	 * Test stub for sanitize_email().
+	 *
+	 * @param string $email Email address.
+	 * @return string
+	 */
+	function sanitize_email( $email ) {
+		return is_string( $email ) ? trim( $email ) : '';
+	}
+}
+
+if ( ! function_exists( 'is_email' ) ) {
+	/**
+	 * Test stub for is_email().
+	 *
+	 * @param string $email Email address.
+	 * @return bool
+	 */
+	function is_email( $email ) {
+		return is_string( $email ) && str_contains( $email, '@' );
 	}
 }
 
