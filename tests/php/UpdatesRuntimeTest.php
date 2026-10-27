@@ -14,6 +14,7 @@ use UpdateBee\Options;
 use UpdateBee\Updates\Core;
 use UpdateBee\Updates\Delay_Updates;
 use UpdateBee\Updates\Init;
+use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Updates\Plugins;
 use UpdateBee\Updates\Themes;
 use UpdateBee\Updates\Translations;
@@ -33,6 +34,7 @@ class UpdatesRuntimeTest extends TestCase {
 		$this->reset_updates_singleton( Themes::class );
 		$this->reset_updates_singleton( Translations::class );
 		$this->reset_updates_singleton( Delay_Updates::class );
+		$this->reset_updates_singleton( Upgrade_Notice_Keywords::class );
 		parent::tearDown();
 	}
 

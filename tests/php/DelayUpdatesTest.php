@@ -67,8 +67,8 @@ class DelayUpdatesTest extends TestCase {
 			}
 		);
 		MonkeyFunctions\when( 'get_site_option' )->alias(
-			function ( $key, $default = false ) {
-				return array_key_exists( $key, $this->site_options ) ? $this->site_options[ $key ] : $default;
+			function ( $key, $default_value = false ) {
+				return array_key_exists( $key, $this->site_options ) ? $this->site_options[ $key ] : $default_value;
 			}
 		);
 		MonkeyFunctions\when( 'update_site_option' )->alias(

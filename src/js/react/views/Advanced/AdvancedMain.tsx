@@ -11,11 +11,13 @@ import AdvancedFooter, {
 	type SnackbarType,
 } from './AdvancedFooter';
 import AdvancedReset, { type ResetItem } from './AdvancedReset';
+import UpgradeNoticeKeywordsDrawer from './UpgradeNoticeKeywordsDrawer';
 
 type AdvancedMessagePayload = {
 	message?: string;
 	delay_updates?: number;
 	block_untested_updates?: boolean;
+	upgrade_notice_keywords?: string;
 };
 
 /**
@@ -43,6 +45,7 @@ const AdvancedMain = () => {
 	);
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isSavingUntested, setIsSavingUntested ] = useState( false );
+	const [ isSavingKeywords, setIsSavingKeywords ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
@@ -50,7 +53,8 @@ const AdvancedMain = () => {
 		type: 'success',
 	} );
 
-	const isBusy = isSaving || isSavingUntested || isResetting;
+	const isBusy =
+		isSaving || isSavingUntested || isSavingKeywords || isResetting;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -314,6 +318,12 @@ const AdvancedMain = () => {
 						</p>
 					</Card.Content>
 				</Card.Root>
+
+				<UpgradeNoticeKeywordsDrawer
+					disabled={ isSaving || isSavingUntested || isResetting }
+					onSavingChange={ setIsSavingKeywords }
+					onSnackbar={ showSnackbar }
+				/>
 
 				<AdvancedReset
 					disabled={ isBusy }

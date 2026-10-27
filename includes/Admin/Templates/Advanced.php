@@ -81,10 +81,11 @@ class Advanced {
 			'updatebee-advanced',
 			'updatebeeAdvanced',
 			array(
-				'saveNonce'            => wp_create_nonce( 'updatebee-save-advanced-settings' ),
-				'resetNonce'           => wp_create_nonce( 'updatebee-reset-options' ),
-				'delayUpdates'         => absint( Options::get_options( 'delay_updates' ) ),
-				'blockUntestedUpdates' => 'on' === Options::get_options( 'block_untested_updates' ),
+				'saveNonce'             => wp_create_nonce( 'updatebee-save-advanced-settings' ),
+				'resetNonce'            => wp_create_nonce( 'updatebee-reset-options' ),
+				'delayUpdates'          => absint( Options::get_options( 'delay_updates' ) ),
+				'blockUntestedUpdates'  => 'on' === Options::get_options( 'block_untested_updates' ),
+				'upgradeNoticeKeywords' => (string) Options::get_options( 'upgrade_notice_keywords' ),
 			)
 		);
 

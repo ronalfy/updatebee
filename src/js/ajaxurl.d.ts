@@ -90,6 +90,7 @@ interface UpdateBeeAdvanced {
 	resetNonce: string;
 	delayUpdates: number;
 	blockUntestedUpdates: boolean;
+	upgradeNoticeKeywords: string;
 }
 
 declare const updatebeeAdvanced: UpdateBeeAdvanced;

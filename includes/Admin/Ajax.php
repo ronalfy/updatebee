@@ -14,6 +14,7 @@ use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Updates\Init as Updates_Init;
+use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
@@ -900,10 +901,10 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-retrieve-logs', 'nonce' );
 
-		$page = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
+		$page     = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
 		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 25;
 
-		$sort_field = isset( $_POST['sort_field'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_field'] ) ) : 'id';
+		$sort_field     = isset( $_POST['sort_field'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_field'] ) ) : 'id';
 		$sort_direction = isset( $_POST['sort_direction'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_direction'] ) ) : 'desc';
 
 		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
@@ -915,8 +916,8 @@ class Ajax {
 				if ( ! is_array( $filter ) || ! isset( $filter['field'] ) || ! isset( $filter['value'] ) ) {
 					continue;
 				}
-				$field = sanitize_text_field( $filter['field'] );
-				$value = sanitize_text_field( $filter['value'] );
+				$field             = sanitize_text_field( $filter['field'] );
+				$value             = sanitize_text_field( $filter['value'] );
 				$filters[ $field ] = $value;
 			}
 		}
@@ -938,7 +939,7 @@ class Ajax {
 
 		$mapped_filters = array();
 		foreach ( $filters as $key => $value ) {
-			$mapped_key = isset( $field_map[ $key ] ) ? $field_map[ $key ] : $key;
+			$mapped_key                    = isset( $field_map[ $key ] ) ? $field_map[ $key ] : $key;
 			$mapped_filters[ $mapped_key ] = $value;
 		}
 
@@ -1736,7 +1737,7 @@ class Ajax {
 	}
 
 	/**
-	 * Save delayed automatic update days.
+	 * Save delayed automatic update days, keywords, and untested updates.
 	 */
 	public function save_advanced_settings(): void {
 		if ( ! Functions::can_access_options() ) {
@@ -1758,6 +1759,12 @@ class Ajax {
 			$to_save['block_untested_updates'] = $enabled ? 'on' : 'off';
 		}
 
+		if ( isset( $_POST['upgrade_notice_keywords'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Keywords are sanitized below.
+			$raw_keywords                       = wp_unslash( $_POST['upgrade_notice_keywords'] );
+			$to_save['upgrade_notice_keywords'] = Upgrade_Notice_Keywords::sanitize( $raw_keywords );
+		}
+
 		if ( empty( $to_save ) ) {
 			wp_send_json_error(
 				array(
@@ -1775,10 +1782,16 @@ class Ajax {
 			);
 		}
 
+		if ( isset( $to_save['upgrade_notice_keywords'] ) && ! isset( $to_save['delay_updates'] ) && ! isset( $to_save['block_untested_updates'] ) ) {
+			$message = __( 'Upgrade notice keywords have been saved.', 'updatebee' );
+		} elseif ( isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] ) ) {
+			$message = __( 'Untested updates setting has been saved.', 'updatebee' );
+		} else {
+			$message = __( 'Update delay has been saved.', 'updatebee' );
+		}
+
 		$response = array(
-			'message' => isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] )
-				? __( 'Untested updates setting has been saved.', 'updatebee' )
-				: __( 'Update delay has been saved.', 'updatebee' ),
+			'message' => $message,
 		);
 
 		if ( isset( $to_save['delay_updates'] ) ) {
@@ -1787,6 +1800,10 @@ class Ajax {
 
 		if ( isset( $to_save['block_untested_updates'] ) ) {
 			$response['block_untested_updates'] = 'on' === $to_save['block_untested_updates'];
+		}
+
+		if ( isset( $to_save['upgrade_notice_keywords'] ) ) {
+			$response['upgrade_notice_keywords'] = $to_save['upgrade_notice_keywords'];
 		}
 
 		wp_send_json_success( $response );
