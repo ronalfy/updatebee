@@ -60,6 +60,7 @@ class OptionsTest extends TestCase {
 		$this->assertSame( array(), $options['auto_update_plugins'] );
 		$this->assertSame( 0, $options['clear_logs_days'] );
 		$this->assertSame( '', $options['slack_webhook_url'] );
+		$this->assertFalse( $options['slack_enabled'] );
 		$this->assertSame( 0, $options['delay_updates'] );
 		$this->assertSame( "security\nCSRF\nXSS\nCVE\nSSRF", $options['upgrade_notice_keywords'] );
 		$this->assertFalse( $options['upgrade_notice_keywords_enabled'] );

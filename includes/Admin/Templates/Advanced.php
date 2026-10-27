@@ -88,6 +88,7 @@ class Advanced {
 				'blockUntestedUpdates'         => 'on' === Options::get_options( 'block_untested_updates' ),
 				'upgradeNoticeKeywords'        => (string) Options::get_options( 'upgrade_notice_keywords' ),
 				'upgradeNoticeKeywordsEnabled' => Upgrade_Notice_Keywords::is_enabled(),
+			'slackWebhookUrl'              => (string) Options::get_options( 'slack_webhook_url' ),
 			)
 		);
 

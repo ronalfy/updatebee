@@ -62,6 +62,7 @@ class Options {
 			'core_email_recipients'            => array(),
 			'clear_logs_days'                  => 0,
 			'slack_webhook_url'                => '',
+			'slack_enabled'                    => false,
 			'delay_updates'                    => 0,
 			'upgrade_notice_keywords'          => implode(
 				"\n",

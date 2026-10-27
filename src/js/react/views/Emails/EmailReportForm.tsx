@@ -434,15 +434,23 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 						'updatebee'
 					) }
 					checked={ watch( 'notifySlack' ) }
+					disabled={ ! updatebeeEmails.slackWebhookConfigured }
 					onChange={ ( checked ) => {
 						setValue( 'notifySlack', checked, {
 							shouldDirty: true,
 						} );
 					} }
-							help={ __(
-								'Uses the Slack webhook saved under Logs → Log settings. Applies to scheduled runs and Send now.',
-								'updatebee'
-							) }
+					help={
+						updatebeeEmails.slackWebhookConfigured
+							? __(
+									'Uses the Slack webhook saved under Advanced settings. Applies to scheduled runs and Send now.',
+									'updatebee'
+							  )
+							: __(
+									'Add a Slack webhook URL in Advanced settings to enable this.',
+									'updatebee'
+							  )
+					}
 				/>
 			) }
 			{ 'custom' === sendSchedule && (

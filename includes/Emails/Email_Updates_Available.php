@@ -131,6 +131,13 @@ class Email_Updates_Available extends Email_Report {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
 		$notify_slack = filter_var( wp_unslash( $_POST['notifySlack'] ?? $saved['notify_slack'] ?? false ), FILTER_VALIDATE_BOOLEAN );
 
+		if ( $notify_slack && ! \UpdateBee\Slack\Slack_Webhook::is_configured() ) {
+			return new \WP_Error(
+				'updatebee_slack_not_configured',
+				__( 'Slack webhook is not configured. Add it in Advanced settings.', 'updatebee' )
+			);
+		}
+
 		if ( empty( $to_field ) && empty( $bcc_field ) && ! $notify_slack ) {
 			return new \WP_Error(
 				'updatebee_no_recipients',
@@ -183,7 +190,7 @@ class Email_Updates_Available extends Email_Report {
 			$sent_email = true;
 		}
 
-		if ( ! empty( $options['notify_slack'] ) ) {
+		if ( ! empty( $options['notify_slack'] ) && \UpdateBee\Slack\Slack_Webhook::is_configured() ) {
 			$slack = new Slack_Available_Updates();
 			$slack->send_report( $rows );
 			$sent_slack = true;
@@ -299,6 +306,14 @@ class Email_Updates_Available extends Email_Report {
 		$send_schedule        = isset( $_POST['sendSchedule'] ) ? sanitize_text_field( wp_unslash( $_POST['sendSchedule'] ) ) : 'none';
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
 		$notify_slack = filter_var( wp_unslash( $_POST['notifySlack'] ?? false ), FILTER_VALIDATE_BOOLEAN );
+
+		if ( $notify_slack && ! \UpdateBee\Slack\Slack_Webhook::is_configured() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Slack webhook is not configured. Add it in Advanced settings.', 'updatebee' ),
+				)
+			);
+		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
 		$schedule_options = isset( $_POST['scheduleOptions'] ) ? wp_unslash( $_POST['scheduleOptions'] ) : array();

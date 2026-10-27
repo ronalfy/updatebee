@@ -48,8 +48,7 @@ class Slack_Report {
 	 * @param string                           $offer   automatic|manual.
 	 */
 	public function send_report( array $updates, string $offer ): void {
-		$webhook = Options::get_options( 'slack_webhook_url' );
-		if ( ! is_string( $webhook ) || '' === $webhook ) {
+		if ( ! Slack_Webhook::is_configured() || ! Options::get_options( 'slack_enabled' ) ) {
 			return;
 		}
 

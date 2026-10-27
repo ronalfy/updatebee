@@ -18,6 +18,7 @@ type AdvancedMessagePayload = {
 	delay_updates?: number;
 	block_untested_updates?: boolean;
 	upgrade_notice_keywords?: string;
+	slack_webhook_url?: string;
 };
 
 /**
@@ -46,15 +47,21 @@ const AdvancedMain = () => {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isSavingUntested, setIsSavingUntested ] = useState( false );
 	const [ isSavingKeywords, setIsSavingKeywords ] = useState( false );
+	const [ isSavingSlack, setIsSavingSlack ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
 		type: 'success',
 	} );
+	const [ slackWebhookUrl, setSlackWebhookUrl ] = useState(
+		'string' === typeof updatebeeAdvanced.slackWebhookUrl
+			? updatebeeAdvanced.slackWebhookUrl
+			: ''
+	);
 
 	const isBusy =
-		isSaving || isSavingUntested || isSavingKeywords || isResetting;
+		isSaving || isSavingUntested || isSavingKeywords || isSavingSlack || isResetting;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -162,6 +169,47 @@ const AdvancedMain = () => {
 				setIsSavingUntested( false );
 			} );
 	}, [ blockUntestedUpdates, isBusy, showSnackbar ] );
+
+	/**
+	 * Persist the Slack webhook URL.
+	 */
+	const handleSaveSlack = useCallback( () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setIsSavingSlack( true );
+
+		sendCommand< AdvancedMessagePayload >(
+			'updatebee_save_advanced_settings',
+			{
+				nonce: updatebeeAdvanced.saveNonce,
+				slack_webhook_url: slackWebhookUrl.trim(),
+			}
+		)
+			.then( ( response ) => {
+				const payload = response.data.data;
+				setSlackWebhookUrl(
+					'string' === typeof payload.slack_webhook_url
+						? payload.slack_webhook_url
+						: slackWebhookUrl.trim()
+				);
+				showSnackbar(
+					payload.message ||
+						__( 'Slack webhook has been saved.', 'updatebee' ),
+					'success'
+				);
+			} )
+			.catch( () => {
+				showSnackbar(
+					__( 'Slack webhook could not be saved.', 'updatebee' ),
+					'error'
+				);
+			} )
+			.finally( () => {
+				setIsSavingSlack( false );
+			} );
+	}, [ slackWebhookUrl, isBusy, showSnackbar ] );
 
 	/**
 	 * Reset selected option groups.
@@ -319,8 +367,53 @@ const AdvancedMain = () => {
 					</Card.Content>
 				</Card.Root>
 
+				<Card.Root className="updatebee-advanced-card">
+					<Card.Header>
+						<Card.Title>
+							{ __( 'Slack Notifications', 'updatebee' ) }
+						</Card.Title>
+					</Card.Header>
+					<Card.Content className="updatebee-advanced-card-content">
+						<p className="updatebee-advanced-card-description">
+							{ __(
+								'Incoming webhook URL for Slack. Used by update completion reports and optional email digests.',
+								'updatebee'
+							) }
+						</p>
+						<div className="updatebee-advanced-card-field">
+							<TextControl
+								label={ __( 'Slack webhook URL', 'updatebee' ) }
+								type="url"
+								value={ slackWebhookUrl }
+								onChange={ ( value ) => {
+									setSlackWebhookUrl( value );
+								} }
+								help={ __(
+									'Save an incoming webhook URL to enable Slack notifications across the plugin.',
+									'updatebee'
+								) }
+								disabled={ isBusy }
+							/>
+						</div>
+						<p className="updatebee-advanced-card-actions">
+							<Button
+								variant="solid"
+								loading={ isSavingSlack }
+								loadingAnnouncement={ __(
+									'Saving Slack webhook…',
+									'updatebee'
+								) }
+								disabled={ isBusy }
+								onClick={ handleSaveSlack }
+							>
+								{ __( 'Save webhook', 'updatebee' ) }
+							</Button>
+						</p>
+					</Card.Content>
+				</Card.Root>
+
 				<UpgradeNoticeKeywordsDrawer
-					disabled={ isSaving || isSavingUntested || isResetting }
+					disabled={ isSaving || isSavingUntested || isSavingSlack || isResetting }
 					onSavingChange={ setIsSavingKeywords }
 					onSnackbar={ showSnackbar }
 				/>
