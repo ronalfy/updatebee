@@ -33,7 +33,7 @@ class Hide_Updates_Column {
 
 		// Try to get the current screen.
 		$screen = get_current_screen();
-		if ( ! isset( $screen->id ) ) {
+		if ( ! $screen || ! isset( $screen->id ) ) {
 			return;
 		}
 

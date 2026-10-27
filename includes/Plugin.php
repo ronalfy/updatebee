@@ -8,6 +8,7 @@
 namespace UpdateBee;
 
 use UpdateBee\Admin\Ajax;
+use UpdateBee\Admin\Network_Admin_Bar;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Hide_Updates_Column;
 use UpdateBee\Admin\Register_Options_Page;
@@ -139,6 +140,13 @@ class Plugin {
 	private Hide_Updates_Column $hide_updates_column;
 
 	/**
+	 * Network admin bar menu items.
+	 *
+	 * @var Network_Admin_Bar
+	 */
+	private Network_Admin_Bar $network_admin_bar;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -186,6 +194,9 @@ class Plugin {
 
 		$this->admin_register_options_page = new Register_Options_Page();
 		$this->admin_register_options_page->run();
+
+		$this->network_admin_bar = new Network_Admin_Bar();
+		$this->network_admin_bar->run();
 
 		$this->enqueue = new Enqueue();
 		$this->enqueue->run();
