@@ -215,6 +215,97 @@ class Table_Logs extends Tables {
 	}
 
 	/**
+	 * Get paginated, filtered, and sorted log rows.
+	 *
+	 * @param array<string, mixed> $args Query arguments.
+	 * @return array<string, mixed> Logs and total count.
+	 */
+	public static function get_logs_paginated( array $args ): array {
+		global $wpdb;
+
+		$defaults = array(
+			'page'           => 1,
+			'per_page'       => 20,
+			'sort_field'     => 'id',
+			'sort_direction' => 'desc',
+			'search'         => '',
+			'filters'        => array(),
+		);
+
+		$args = wp_parse_args( $args, $defaults );
+
+		$page     = max( 1, absint( $args['page'] ) );
+		$per_page = max( 1, absint( $args['per_page'] ) );
+		$offset   = ( $page - 1 ) * $per_page;
+
+		$allowed_sort_fields = array( 'id', 'name', 'slug', 'user_id', 'from_version', 'to_version', 'update_offer', 'update_type', 'update_status', 'date' );
+		$sort_field          = in_array( $args['sort_field'], $allowed_sort_fields, true ) ? $args['sort_field'] : 'id';
+		$sort_direction      = 'asc' === strtolower( $args['sort_direction'] ) ? 'ASC' : 'DESC';
+
+		$table_name = static::get_table_name();
+
+		$where  = array( '1=1' );
+		$values = array();
+
+		$search = is_string( $args['search'] ) ? trim( $args['search'] ) : '';
+		if ( '' !== $search ) {
+			$like    = '%' . $wpdb->esc_like( $search ) . '%';
+			$where[] = "( name LIKE %s OR slug LIKE %s OR user_id IN ( SELECT ID FROM {$wpdb->users} WHERE user_nicename LIKE %s OR display_name LIKE %s ) )";
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+			$values[] = $like;
+		}
+
+		$filters        = is_array( $args['filters'] ) ? $args['filters'] : array();
+		$allowed_values = array(
+			'update_offer'  => array( 'automatic', 'manual' ),
+			'update_type'   => array( 'core', 'plugin', 'theme', 'translation' ),
+			'update_status' => array( 'success', 'failure', 'blocked' ),
+		);
+
+		foreach ( $allowed_values as $column => $valid ) {
+			if ( isset( $filters[ $column ] ) && is_string( $filters[ $column ] ) && in_array( $filters[ $column ], $valid, true ) ) {
+				$where[]  = "{$column} = %s";
+				$values[] = $filters[ $column ];
+			}
+		}
+
+		$where_sql = implode( ' AND ', $where );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Safe values and internally-generated table/column names.
+		$count_sql = $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$table_name} WHERE {$where_sql}",
+			$values
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$total = (int) $wpdb->get_var( $count_sql );
+
+		$query_values   = $values;
+		$query_values[] = $per_page;
+		$query_values[] = $offset;
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$sql = $wpdb->prepare(
+			"SELECT * FROM {$table_name} WHERE {$where_sql} ORDER BY {$sort_field} {$sort_direction} LIMIT %d OFFSET %d",
+			$query_values
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$results = $wpdb->get_results( $sql, ARRAY_A );
+
+		if ( empty( $results ) || is_wp_error( $results ) ) {
+			$results = array();
+		}
+
+		return array(
+			'logs'  => $results,
+			'total' => $total,
+		);
+	}
+
+	/**
 	 * Get a single log row by ID.
 	 *
 	 * @param int $id Log row ID.
