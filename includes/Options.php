@@ -63,6 +63,16 @@ class Options {
 			'clear_logs_days'                  => 0,
 			'slack_webhook_url'                => '',
 			'delay_updates'                    => 0,
+			'upgrade_notice_keywords'          => implode(
+				"\n",
+				array(
+					'security',
+					'CSRF',
+					'XSS',
+					'CVE',
+					'SSRF',
+				)
+			),
 			'block_untested_updates'           => 'off',
 			'disable_wp_cron'                  => false,
 		);

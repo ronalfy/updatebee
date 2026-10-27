@@ -51,6 +51,60 @@
 	padding-top: 16px;
 }
 
+.updatebee-advanced-card-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	width: 100%;
+}
+
+.updatebee-advanced-keywords-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.updatebee-advanced-keywords-preview {
+	margin: 0;
+	color: #1d2327;
+	word-break: break-word;
+}
+
+.updatebee-advanced-status-badge {
+	display: inline-block;
+	padding: 2px 10px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	background: #f0f0f1;
+	color: #50575e;
+}
+
+.updatebee-advanced-status-badge.is-active {
+	background: #edfaef;
+	color: #008a20;
+}
+
+.updatebee-advanced-keywords-drawer-portal {
+	--wp-ui-drawer-z-index: 100000;
+}
+
+.updatebee-advanced-keywords-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-top: 16px;
+}
+
+.updatebee-advanced-keywords-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
 .updatebee-advanced-reset-list {
 	display: flex;
 	flex-direction: column;
