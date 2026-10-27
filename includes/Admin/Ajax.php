@@ -936,6 +936,12 @@ class Ajax {
 			$sort_field = $field_map[ $sort_field ];
 		}
 
+		$mapped_filters = array();
+		foreach ( $filters as $key => $value ) {
+			$mapped_key = isset( $field_map[ $key ] ) ? $field_map[ $key ] : $key;
+			$mapped_filters[ $mapped_key ] = $value;
+		}
+
 		$result = Table_Logs::get_logs_paginated(
 			array(
 				'page'           => $page,
@@ -943,7 +949,7 @@ class Ajax {
 				'sort_field'     => $sort_field,
 				'sort_direction' => $sort_direction,
 				'search'         => $search,
-				'filters'        => $filters,
+				'filters'        => $mapped_filters,
 			)
 		);
 
