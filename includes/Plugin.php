@@ -9,6 +9,7 @@ namespace UpdateBee;
 
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Plugin_Settings_Links;
+use UpdateBee\Admin\Hide_Updates_Column;
 use UpdateBee\Admin\Register_Options_Page;
 use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
 use UpdateBee\Cron\Disable_Wp_Cron;
@@ -131,6 +132,13 @@ class Plugin {
 	private Email_Updates_Available $email_updates_available;
 
 	/**
+	 * Hide the updates column.
+	 *
+	 * @var Hide_Updates_Column
+	 */
+	private Hide_Updates_Column $hide_updates_column;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -172,6 +180,9 @@ class Plugin {
 	public function plugins_loaded(): void {
 		$this->admin_settings_links = new Plugin_Settings_Links();
 		$this->admin_settings_links->run();
+
+		$this->hide_updates_column = new Hide_Updates_Column();
+		$this->hide_updates_column->run();
 
 		$this->admin_register_options_page = new Register_Options_Page();
 		$this->admin_register_options_page->run();
