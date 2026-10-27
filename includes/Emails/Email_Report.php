@@ -123,6 +123,7 @@ abstract class Email_Report {
 			'week'                 => '1',
 			'start_time'           => '00:00',
 			'day_num'              => '1',
+			'log_cutoff_days'      => 7,
 		);
 	}
 
@@ -201,10 +202,31 @@ abstract class Email_Report {
 		$options   = static::get_options();
 		$supported = static::get_supported_types( $options );
 
+		$cutoff_days = absint( $options['log_cutoff_days'] ?? 7 );
+		if ( $cutoff_days < 1 ) {
+			$cutoff_days = 7;
+		}
+
+		/**
+		 * Filter the maximum number of days to look back for log entries in email reports.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @param int    $cutoff_days Number of days.
+		 * @param string $log_status  Report status: success|failure.
+		 */
+		$cutoff_days = (int) apply_filters( 'updatebee_email_log_cutoff_days', $cutoff_days, static::get_log_status() );
+
+		$effective_cutoff = $last_send;
+		if ( $cutoff_days > 0 ) {
+			$max_cutoff       = time() - ( $cutoff_days * DAY_IN_SECONDS );
+			$effective_cutoff = max( $effective_cutoff, $max_cutoff );
+		}
+
 		if ( 'success' === static::get_log_status() ) {
-			$updates = Logs::get_success_logs( $supported, $last_send );
+			$updates = Logs::get_success_logs( $supported, $effective_cutoff );
 		} else {
-			$updates = Logs::get_failure_logs( $supported, $last_send );
+			$updates = Logs::get_failure_logs( $supported, $effective_cutoff );
 		}
 
 		if ( empty( $updates ) ) {
@@ -340,6 +362,8 @@ abstract class Email_Report {
 
 		$options = static::get_options();
 
+		$options['log_cutoff_days'] = absint( $options['log_cutoff_days'] ?? 7 );
+
 		$options['schedule_options'] = array(
 			'schedule'  => $options['schedule'],
 			'day'       => $options['day'],
@@ -389,6 +413,10 @@ abstract class Email_Report {
 		$include_themes       = filter_var( $_POST['includeThemes'] ?? false, FILTER_VALIDATE_BOOLEAN );
 		$include_translations = filter_var( $_POST['includeTranslations'] ?? false, FILTER_VALIDATE_BOOLEAN );
 		$send_schedule        = isset( $_POST['sendSchedule'] ) ? sanitize_text_field( wp_unslash( $_POST['sendSchedule'] ) ) : 'none';
+		$log_cutoff_days      = isset( $_POST['logCutoffDays'] ) ? absint( wp_unslash( $_POST['logCutoffDays'] ) ) : 7;
+		if ( $log_cutoff_days < 1 ) {
+			$log_cutoff_days = 7;
+		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
 		$schedule_options = isset( $_POST['scheduleOptions'] ) ? wp_unslash( $_POST['scheduleOptions'] ) : array();
@@ -435,6 +463,7 @@ abstract class Email_Report {
 			'week'                 => $week,
 			'start_time'           => $schedule_options['startTime'] ?? '00:00',
 			'day_num'              => $schedule_options['dayNum'] ?? '1',
+			'log_cutoff_days'      => $log_cutoff_days,
 		);
 
 		update_site_option( static::get_options_key(), $options_to_save );
@@ -481,6 +510,20 @@ abstract class Email_Report {
 			wp_die( esc_html__( 'Security check failed.', 'updatebee' ) );
 		}
 
+		$preview_options = static::get_options();
+		$cutoff_days     = absint( $preview_options['log_cutoff_days'] ?? 7 );
+		if ( $cutoff_days < 1 ) {
+			$cutoff_days = 7;
+		}
+		$cutoff_days = (int) apply_filters( 'updatebee_email_log_cutoff_days', $cutoff_days, static::get_log_status() );
+
+		$preview_last_send = (int) get_site_option( static::get_last_send_key(), 0 );
+		$effective_cutoff  = $preview_last_send;
+		if ( $cutoff_days > 0 ) {
+			$max_cutoff       = time() - ( $cutoff_days * DAY_IN_SECONDS );
+			$effective_cutoff = max( $effective_cutoff, $max_cutoff );
+		}
+
 		$supported = array(
 			'plugins'      => true,
 			'themes'       => true,
@@ -489,9 +532,9 @@ abstract class Email_Report {
 		);
 
 		if ( 'success' === static::get_log_status() ) {
-			$updates = Logs::get_success_logs( $supported );
+			$updates = Logs::get_success_logs( $supported, $effective_cutoff );
 		} else {
-			$updates = Logs::get_failure_logs( $supported );
+			$updates = Logs::get_failure_logs( $supported, $effective_cutoff );
 		}
 
 		if ( empty( $updates ) ) {

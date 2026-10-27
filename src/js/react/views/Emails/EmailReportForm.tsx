@@ -161,6 +161,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					sendSchedule: values.sendSchedule,
 					scheduleOptions: values.scheduleOptions,
 					notifySlack: values.notifySlack,
+					logCutoffDays: values.logCutoffDays,
 				} );
 				onSaved( values.sendSchedule );
 				onNotify(
@@ -395,6 +396,27 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					} }
 				/>
 			</fieldset>
+			{ 'updates-available' !== reportKind && (
+				<TextControl
+					label={ __( 'Log lookback (days)', 'updatebee' ) }
+					help={ __(
+						'Maximum number of days of logs to include. The actual range starts from the last sent email.',
+						'updatebee'
+					) }
+					type="number"
+					min={ 1 }
+					max={ 365 }
+					value={ watch( 'logCutoffDays' ) }
+					onChange={ ( value ) => {
+						const num = parseInt( value, 10 );
+						setValue(
+							'logCutoffDays',
+							isNaN( num ) || num < 1 ? 7 : num,
+							{ shouldDirty: true }
+						);
+					} }
+				/>
+			) }
 			<RadioControl
 				label={ __( 'Delivery', 'updatebee' ) }
 				selected={ sendSchedule }

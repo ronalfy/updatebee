@@ -23,6 +23,7 @@ export type EmailReportFormValues = {
 	sendSchedule: SendSchedule;
 	scheduleOptions: ScheduleOptions;
 	notifySlack: boolean;
+	logCutoffDays: number;
 };
 
 export type EmailReportOptionsPayload = {
@@ -36,6 +37,7 @@ export type EmailReportOptionsPayload = {
 	send_schedule: SendSchedule;
 	schedule_options: ScheduleOptions;
 	previewurl?: string;
+	log_cutoff_days?: number;
 };
 
 

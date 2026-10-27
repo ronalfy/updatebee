@@ -1131,10 +1131,11 @@ class Logs {
 		$order   = 'DESC';
 
 		if ( $valid_timestamp ) {
-			$where .= sprintf(
-				' AND UNIX_TIMESTAMP(date) > %d',
-				absint( $since_last_timestamp )
-			);
+			$cutoff_datetime = wp_date( 'Y-m-d H:i:s', $since_last_timestamp );
+			if ( false === $cutoff_datetime ) {
+				$cutoff_datetime = date_i18n( 'Y-m-d H:i:s', $since_last_timestamp );
+			}
+			$where .= $wpdb->prepare( ' AND date > %s', $cutoff_datetime );
 		}
 
 		$where .= $wpdb->prepare( ' AND update_status = %s', $status );

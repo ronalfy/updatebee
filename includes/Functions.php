@@ -330,6 +330,23 @@ class Functions {
 				'width' => array(),
 				'style' => array(),
 			);
+			$allowed_tags['html']  = array(
+				'lang' => array(),
+			);
+			$allowed_tags['head']  = array();
+			$allowed_tags['title'] = array();
+			$allowed_tags['meta']  = array(
+				'http-equiv' => array(),
+				'content'    => array(),
+				'name'       => array(),
+				'charset'    => array(),
+			);
+			$allowed_tags['style'] = array(
+				'type' => array(),
+			);
+			$allowed_tags['body']  = array(
+				'style' => array(),
+			);
 		}
 
 		return $allowed_tags;
