@@ -96,6 +96,7 @@ class Emails {
 				'updatesAvailableRetrieveNonce' => wp_create_nonce( 'updatebee-retrieve-email-updates-available-settings' ),
 				'updatesAvailableSaveNonce' => wp_create_nonce( 'updatebee-save-email-updates-available-settings' ),
 				'updatesAvailableResetNonce' => wp_create_nonce( 'updatebee-reset-email-updates-available-settings' ),
+				'updatesAvailableSendNowNonce' => wp_create_nonce( 'updatebee-send-email-updates-available-now' ),
 			)
 		);
 

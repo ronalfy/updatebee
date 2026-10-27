@@ -124,6 +124,13 @@ class Plugin {
 	private Slack_Report $slack_report;
 
 	/**
+	 * Email updates available reports.
+	 *
+	 * @var Email_Updates_Available
+	 */
+	private Email_Updates_Available $email_updates_available;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin

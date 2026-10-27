@@ -56,9 +56,6 @@ class Emails {
 		</tr>
 	</table>';
 
-		$report_info_table_start = '<table width="100%" border="0" align="left" cellspacing="2px" cellpadding="5px"><thead><tr align="left" bgcolor="#296bb9" style="color:#FFFFFF"><th>' . esc_html__( 'Update name', 'updatebee' ) . '</th><th>' . esc_html__( 'Type', 'updatebee' ) . '</th><th>' . esc_html__( 'From', 'updatebee' ) . '</th><th>' . esc_html__( 'To', 'updatebee' ) . '</th><th>' . esc_html__( 'Date', 'updatebee' ) . '</th></thead><tbody align="left">';
-		$report_info_table_end   = '</tbody></table>';
-
 		$update_items = array();
 		foreach ( $updates as $update ) {
 			$normalized = self::normalize_log_row( $update );
@@ -66,34 +63,32 @@ class Emails {
 				continue;
 			}
 
-			ob_start();
-			?>
-			<tr bgcolor="#EAEAEA">
-				<td><?php echo esc_html( $normalized['name'] ); ?></td>
-				<td><?php echo esc_html( ucfirst( $normalized['update_type'] ) ); ?></td>
-				<td><?php echo esc_html( $normalized['from_version'] ); ?></td>
-				<td><?php echo esc_html( $normalized['to_version'] ); ?></td>
-				<td><?php echo esc_html( $normalized['date'] ); ?></td>
-			</tr>
-			<?php
 			$type = $normalized['update_type'];
 			if ( ! isset( $update_items[ $type ] ) ) {
 				$update_items[ $type ] = array();
 			}
-			$update_items[ $type ][] = (string) ob_get_clean();
+			$update_items[ $type ][] = $normalized;
 		}
 		ksort( $update_items );
 
 		$output_html = '';
 		foreach ( $update_items as $update_type => $update_item ) {
-			$inner_html      = $report_info_table_start;
+			$has_details = false;
+			foreach ( $update_item as $normalized ) {
+				if ( '' !== $normalized['detail_url'] ) {
+					$has_details = true;
+					break;
+				}
+			}
+
+			$inner_html      = self::report_table_start( $has_details );
 			$section_content = $item_table;
 			$section_title   = self::get_type_section_title( (string) $update_type );
 
-			foreach ( $update_item as $update_item_html ) {
-				$inner_html .= $update_item_html;
+			foreach ( $update_item as $normalized ) {
+				$inner_html .= self::render_report_row( $normalized, $has_details );
 			}
-			$inner_html .= $report_info_table_end;
+			$inner_html .= self::report_table_end();
 
 			$section_content = str_replace( '{{update_title}}', $section_title, $section_content );
 			$section_content = str_replace( '{{updates}}', $inner_html, $section_content );
@@ -130,6 +125,12 @@ class Emails {
 			return array();
 		}
 
+		$detail_url   = isset( $row['detail_url'] ) ? (string) $row['detail_url'] : '';
+		$detail_label = isset( $row['detail_label'] ) ? (string) $row['detail_label'] : '';
+		if ( '' === $detail_label && '' !== $detail_url ) {
+			$detail_label = __( 'View details', 'updatebee' );
+		}
+
 		return array(
 			'name'          => $name,
 			'update_type'   => isset( $row['update_type'] ) ? (string) $row['update_type'] : '',
@@ -137,7 +138,61 @@ class Emails {
 			'to_version'    => isset( $row['to_version'] ) ? (string) $row['to_version'] : '',
 			'date'          => isset( $row['date'] ) ? (string) $row['date'] : '',
 			'update_status' => isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
+			'detail_url'    => $detail_url,
+			'detail_label'  => $detail_label,
 		);
+	}
+
+	/**
+	 * Open a report table with optional Details column.
+	 *
+	 * @param bool $has_details Whether to include a Details header.
+	 * @return string
+	 */
+	private static function report_table_start( bool $has_details ): string {
+		$headers = '<th>' . esc_html__( 'Update name', 'updatebee' ) . '</th><th>' . esc_html__( 'Type', 'updatebee' ) . '</th><th>' . esc_html__( 'From', 'updatebee' ) . '</th><th>' . esc_html__( 'To', 'updatebee' ) . '</th><th>' . esc_html__( 'Date', 'updatebee' ) . '</th>';
+		if ( $has_details ) {
+			$headers .= '<th>' . esc_html__( 'Details', 'updatebee' ) . '</th>';
+		}
+
+		return '<table width="100%" border="0" align="left" cellspacing="2px" cellpadding="5px"><thead><tr align="left" bgcolor="#296bb9" style="color:#FFFFFF">' . $headers . '</thead><tbody align="left">';
+	}
+
+	/**
+	 * Close a report table.
+	 *
+	 * @return string
+	 */
+	private static function report_table_end(): string {
+		return '</tbody></table>';
+	}
+
+	/**
+	 * Render one report table row.
+	 *
+	 * @param array<string, string> $normalized  Normalized row.
+	 * @param bool                  $has_details Whether the section includes details links.
+	 * @return string
+	 */
+	private static function render_report_row( array $normalized, bool $has_details ): string {
+		ob_start();
+		?>
+		<tr bgcolor="#EAEAEA">
+			<td><?php echo esc_html( $normalized['name'] ); ?></td>
+			<td><?php echo esc_html( ucfirst( $normalized['update_type'] ) ); ?></td>
+			<td><?php echo esc_html( $normalized['from_version'] ); ?></td>
+			<td><?php echo esc_html( $normalized['to_version'] ); ?></td>
+			<td><?php echo esc_html( $normalized['date'] ); ?></td>
+			<?php if ( $has_details ) : ?>
+				<td>
+					<?php if ( '' !== $normalized['detail_url'] ) : ?>
+						<a href="<?php echo esc_url( $normalized['detail_url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $normalized['detail_label'] ); ?></a>
+					<?php endif; ?>
+				</td>
+			<?php endif; ?>
+		</tr>
+		<?php
+		return (string) ob_get_clean();
 	}
 
 	/**

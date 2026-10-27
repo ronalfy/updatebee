@@ -19,6 +19,27 @@ export interface WpAjaxError {
 export type WpAjaxResponse< T > = WpAjaxSuccess< T > | WpAjaxError;
 
 /**
+ * Extract a user-facing message from a failed admin-ajax JSON payload.
+ *
+ * @param data WP `data` field from a `success: false` response.
+ * @return Message string when one is present.
+ */
+export function getWpAjaxErrorMessage( data: unknown ): string | undefined {
+	if ( typeof data === 'string' && '' !== data.trim() ) {
+		return data;
+	}
+
+	if ( data && typeof data === 'object' && 'message' in data ) {
+		const message = ( data as { message: unknown } ).message;
+		if ( typeof message === 'string' && '' !== message.trim() ) {
+			return message;
+		}
+	}
+
+	return undefined;
+}
+
+/**
  * Send a WordPress admin-ajax command.
  *
  * Non-success WP JSON (`success: false`) rejects so callers can use `.catch`.
@@ -49,7 +70,10 @@ export default function sendCommand< T = unknown >(
 		data: qs.stringify( payload ),
 	} ).then( ( response ) => {
 		if ( ! response.data || true !== response.data.success ) {
-			return Promise.reject( new Error( 'Request failed.' ) );
+			const message =
+				getWpAjaxErrorMessage( response.data?.data ) ??
+				'Request failed.';
+			return Promise.reject( new Error( message ) );
 		}
 
 		return response as AxiosResponse< WpAjaxSuccess< T > >;

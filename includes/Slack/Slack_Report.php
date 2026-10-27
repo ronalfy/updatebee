@@ -16,11 +16,6 @@ use UpdateBee\Options;
 class Slack_Report {
 
 	/**
-	 * Maximum update rows listed in one message.
-	 */
-	private const ITEM_LIMIT = 20;
-
-	/**
 	 * Register completion hooks.
 	 */
 	public function run(): void {
@@ -77,15 +72,7 @@ class Slack_Report {
 			return;
 		}
 
-		wp_remote_post(
-			esc_url( $webhook ),
-			array(
-				'body'    => wp_json_encode( $message ),
-				'headers' => array(
-					'Content-Type' => 'application/json; charset=utf-8',
-				),
-			)
-		);
+		Slack_Webhook::post( $message );
 	}
 
 	/**
@@ -170,10 +157,10 @@ class Slack_Report {
 		);
 
 		$shown = 0;
-		foreach ( $this->group_rows( $rows ) as $update_type => $type_rows ) {
+		foreach ( Slack_Row_Groups::group_rows( $rows ) as $update_type => $type_rows ) {
 			$lines = array();
 			foreach ( $type_rows as $row ) {
-				if ( $shown >= self::ITEM_LIMIT ) {
+				if ( $shown >= Slack_Row_Groups::ITEM_LIMIT ) {
 					break;
 				}
 				$lines[] = sprintf(
@@ -197,7 +184,7 @@ class Slack_Report {
 				'type' => 'header',
 				'text' => array(
 					'type' => 'plain_text',
-					'text' => $this->type_heading( (string) $update_type ),
+					'text' => Slack_Row_Groups::type_heading( (string) $update_type ),
 				),
 			);
 			$blocks[] = array(
@@ -285,59 +272,6 @@ class Slack_Report {
 		}
 
 		return $rows;
-	}
-
-	/**
-	 * Group rows by update type in a stable order.
-	 *
-	 * @param array<int, array<string, string>> $rows Normalized rows.
-	 * @return array<string, array<int, array<string, string>>>
-	 */
-	private function group_rows( array $rows ): array {
-		$order  = array( 'core', 'plugin', 'theme', 'translation' );
-		$groups = array();
-		foreach ( $rows as $row ) {
-			$type = '' !== $row['update_type'] ? $row['update_type'] : 'other';
-			if ( ! isset( $groups[ $type ] ) ) {
-				$groups[ $type ] = array();
-			}
-			$groups[ $type ][] = $row;
-		}
-
-		$sorted = array();
-		foreach ( $order as $type ) {
-			if ( isset( $groups[ $type ] ) ) {
-				$sorted[ $type ] = $groups[ $type ];
-				unset( $groups[ $type ] );
-			}
-		}
-
-		foreach ( $groups as $type => $type_rows ) {
-			$sorted[ $type ] = $type_rows;
-		}
-
-		return $sorted;
-	}
-
-	/**
-	 * Section heading for an update type.
-	 *
-	 * @param string $update_type plugin|theme|core|translation.
-	 * @return string
-	 */
-	private function type_heading( string $update_type ): string {
-		switch ( $update_type ) {
-			case 'plugin':
-				return __( 'Plugins', 'updatebee' );
-			case 'theme':
-				return __( 'Themes', 'updatebee' );
-			case 'translation':
-				return __( 'Translations', 'updatebee' );
-			case 'core':
-				return __( 'WordPress Core', 'updatebee' );
-			default:
-				return ucfirst( $update_type );
-		}
 	}
 
 	/**

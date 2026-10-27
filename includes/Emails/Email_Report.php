@@ -277,8 +277,9 @@ abstract class Email_Report {
 	 *
 	 * @param string               $email_body HTML body.
 	 * @param array<string, mixed> $options    Report options.
+	 * @param bool                 $update_last_send Whether to update the last-send timestamp.
 	 */
-	protected function send_email( string $email_body, array $options ): void {
+	protected function send_email( string $email_body, array $options, bool $update_last_send = true ): void {
 		if ( '' === trim( $email_body ) ) {
 			return;
 		}
@@ -322,7 +323,9 @@ abstract class Email_Report {
 		wp_mail( $recipients, $subject, $email_body, $headers );
 		remove_filter( 'safe_style_css', array( Emails::class, 'allow_email_styles' ) );
 
-		update_site_option( static::get_last_send_key(), time() );
+		if ( $update_last_send ) {
+			update_site_option( static::get_last_send_key(), time() );
+		}
 	}
 
 	/**
