@@ -9,6 +9,7 @@ namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Updates\Upgrade_Notice_Keywords;
 
 /**
  * Output the advanced tab and content.
@@ -81,11 +82,12 @@ class Advanced {
 			'updatebee-advanced',
 			'updatebeeAdvanced',
 			array(
-				'saveNonce'             => wp_create_nonce( 'updatebee-save-advanced-settings' ),
-				'resetNonce'            => wp_create_nonce( 'updatebee-reset-options' ),
-				'delayUpdates'          => absint( Options::get_options( 'delay_updates' ) ),
-				'blockUntestedUpdates'  => 'on' === Options::get_options( 'block_untested_updates' ),
-				'upgradeNoticeKeywords' => (string) Options::get_options( 'upgrade_notice_keywords' ),
+				'saveNonce'                    => wp_create_nonce( 'updatebee-save-advanced-settings' ),
+				'resetNonce'                   => wp_create_nonce( 'updatebee-reset-options' ),
+				'delayUpdates'                 => absint( Options::get_options( 'delay_updates' ) ),
+				'blockUntestedUpdates'         => 'on' === Options::get_options( 'block_untested_updates' ),
+				'upgradeNoticeKeywords'        => (string) Options::get_options( 'upgrade_notice_keywords' ),
+				'upgradeNoticeKeywordsEnabled' => Upgrade_Notice_Keywords::is_enabled(),
 			)
 		);
 

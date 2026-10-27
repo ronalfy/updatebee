@@ -1,7 +1,7 @@
 /**
  * Advanced card and drawer for upgrade-notice keywords.
  */
-import { TextareaControl } from '@wordpress/components';
+import { TextareaControl, ToggleControl } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { cog } from '@wordpress/icons';
@@ -18,6 +18,7 @@ type UpgradeNoticeKeywordsDrawerProps = {
 type KeywordsPayload = {
 	message?: string;
 	upgrade_notice_keywords?: string;
+	upgrade_notice_keywords_enabled?: boolean;
 };
 
 /**
@@ -82,11 +83,22 @@ const UpgradeNoticeKeywordsDrawer = (
 	const [ savedKeywords, setSavedKeywords ] = useState(
 		normalizeKeywords( updatebeeAdvanced.upgradeNoticeKeywords )
 	);
+	const [ savedEnabled, setSavedEnabled ] = useState(
+		Boolean( updatebeeAdvanced.upgradeNoticeKeywordsEnabled )
+	);
 	const [ draftKeywords, setDraftKeywords ] = useState( savedKeywords );
+	const [ draftEnabled, setDraftEnabled ] = useState( savedEnabled );
 
-	const isEnabled = hasKeywords( savedKeywords );
 	const keywordPreview = formatKeywordPreview( savedKeywords );
 	const keywordPreviewFull = getKeywordList( savedKeywords ).join( ', ' );
+
+	/**
+	 * Revert drawer drafts to the last saved values.
+	 */
+	const resetDraft = useCallback( () => {
+		setDraftKeywords( savedKeywords );
+		setDraftEnabled( savedEnabled );
+	}, [ savedEnabled, savedKeywords ] );
 
 	/**
 	 * Open or close the drawer and revert unsaved edits.
@@ -101,14 +113,14 @@ const UpgradeNoticeKeywordsDrawer = (
 
 			setIsOpen( nextOpen );
 			if ( ! nextOpen ) {
-				setDraftKeywords( savedKeywords );
+				resetDraft();
 			}
 		},
-		[ isSaving, savedKeywords ]
+		[ isSaving, resetDraft ]
 	);
 
 	/**
-	 * Persist upgrade-notice keywords.
+	 * Persist upgrade-notice keywords and enabled state.
 	 */
 	const handleSave = useCallback( () => {
 		if ( isSaving || disabled ) {
@@ -121,14 +133,20 @@ const UpgradeNoticeKeywordsDrawer = (
 		sendCommand< KeywordsPayload >( 'updatebee_save_advanced_settings', {
 			nonce: updatebeeAdvanced.saveNonce,
 			upgrade_notice_keywords: draftKeywords,
+			upgrade_notice_keywords_enabled: draftEnabled ? '1' : '0',
 		} )
 			.then( ( response ) => {
 				const payload = response.data.data;
 				const nextKeywords = normalizeKeywords(
 					payload.upgrade_notice_keywords
 				);
+				const nextEnabled = Boolean(
+					payload.upgrade_notice_keywords_enabled
+				);
 				setSavedKeywords( nextKeywords );
 				setDraftKeywords( nextKeywords );
+				setSavedEnabled( nextEnabled );
+				setDraftEnabled( nextEnabled );
 				onSnackbar(
 					payload.message ||
 						__(
@@ -152,7 +170,14 @@ const UpgradeNoticeKeywordsDrawer = (
 				setIsSaving( false );
 				onSavingChange( false );
 			} );
-	}, [ disabled, draftKeywords, isSaving, onSavingChange, onSnackbar ] );
+	}, [
+		disabled,
+		draftEnabled,
+		draftKeywords,
+		isSaving,
+		onSavingChange,
+		onSnackbar,
+	] );
 
 	return (
 		<Drawer.Root
@@ -170,12 +195,12 @@ const UpgradeNoticeKeywordsDrawer = (
 						<div className="updatebee-advanced-keywords-controls">
 							<span
 								className={
-									isEnabled
+									savedEnabled
 										? 'updatebee-advanced-status-badge is-active'
 										: 'updatebee-advanced-status-badge'
 								}
 							>
-								{ isEnabled
+								{ savedEnabled
 									? __( 'Enabled', 'updatebee' )
 									: __( 'Disabled', 'updatebee' ) }
 							</span>
@@ -189,7 +214,7 @@ const UpgradeNoticeKeywordsDrawer = (
 								disabled={ disabled || isSaving }
 								onClick={ () => {
 									if ( ! isSaving && ! disabled ) {
-										setDraftKeywords( savedKeywords );
+										resetDraft();
 										setIsOpen( true );
 									}
 								} }
@@ -204,12 +229,13 @@ const UpgradeNoticeKeywordsDrawer = (
 							'updatebee'
 						) }
 					</p>
-					{ isEnabled && hasKeywords( savedKeywords ) && (
+					{ savedEnabled && hasKeywords( savedKeywords ) && (
 						<p
 							className="updatebee-advanced-keywords-preview"
 							title={ keywordPreviewFull }
 						>
-							<strong>{ __( 'Keywords:', 'updatebee' ) }</strong> { keywordPreview }
+							<strong>{ __( 'Keywords:', 'updatebee' ) }</strong>{ ' ' }
+							{ keywordPreview }
 						</p>
 					) }
 				</Card.Content>
@@ -233,6 +259,21 @@ const UpgradeNoticeKeywordsDrawer = (
 						) }
 					</Drawer.Description>
 					<div className="updatebee-advanced-keywords-fields">
+						<ToggleControl
+							label={ __(
+								'Enable upgrade notice keywords',
+								'updatebee'
+							) }
+							checked={ draftEnabled }
+							disabled={ isSaving }
+							onChange={ ( checked: boolean ) => {
+								setDraftEnabled( checked );
+							} }
+							help={ __(
+								'Turn this off to keep your keyword list without matching upgrade notices.',
+								'updatebee'
+							) }
+						/>
 						<TextareaControl
 							label={ __(
 								'Upgrade notice keywords',

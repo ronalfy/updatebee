@@ -57,6 +57,10 @@ class Upgrade_Notice_Keywords {
 			return $update;
 		}
 
+		if ( ! self::is_enabled() ) {
+			return $update;
+		}
+
 		if ( Delay_Updates::is_site_health_item( $item ) ) {
 			return $update;
 		}
@@ -84,6 +88,10 @@ class Upgrade_Notice_Keywords {
 			return $update;
 		}
 
+		if ( ! self::is_enabled() ) {
+			return $update;
+		}
+
 		if ( Delay_Updates::is_site_health_item( $item ) ) {
 			return $update;
 		}
@@ -97,6 +105,25 @@ class Upgrade_Notice_Keywords {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether upgrade-notice keyword matching is enabled.
+	 *
+	 * @return bool True when the feature is enabled.
+	 */
+	public static function is_enabled(): bool {
+		$value = Options::get_options( 'upgrade_notice_keywords_enabled' );
+
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_string( $value ) ) {
+			return 'on' === $value || '1' === $value || 'true' === $value;
+		}
+
+		return (bool) $value;
 	}
 
 	/**

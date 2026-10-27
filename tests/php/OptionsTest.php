@@ -62,6 +62,7 @@ class OptionsTest extends TestCase {
 		$this->assertSame( '', $options['slack_webhook_url'] );
 		$this->assertSame( 0, $options['delay_updates'] );
 		$this->assertSame( "security\nCSRF\nXSS\nCVE\nSSRF", $options['upgrade_notice_keywords'] );
+		$this->assertFalse( $options['upgrade_notice_keywords_enabled'] );
 		$this->assertSame( 'off', $options['block_untested_updates'] );
 		$this->assertFalse( $options['disable_wp_cron'] );
 	}

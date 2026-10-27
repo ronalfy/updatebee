@@ -91,6 +91,7 @@ interface UpdateBeeAdvanced {
 	delayUpdates: number;
 	blockUntestedUpdates: boolean;
 	upgradeNoticeKeywords: string;
+	upgradeNoticeKeywordsEnabled: boolean;
 }
 
 declare const updatebeeAdvanced: UpdateBeeAdvanced;

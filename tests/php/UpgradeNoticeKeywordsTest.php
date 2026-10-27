@@ -181,7 +181,8 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	public function test_plugin_keyword_match_forces_update(): void {
 		$keywords = $this->get_keywords(
 			array(
-				'upgrade_notice_keywords' => "security\nCSRF",
+				'upgrade_notice_keywords'         => "security\nCSRF",
+				'upgrade_notice_keywords_enabled' => true,
 			)
 		);
 		$item     = (object) array(
@@ -198,7 +199,8 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	public function test_theme_keyword_match_forces_update(): void {
 		$keywords = $this->get_keywords(
 			array(
-				'upgrade_notice_keywords' => 'CSRF',
+				'upgrade_notice_keywords'         => 'CSRF',
+				'upgrade_notice_keywords_enabled' => true,
 			)
 		);
 		$item     = (object) array(
@@ -215,7 +217,8 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	public function test_keyword_match_is_case_insensitive(): void {
 		$keywords = $this->get_keywords(
 			array(
-				'upgrade_notice_keywords' => 'xss',
+				'upgrade_notice_keywords'         => 'xss',
+				'upgrade_notice_keywords_enabled' => true,
 			)
 		);
 		$item     = (object) array(
@@ -262,13 +265,32 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	}
 
 	/**
+	 * A disabled feature never forces an update.
+	 */
+	public function test_disabled_feature_never_forces_update(): void {
+		$keywords = $this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => false,
+			)
+		);
+		$item     = (object) array(
+			'plugin'         => 'akismet/akismet.php',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertFalse( $keywords->auto_update_plugin( false, $item ) );
+	}
+
+	/**
 	 * A blocked plugin is not forced even when the notice matches.
 	 */
 	public function test_blocked_plugin_is_not_forced(): void {
 		$keywords = $this->get_keywords(
 			array(
-				'upgrade_notice_keywords' => 'security',
-				'blocked_plugins'         => array( 'akismet' ),
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+				'blocked_plugins'                 => array( 'akismet' ),
 			)
 		);
 		$item     = (object) array(

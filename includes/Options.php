@@ -73,6 +73,7 @@ class Options {
 					'SSRF',
 				)
 			),
+			'upgrade_notice_keywords_enabled'  => false,
 			'block_untested_updates'           => 'off',
 			'disable_wp_cron'                  => false,
 		);

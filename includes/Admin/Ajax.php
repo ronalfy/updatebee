@@ -1765,6 +1765,12 @@ class Ajax {
 			$to_save['upgrade_notice_keywords'] = Upgrade_Notice_Keywords::sanitize( $raw_keywords );
 		}
 
+		if ( isset( $_POST['upgrade_notice_keywords_enabled'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean is sanitized below.
+			$enabled                                    = rest_sanitize_boolean( wp_unslash( $_POST['upgrade_notice_keywords_enabled'] ) );
+			$to_save['upgrade_notice_keywords_enabled'] = $enabled;
+		}
+
 		if ( empty( $to_save ) ) {
 			wp_send_json_error(
 				array(
@@ -1782,7 +1788,11 @@ class Ajax {
 			);
 		}
 
-		if ( isset( $to_save['upgrade_notice_keywords'] ) && ! isset( $to_save['delay_updates'] ) && ! isset( $to_save['block_untested_updates'] ) ) {
+		if (
+			( isset( $to_save['upgrade_notice_keywords'] ) || isset( $to_save['upgrade_notice_keywords_enabled'] ) )
+			&& ! isset( $to_save['delay_updates'] )
+			&& ! isset( $to_save['block_untested_updates'] )
+		) {
 			$message = __( 'Upgrade notice keywords have been saved.', 'updatebee' );
 		} elseif ( isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['delay_updates'] ) ) {
 			$message = __( 'Untested updates setting has been saved.', 'updatebee' );
@@ -1804,6 +1814,10 @@ class Ajax {
 
 		if ( isset( $to_save['upgrade_notice_keywords'] ) ) {
 			$response['upgrade_notice_keywords'] = $to_save['upgrade_notice_keywords'];
+		}
+
+		if ( isset( $to_save['upgrade_notice_keywords_enabled'] ) ) {
+			$response['upgrade_notice_keywords_enabled'] = (bool) $to_save['upgrade_notice_keywords_enabled'];
 		}
 
 		wp_send_json_success( $response );
