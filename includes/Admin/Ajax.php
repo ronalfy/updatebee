@@ -900,7 +900,62 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-retrieve-logs', 'nonce' );
 
-		$rows = Table_Logs::get_logs();
+		$page = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
+		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 25;
+
+		$sort_field = isset( $_POST['sort_field'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_field'] ) ) : 'id';
+		$sort_direction = isset( $_POST['sort_direction'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_direction'] ) ) : 'desc';
+
+		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+
+		$filters = array();
+		if ( isset( $_POST['filters'] ) && is_array( $_POST['filters'] ) ) {
+			$raw_filters = Functions::sanitize_array_recursive( wp_unslash( $_POST['filters'] ) );
+			foreach ( $raw_filters as $filter ) {
+				if ( ! is_array( $filter ) || ! isset( $filter['field'] ) || ! isset( $filter['value'] ) ) {
+					continue;
+				}
+				$field = sanitize_text_field( $filter['field'] );
+				$value = sanitize_text_field( $filter['value'] );
+				$filters[ $field ] = $value;
+			}
+		}
+
+		$field_map = array(
+			'Name'         => 'name',
+			'User'         => 'user_id',
+			'FromVersion'  => 'from_version',
+			'ToVersion'    => 'to_version',
+			'UpdateOffer'  => 'update_offer',
+			'UpdateType'   => 'update_type',
+			'UpdateStatus' => 'update_status',
+			'Date'         => 'date',
+		);
+
+		if ( isset( $field_map[ $sort_field ] ) ) {
+			$sort_field = $field_map[ $sort_field ];
+		}
+
+		$mapped_filters = array();
+		foreach ( $filters as $key => $value ) {
+			$mapped_key = isset( $field_map[ $key ] ) ? $field_map[ $key ] : $key;
+			$mapped_filters[ $mapped_key ] = $value;
+		}
+
+		$result = Table_Logs::get_logs_paginated(
+			array(
+				'page'           => $page,
+				'per_page'       => $per_page,
+				'sort_field'     => $sort_field,
+				'sort_direction' => $sort_direction,
+				'search'         => $search,
+				'filters'        => $mapped_filters,
+			)
+		);
+
+		$rows  = $result['logs'];
+		$total = $result['total'];
+
 		$logs = array();
 
 		foreach ( $rows as $row ) {
@@ -937,9 +992,15 @@ class Ajax {
 			);
 		}
 
+		$total_pages = (int) ceil( $total / $per_page );
+
 		wp_send_json_success(
 			array(
-				'logs' => $logs,
+				'logs'           => $logs,
+				'paginationInfo' => array(
+					'totalItems' => $total,
+					'totalPages' => $total_pages,
+				),
 			)
 		);
 	}

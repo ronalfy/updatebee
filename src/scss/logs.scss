@@ -163,3 +163,10 @@
 .dataviews-wrapper {
 	padding: var(--wpds-dimension-padding-2xl) var(--wpds-dimension-padding-xl);
 }
+
+/* fixes for checkmark in admin */
+button.components-item svg,
+button.components-item svg path {
+	fill: transparent !important;
+	color: currentColor;
+}
