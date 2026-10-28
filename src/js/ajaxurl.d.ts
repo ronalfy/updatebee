@@ -48,6 +48,8 @@ interface UpdateBeeTools {
 	forceUpdatesNonce: string;
 	triggerCronNonce: string;
 	refreshUpdatesNonce: string;
+	eumDetected: boolean;
+	migrateEumNonce: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;

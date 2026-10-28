@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Functions;
 
 /**
@@ -83,6 +84,8 @@ class Tools {
 				'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
 				'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
 				'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
+				'eumDetected'         => EasyUpdatesManager::is_detected(),
+				'migrateEumNonce'     => wp_create_nonce( 'updatebee-migrate-eum' ),
 			)
 		);
 

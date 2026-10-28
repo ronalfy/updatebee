@@ -9,8 +9,9 @@ import ToolsFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './ToolsFooter';
+import ToolsMigrateModal from './ToolsMigrateModal';
 
-type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates';
+type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates' | 'migrateEum';
 
 type ToolsMessagePayload = {
 	message: string;
@@ -26,6 +27,7 @@ const ToolsMain = () => {
 		message: '',
 		type: 'success',
 	} );
+	const [ isMigrateOpen, setIsMigrateOpen ] = useState( false );
 
 	const isBusy = null !== activeAction;
 
@@ -60,6 +62,7 @@ const ToolsMain = () => {
 	 * @param nonce        Request nonce.
 	 * @param actionKey    Local loading state key.
 	 * @param errorMessage Fallback error notice.
+	 * @return True when the request succeeds.
 	 */
 	const runToolAction = useCallback(
 		(
@@ -67,22 +70,24 @@ const ToolsMain = () => {
 			nonce: string,
 			actionKey: ToolsAction,
 			errorMessage: string
-		) => {
+		): Promise< boolean > => {
 			if ( isBusy ) {
-				return;
+				return Promise.resolve( false );
 			}
 
 			setActiveAction( actionKey );
 
-			sendCommand< ToolsMessagePayload >( action, { nonce } )
+			return sendCommand< ToolsMessagePayload >( action, { nonce } )
 				.then( ( response ) => {
 					const message =
 						response.data.data?.message ||
 						__( 'Action completed.', 'updatebee' );
 					showSnackbar( message, 'success' );
+					return true;
 				} )
 				.catch( () => {
 					showSnackbar( errorMessage, 'error' );
+					return false;
 				} )
 				.finally( () => {
 					setActiveAction( null );
@@ -90,6 +95,17 @@ const ToolsMain = () => {
 		},
 		[ isBusy, showSnackbar ]
 	);
+
+	/**
+	 * Close the migration confirmation modal.
+	 */
+	const handleCloseMigrateModal = useCallback( () => {
+		if ( 'migrateEum' === activeAction ) {
+			return;
+		}
+
+		setIsMigrateOpen( false );
+	}, [ activeAction ] );
 
 	const handleForceUpdates = () => {
 		runToolAction(
@@ -117,6 +133,31 @@ const ToolsMain = () => {
 			__( 'Updates could not be refreshed.', 'updatebee' )
 		);
 	};
+
+	/**
+	 * Open the Easy Updates Manager migration confirmation modal.
+	 */
+	const handleMigrateEum = () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setIsMigrateOpen( true );
+	};
+
+	/**
+	 * Import Easy Updates Manager settings after confirmation.
+	 *
+	 * @return True when the request succeeds.
+	 */
+	const handleConfirmMigrate = useCallback( (): Promise< boolean > => {
+		return runToolAction(
+			'updatebee_migrate_eum',
+			updatebeeTools.migrateEumNonce,
+			'migrateEum',
+			__( 'Migration could not be completed.', 'updatebee' )
+		);
+	}, [ runToolAction ] );
 
 	return (
 		<div className="updatebee-tools-main">
@@ -210,11 +251,49 @@ const ToolsMain = () => {
 						</p>
 					</Card.Content>
 				</Card.Root>
+
+				{ updatebeeTools.eumDetected && (
+					<Card.Root className="updatebee-tools-card">
+						<Card.Header>
+							<Card.Title>
+								{ __( 'Migrate from Easy Updates Manager', 'updatebee' ) }
+							</Card.Title>
+						</Card.Header>
+						<Card.Content className="updatebee-tools-card-content">
+							<p className="updatebee-tools-card-description">
+								{ __(
+									'Import core, plugin, theme, and translation settings from Easy Updates Manager. Overlapping UpdateBee settings will be replaced.',
+									'updatebee'
+								) }
+							</p>
+							<p className="updatebee-tools-card-actions">
+								<Button
+									variant="solid"
+									loading={ 'migrateEum' === activeAction }
+									loadingAnnouncement={ __(
+										'Migrating settings…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ handleMigrateEum }
+								>
+									{ __( 'Run Migration', 'updatebee' ) }
+								</Button>
+							</p>
+						</Card.Content>
+					</Card.Root>
+				) }
 			</div>
 
 			<ToolsFooter
 				snackbar={ snackbar }
 				onSnackbarClose={ handleSnackbarClose }
+			/>
+			<ToolsMigrateModal
+				isOpen={ isMigrateOpen }
+				isMigrating={ 'migrateEum' === activeAction }
+				onClose={ handleCloseMigrateModal }
+				onMigrate={ handleConfirmMigrate }
 			/>
 		</div>
 	);

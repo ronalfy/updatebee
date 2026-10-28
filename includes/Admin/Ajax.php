@@ -15,6 +15,7 @@ use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
+use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
@@ -72,6 +73,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
 		add_action( 'wp_ajax_updatebee_refresh_updates', array( $this, 'refresh_updates' ) );
+		add_action( 'wp_ajax_updatebee_migrate_eum', array( $this, 'migrate_eum' ) );
 
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
@@ -1546,6 +1548,32 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'message' => __( 'Updates have been force refreshed.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Migrate settings from Easy Updates Manager to UpdateBee.
+	 */
+	public function migrate_eum(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-migrate-eum', 'nonce' );
+
+		$migrated = EasyUpdatesManager::run();
+		if ( ! $migrated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'No Easy Updates Manager settings were found to migrate.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Easy Updates Manager settings have been migrated to UpdateBee.', 'updatebee' ),
 			)
 		);
 	}
