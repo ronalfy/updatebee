@@ -8,6 +8,7 @@
 namespace UpdateBee\Tests;
 
 use Brain\Monkey\Functions as MonkeyFunctions;
+use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Options;
 
 /**
@@ -128,10 +129,31 @@ class OptionsTest extends TestCase {
 		MonkeyFunctions\expect( 'update_site_option' )
 			->once()
 			->andReturn( true );
+		MonkeyFunctions\expect( 'delete_site_option' )
+			->once()
+			->with( EasyUpdatesManager::HIDE_OPTION )
+			->andReturn( true );
 
 		Options::reset_options();
 
 		$this->assertSame( 'off', Options::get_options( 'major_auto_updates' ) );
+	}
+
+	/**
+	 * Test importer-only reset clears the hide flag without writing options.
+	 */
+	public function test_reset_importer_options_clears_hide_flag_without_wiping_options() {
+		$this->stub_option_helpers();
+		MonkeyFunctions\expect( 'update_site_option' )->never();
+		MonkeyFunctions\expect( 'delete_site_option' )
+			->once()
+			->with( EasyUpdatesManager::HIDE_OPTION )
+			->andReturn( true );
+
+		Options::reset_importer_options();
+
+		// Brain Monkey expectations above are the assertions for this test.
+		$this->addToAssertionCount( 2 );
 	}
 
 	/**

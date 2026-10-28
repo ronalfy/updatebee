@@ -13,6 +13,7 @@ export type ResetItem =
 	| 'theme_blocked'
 	| 'translation_auto'
 	| 'translation_blocked'
+	| 'importers'
 	| 'all';
 
 type ResetSelection = Record< ResetItem, boolean >;
@@ -30,10 +31,15 @@ const defaultSelection: ResetSelection = {
 	theme_blocked: false,
 	translation_auto: false,
 	translation_blocked: false,
+	importers: false,
 	all: false,
 };
 
-const resetItems: Array< { id: ResetItem; label: string } > = [
+const resetItems: Array< {
+	id: ResetItem;
+	label: string;
+	description?: string;
+} > = [
 	{
 		id: 'plugin_auto',
 		label: __( 'Plugin Auto-Updates', 'updatebee' ),
@@ -57,6 +63,14 @@ const resetItems: Array< { id: ResetItem; label: string } > = [
 	{
 		id: 'translation_blocked',
 		label: __( 'Translation Blocked Updates', 'updatebee' ),
+	},
+	{
+		id: 'importers',
+		label: __( 'Reset importers', 'updatebee' ),
+		description: __(
+			'Restores hidden importer cards on the Tools screen. This does not reset UpdateBee settings.',
+			'updatebee'
+		),
 	},
 	{
 		id: 'all',
@@ -202,6 +216,11 @@ const AdvancedReset = ( props: AdvancedResetProps ) => {
 											);
 										} }
 									/>
+									{ item.description ? (
+										<p className="updatebee-advanced-reset-help">
+											{ item.description }
+										</p>
+									) : null }
 								</li>
 							);
 						} ) }

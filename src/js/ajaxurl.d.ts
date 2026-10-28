@@ -50,6 +50,7 @@ interface UpdateBeeTools {
 	refreshUpdatesNonce: string;
 	eumDetected: boolean;
 	migrateEumNonce: string;
+	hideEumNonce: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;

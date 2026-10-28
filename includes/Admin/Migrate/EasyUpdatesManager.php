@@ -21,6 +21,13 @@ use UpdateBee\Updates\Delay_Updates;
 class EasyUpdatesManager {
 
 	/**
+	 * Site option that hides the Easy Updates Manager importer.
+	 *
+	 * @var string
+	 */
+	public const HIDE_OPTION = 'updatebee_hide_eum_importer';
+
+	/**
 	 * Known EUM option keys.
 	 *
 	 * @var array<int, string>
@@ -90,6 +97,44 @@ class EasyUpdatesManager {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether the importer has been hidden by the user.
+	 *
+	 * @return bool
+	 */
+	public static function is_importer_hidden(): bool {
+		return (bool) get_site_option( self::HIDE_OPTION, false );
+	}
+
+	/**
+	 * Persist the importer hide flag.
+	 *
+	 * @return bool True when the option is saved.
+	 */
+	public static function hide_importer(): bool {
+		return (bool) update_site_option( self::HIDE_OPTION, 1 );
+	}
+
+	/**
+	 * Clear the importer hide flag so the card can appear again.
+	 */
+	public static function clear_importer_hide(): void {
+		delete_site_option( self::HIDE_OPTION );
+	}
+
+	/**
+	 * Whether the Tools importer card should be shown.
+	 *
+	 * @return bool
+	 */
+	public static function should_show_importer(): bool {
+		if ( self::is_importer_hidden() ) {
+			return false;
+		}
+
+		return self::is_detected();
 	}
 
 	/**

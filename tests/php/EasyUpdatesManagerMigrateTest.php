@@ -9,6 +9,7 @@ namespace UpdateBee\Tests;
 
 use Brain\Monkey\Functions as MonkeyFunctions;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
+use UpdateBee\Admin\Templates\Tools;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Emails\Email_Updates_Available;
@@ -90,6 +91,18 @@ class EasyUpdatesManagerMigrateTest extends TestCase {
 		MonkeyFunctions\when( 'wp_clear_scheduled_hook' )->justReturn( true );
 		MonkeyFunctions\when( 'wp_schedule_event' )->justReturn( true );
 		MonkeyFunctions\when( 'wp_next_scheduled' )->justReturn( false );
+		MonkeyFunctions\when( 'delete_site_option' )->alias(
+			function ( $key ) {
+				unset( $this->site_options[ $key ] );
+				return true;
+			}
+		);
+		MonkeyFunctions\when( 'is_plugin_active' )->justReturn( false );
+		MonkeyFunctions\when( 'wp_create_nonce' )->alias(
+			static function ( $action ) {
+				return $action . '-nonce';
+			}
+		);
 	}
 
 	/**
@@ -580,5 +593,83 @@ class EasyUpdatesManagerMigrateTest extends TestCase {
 		$this->stub_run_helpers();
 
 		$this->assertFalse( EasyUpdatesManager::run() );
+	}
+
+	/**
+	 * Hide flag suppresses importer detection for the Tools UI payload.
+	 */
+	public function test_hide_flag_suppresses_detection_and_ui_payload(): void {
+		$this->stub_run_helpers();
+
+		$this->site_options['MPSUM'] = array(
+			'core' => array(
+				'plugin_updates' => 'automatic',
+			),
+		);
+
+		$this->assertTrue( EasyUpdatesManager::is_detected() );
+		$this->assertTrue( EasyUpdatesManager::should_show_importer() );
+		$this->assertTrue( Tools::get_script_data()['eumDetected'] );
+
+		$this->assertTrue( EasyUpdatesManager::hide_importer() );
+		$this->assertSame( 1, $this->site_options[ EasyUpdatesManager::HIDE_OPTION ] );
+		$this->assertTrue( EasyUpdatesManager::is_importer_hidden() );
+		$this->assertTrue( EasyUpdatesManager::is_detected() );
+		$this->assertFalse( EasyUpdatesManager::should_show_importer() );
+		$this->assertFalse( Tools::get_script_data()['eumDetected'] );
+	}
+
+	/**
+	 * Importer-only reset clears the hide flag without wiping UpdateBee options.
+	 */
+	public function test_reset_importer_options_clears_hide_flag_without_wiping_options(): void {
+		$this->stub_run_helpers();
+
+		$stored_options = array(
+			'major_auto_updates' => 'on',
+			'delay_updates'      => 7,
+		);
+
+		$this->site_options['updatebee_options']               = $stored_options;
+		$this->site_options['MPSUM']                           = array(
+			'core' => array(
+				'plugin_updates' => 'automatic',
+			),
+		);
+		$this->site_options[ EasyUpdatesManager::HIDE_OPTION ] = 1;
+
+		$this->assertFalse( EasyUpdatesManager::should_show_importer() );
+
+		Options::reset_importer_options();
+
+		$this->assertArrayNotHasKey( EasyUpdatesManager::HIDE_OPTION, $this->site_options );
+		$this->assertFalse( EasyUpdatesManager::is_importer_hidden() );
+		$this->assertSame( $stored_options, $this->site_options['updatebee_options'] );
+		$this->assertArrayHasKey( 'MPSUM', $this->site_options );
+		$this->assertTrue( EasyUpdatesManager::should_show_importer() );
+		$this->assertTrue( Tools::get_script_data()['eumDetected'] );
+	}
+
+	/**
+	 * Resetting UpdateBee options clears the hide flag so the importer can return.
+	 */
+	public function test_reset_options_clears_importer_hide_flag(): void {
+		$this->stub_run_helpers();
+
+		$this->site_options['MPSUM']                           = array(
+			'core' => array(
+				'plugin_updates' => 'automatic',
+			),
+		);
+		$this->site_options[ EasyUpdatesManager::HIDE_OPTION ] = 1;
+
+		$this->assertFalse( EasyUpdatesManager::should_show_importer() );
+
+		Options::reset_options();
+
+		$this->assertArrayNotHasKey( EasyUpdatesManager::HIDE_OPTION, $this->site_options );
+		$this->assertFalse( EasyUpdatesManager::is_importer_hidden() );
+		$this->assertTrue( EasyUpdatesManager::should_show_importer() );
+		$this->assertTrue( Tools::get_script_data()['eumDetected'] );
 	}
 }

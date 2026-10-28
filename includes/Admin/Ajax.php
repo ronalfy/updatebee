@@ -74,6 +74,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_trigger_update_cron', array( $this, 'trigger_update_cron' ) );
 		add_action( 'wp_ajax_updatebee_refresh_updates', array( $this, 'refresh_updates' ) );
 		add_action( 'wp_ajax_updatebee_migrate_eum', array( $this, 'migrate_eum' ) );
+		add_action( 'wp_ajax_updatebee_hide_eum_importer', array( $this, 'hide_eum_importer' ) );
 
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
@@ -1579,6 +1580,25 @@ class Ajax {
 	}
 
 	/**
+	 * Hide the Easy Updates Manager importer on the Tools screen.
+	 */
+	public function hide_eum_importer(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-hide-eum-importer', 'nonce' );
+
+		EasyUpdatesManager::hide_importer();
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'The Easy Updates Manager importer will no longer be shown.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
 	 * Reset selected option groups from the Advanced screen.
 	 */
 	public function reset_options(): void {
@@ -1601,6 +1621,7 @@ class Ajax {
 			'theme_blocked',
 			'translation_auto',
 			'translation_blocked',
+			'importers', // Importer hide flags; does not reset UpdateBee settings.
 			'all',
 		);
 		$selected = array();
@@ -1643,6 +1664,7 @@ class Ajax {
 			'theme_blocked'       => array( Options::class, 'reset_theme_blocked_updates' ),
 			'translation_auto'    => array( Options::class, 'reset_translation_auto_updates' ),
 			'translation_blocked' => array( Options::class, 'reset_translation_blocked_updates' ),
+			'importers'           => array( Options::class, 'reset_importer_options' ), // All hidden importers.
 		);
 
 		foreach ( $selected as $item ) {
@@ -1651,9 +1673,14 @@ class Ajax {
 			}
 		}
 
+		$message = __( 'Your selected options have been reset.', 'updatebee' );
+		if ( array( 'importers' ) === $selected ) {
+			$message = __( 'Importer settings have been reset.', 'updatebee' );
+		}
+
 		wp_send_json_success(
 			array(
-				'message' => __( 'Your selected options have been reset.', 'updatebee' ),
+				'message' => $message,
 			)
 		);
 	}
@@ -1798,7 +1825,7 @@ class Ajax {
 		}
 
 		if ( isset( $_POST['slack_webhook_url'] ) ) {
-			$raw = sanitize_text_field( wp_unslash( $_POST['slack_webhook_url'] ) );
+			$raw                          = sanitize_text_field( wp_unslash( $_POST['slack_webhook_url'] ) );
 			$to_save['slack_webhook_url'] = '' !== $raw ? esc_url_raw( $raw ) : '';
 		}
 

@@ -7,6 +7,8 @@
 
 namespace UpdateBee;
 
+use UpdateBee\Admin\Migrate\EasyUpdatesManager;
+
 /**
  * Class Options.
  */
@@ -223,9 +225,19 @@ class Options {
 	}
 
 	/**
-	 * Clear/Reset all options to defaults.
+	 * Clear hide flags for all hidden importers without resetting UpdateBee options.
+	 */
+	public static function reset_importer_options(): void {
+		// Clear importer hide flags so hidden Tools cards can return.
+		EasyUpdatesManager::clear_importer_hide();
+	}
+
+	/**
+	 * Clear/Reset all options to defaults and restore hidden importers.
 	 */
 	public static function reset_options(): void {
 		self::update_options( '', self::get_defaults() );
+		// Restore all hidden importers.
+		EasyUpdatesManager::clear_importer_hide();
 	}
 }

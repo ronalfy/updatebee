@@ -9,9 +9,15 @@ import ToolsFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './ToolsFooter';
+import ToolsHideImporterModal from './ToolsHideImporterModal';
 import ToolsMigrateModal from './ToolsMigrateModal';
 
-type ToolsAction = 'forceUpdates' | 'triggerCron' | 'refreshUpdates' | 'migrateEum';
+type ToolsAction =
+	| 'forceUpdates'
+	| 'triggerCron'
+	| 'refreshUpdates'
+	| 'migrateEum'
+	| 'hideEum';
 
 type ToolsMessagePayload = {
 	message: string;
@@ -28,6 +34,10 @@ const ToolsMain = () => {
 		type: 'success',
 	} );
 	const [ isMigrateOpen, setIsMigrateOpen ] = useState( false );
+	const [ isHideImporterOpen, setIsHideImporterOpen ] = useState( false );
+	const [ showEumImporter, setShowEumImporter ] = useState(
+		updatebeeTools.eumDetected
+	);
 
 	const isBusy = null !== activeAction;
 
@@ -107,6 +117,17 @@ const ToolsMain = () => {
 		setIsMigrateOpen( false );
 	}, [ activeAction ] );
 
+	/**
+	 * Close the hide-importer confirmation modal.
+	 */
+	const handleCloseHideImporterModal = useCallback( () => {
+		if ( 'hideEum' === activeAction ) {
+			return;
+		}
+
+		setIsHideImporterOpen( false );
+	}, [ activeAction ] );
+
 	const handleForceUpdates = () => {
 		runToolAction(
 			'updatebee_force_updates',
@@ -157,6 +178,37 @@ const ToolsMain = () => {
 			'migrateEum',
 			__( 'Migration could not be completed.', 'updatebee' )
 		);
+	}, [ runToolAction ] );
+
+	/**
+	 * Open the hide-importer confirmation modal.
+	 */
+	const handleHideImporter = () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setIsHideImporterOpen( true );
+	};
+
+	/**
+	 * Persist the hide-importer flag after confirmation.
+	 *
+	 * @return True when the request succeeds.
+	 */
+	const handleConfirmHideImporter = useCallback( (): Promise< boolean > => {
+		return runToolAction(
+			'updatebee_hide_eum_importer',
+			updatebeeTools.hideEumNonce,
+			'hideEum',
+			__( 'The importer could not be hidden.', 'updatebee' )
+		).then( ( didSucceed ) => {
+			if ( didSucceed ) {
+				setShowEumImporter( false );
+			}
+
+			return didSucceed;
+		} );
 	}, [ runToolAction ] );
 
 	return (
@@ -252,7 +304,7 @@ const ToolsMain = () => {
 					</Card.Content>
 				</Card.Root>
 
-				{ updatebeeTools.eumDetected && (
+				{ showEumImporter && (
 					<Card.Root className="updatebee-tools-card">
 						<Card.Header>
 							<Card.Title>
@@ -279,6 +331,18 @@ const ToolsMain = () => {
 								>
 									{ __( 'Run Migration', 'updatebee' ) }
 								</Button>
+								<Button
+									variant="outline"
+									loading={ 'hideEum' === activeAction }
+									loadingAnnouncement={ __(
+										'Hiding importer…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ handleHideImporter }
+								>
+									{ __( 'Hide importer', 'updatebee' ) }
+								</Button>
 							</p>
 						</Card.Content>
 					</Card.Root>
@@ -294,6 +358,12 @@ const ToolsMain = () => {
 				isMigrating={ 'migrateEum' === activeAction }
 				onClose={ handleCloseMigrateModal }
 				onMigrate={ handleConfirmMigrate }
+			/>
+			<ToolsHideImporterModal
+				isOpen={ isHideImporterOpen }
+				isHiding={ 'hideEum' === activeAction }
+				onClose={ handleCloseHideImporterModal }
+				onHide={ handleConfirmHideImporter }
 			/>
 		</div>
 	);
