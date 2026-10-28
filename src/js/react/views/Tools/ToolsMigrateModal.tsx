@@ -1,5 +1,5 @@
 /**
- * Confirmation modal for Easy Updates Manager migration.
+ * Confirmation modal for settings migration.
  */
 import { Button, Modal } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -7,17 +7,20 @@ import { __ } from '@wordpress/i18n';
 type ToolsMigrateModalProps = {
 	isOpen: boolean;
 	isMigrating: boolean;
+	title: string;
+	description: string;
 	onClose: () => void;
 	onMigrate: () => Promise< boolean >;
 };
 
 /**
- * Ask the user to confirm importing Easy Updates Manager settings.
+ * Ask the user to confirm importing another plugin's settings.
  *
  * @param props Modal state and migrate handler.
  */
 const ToolsMigrateModal = ( props: ToolsMigrateModalProps ) => {
-	const { isOpen, isMigrating, onClose, onMigrate } = props;
+	const { isOpen, isMigrating, title, description, onClose, onMigrate } =
+		props;
 
 	if ( ! isOpen ) {
 		return null;
@@ -41,18 +44,13 @@ const ToolsMigrateModal = ( props: ToolsMigrateModalProps ) => {
 	return (
 		<Modal
 			className="updatebee-tools-migrate-modal"
-			title={ __( 'Run migration', 'updatebee' ) }
+			title={ title }
 			onRequestClose={ onClose }
 			shouldCloseOnClickOutside={ ! isMigrating }
 			shouldCloseOnEsc={ ! isMigrating }
 			isDismissible={ ! isMigrating }
 		>
-			<p>
-				{ __(
-					'This will overwrite overlapping UpdateBee settings with values from Easy Updates Manager.',
-					'updatebee'
-				) }
-			</p>
+			<p>{ description }</p>
 			<p>
 				{ __(
 					'Are you sure you want to continue?',

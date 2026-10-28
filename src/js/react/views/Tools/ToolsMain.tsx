@@ -17,10 +17,36 @@ type ToolsAction =
 	| 'triggerCron'
 	| 'refreshUpdates'
 	| 'migrateEum'
-	| 'hideEum';
+	| 'hideEum'
+	| 'migrateCau'
+	| 'hideCau';
+
+type ImporterKey = 'eum' | 'cau';
 
 type ToolsMessagePayload = {
 	message: string;
+};
+
+const migrateDescriptions: Record< ImporterKey, string > = {
+	eum: __(
+		'This will overwrite overlapping UpdateBee settings with values from Easy Updates Manager.',
+		'updatebee'
+	),
+	cau: __(
+		'This will overwrite overlapping UpdateBee settings with values from Companion Auto Update.',
+		'updatebee'
+	),
+};
+
+const hideDescriptions: Record< ImporterKey, string > = {
+	eum: __(
+		'After you hide this, Easy Updates Manager settings can only be imported again if you reset UpdateBee\'s import options.',
+		'updatebee'
+	),
+	cau: __(
+		'After you hide this, Companion Auto Update settings can only be imported again if you reset UpdateBee\'s import options.',
+		'updatebee'
+	),
 };
 
 const ToolsMain = () => {
@@ -33,13 +59,23 @@ const ToolsMain = () => {
 		message: '',
 		type: 'success',
 	} );
-	const [ isMigrateOpen, setIsMigrateOpen ] = useState( false );
-	const [ isHideImporterOpen, setIsHideImporterOpen ] = useState( false );
+	const [ migrateTarget, setMigrateTarget ] = useState< ImporterKey | null >(
+		null
+	);
+	const [ hideTarget, setHideTarget ] = useState< ImporterKey | null >(
+		null
+	);
 	const [ showEumImporter, setShowEumImporter ] = useState(
 		updatebeeTools.eumDetected
 	);
+	const [ showCauImporter, setShowCauImporter ] = useState(
+		updatebeeTools.cauDetected
+	);
 
 	const isBusy = null !== activeAction;
+	const isMigrating =
+		'migrateEum' === activeAction || 'migrateCau' === activeAction;
+	const isHiding = 'hideEum' === activeAction || 'hideCau' === activeAction;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -110,23 +146,23 @@ const ToolsMain = () => {
 	 * Close the migration confirmation modal.
 	 */
 	const handleCloseMigrateModal = useCallback( () => {
-		if ( 'migrateEum' === activeAction ) {
+		if ( isMigrating ) {
 			return;
 		}
 
-		setIsMigrateOpen( false );
-	}, [ activeAction ] );
+		setMigrateTarget( null );
+	}, [ isMigrating ] );
 
 	/**
 	 * Close the hide-importer confirmation modal.
 	 */
 	const handleCloseHideImporterModal = useCallback( () => {
-		if ( 'hideEum' === activeAction ) {
+		if ( isHiding ) {
 			return;
 		}
 
-		setIsHideImporterOpen( false );
-	}, [ activeAction ] );
+		setHideTarget( null );
+	}, [ isHiding ] );
 
 	const handleForceUpdates = () => {
 		runToolAction(
@@ -156,39 +192,52 @@ const ToolsMain = () => {
 	};
 
 	/**
-	 * Open the Easy Updates Manager migration confirmation modal.
+	 * Open the migration confirmation modal for one importer.
+	 *
+	 * @param importer Importer card that was clicked.
 	 */
-	const handleMigrateEum = () => {
+	const handleMigrate = ( importer: ImporterKey ) => {
 		if ( isBusy ) {
 			return;
 		}
 
-		setIsMigrateOpen( true );
+		setMigrateTarget( importer );
 	};
 
 	/**
-	 * Import Easy Updates Manager settings after confirmation.
+	 * Import settings after confirmation.
 	 *
 	 * @return True when the request succeeds.
 	 */
 	const handleConfirmMigrate = useCallback( (): Promise< boolean > => {
+		if ( 'cau' === migrateTarget ) {
+			return runToolAction(
+				'updatebee_migrate_cau',
+				updatebeeTools.migrateCauNonce,
+				'migrateCau',
+				__( 'Migration could not be completed.', 'updatebee' )
+			);
+		}
+
 		return runToolAction(
 			'updatebee_migrate_eum',
 			updatebeeTools.migrateEumNonce,
 			'migrateEum',
 			__( 'Migration could not be completed.', 'updatebee' )
 		);
-	}, [ runToolAction ] );
+	}, [ migrateTarget, runToolAction ] );
 
 	/**
 	 * Open the hide-importer confirmation modal.
+	 *
+	 * @param importer Importer card that was clicked.
 	 */
-	const handleHideImporter = () => {
+	const handleHideImporter = ( importer: ImporterKey ) => {
 		if ( isBusy ) {
 			return;
 		}
 
-		setIsHideImporterOpen( true );
+		setHideTarget( importer );
 	};
 
 	/**
@@ -197,6 +246,21 @@ const ToolsMain = () => {
 	 * @return True when the request succeeds.
 	 */
 	const handleConfirmHideImporter = useCallback( (): Promise< boolean > => {
+		if ( 'cau' === hideTarget ) {
+			return runToolAction(
+				'updatebee_hide_cau_importer',
+				updatebeeTools.hideCauNonce,
+				'hideCau',
+				__( 'The importer could not be hidden.', 'updatebee' )
+			).then( ( didSucceed ) => {
+				if ( didSucceed ) {
+					setShowCauImporter( false );
+				}
+
+				return didSucceed;
+			} );
+		}
+
 		return runToolAction(
 			'updatebee_hide_eum_importer',
 			updatebeeTools.hideEumNonce,
@@ -209,7 +273,11 @@ const ToolsMain = () => {
 
 			return didSucceed;
 		} );
-	}, [ runToolAction ] );
+	}, [ hideTarget, runToolAction ] );
+
+	const migrateCopy =
+		null === migrateTarget ? '' : migrateDescriptions[ migrateTarget ];
+	const hideCopy = null === hideTarget ? '' : hideDescriptions[ hideTarget ];
 
 	return (
 		<div className="updatebee-tools-main">
@@ -308,7 +376,10 @@ const ToolsMain = () => {
 					<Card.Root className="updatebee-tools-card">
 						<Card.Header>
 							<Card.Title>
-								{ __( 'Migrate from Easy Updates Manager', 'updatebee' ) }
+								{ __(
+									'Migrate from Easy Updates Manager',
+									'updatebee'
+								) }
 							</Card.Title>
 						</Card.Header>
 						<Card.Content className="updatebee-tools-card-content">
@@ -327,7 +398,7 @@ const ToolsMain = () => {
 										'updatebee'
 									) }
 									disabled={ isBusy }
-									onClick={ handleMigrateEum }
+									onClick={ () => handleMigrate( 'eum' ) }
 								>
 									{ __( 'Run Migration', 'updatebee' ) }
 								</Button>
@@ -339,7 +410,54 @@ const ToolsMain = () => {
 										'updatebee'
 									) }
 									disabled={ isBusy }
-									onClick={ handleHideImporter }
+									onClick={ () => handleHideImporter( 'eum' ) }
+								>
+									{ __( 'Hide importer', 'updatebee' ) }
+								</Button>
+							</p>
+						</Card.Content>
+					</Card.Root>
+				) }
+
+				{ showCauImporter && (
+					<Card.Root className="updatebee-tools-card">
+						<Card.Header>
+							<Card.Title>
+								{ __(
+									'Migrate from Companion Auto Update',
+									'updatebee'
+								) }
+							</Card.Title>
+						</Card.Header>
+						<Card.Content className="updatebee-tools-card-content">
+							<p className="updatebee-tools-card-description">
+								{ __(
+									'Import core, plugin, theme, and translation settings from Companion Auto Update. Overlapping UpdateBee settings will be replaced. Deactivate Companion Auto Update afterward so its update filters do not override UpdateBee.',
+									'updatebee'
+								) }
+							</p>
+							<p className="updatebee-tools-card-actions">
+								<Button
+									variant="solid"
+									loading={ 'migrateCau' === activeAction }
+									loadingAnnouncement={ __(
+										'Migrating settings…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ () => handleMigrate( 'cau' ) }
+								>
+									{ __( 'Run Migration', 'updatebee' ) }
+								</Button>
+								<Button
+									variant="outline"
+									loading={ 'hideCau' === activeAction }
+									loadingAnnouncement={ __(
+										'Hiding importer…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ () => handleHideImporter( 'cau' ) }
 								>
 									{ __( 'Hide importer', 'updatebee' ) }
 								</Button>
@@ -354,14 +472,17 @@ const ToolsMain = () => {
 				onSnackbarClose={ handleSnackbarClose }
 			/>
 			<ToolsMigrateModal
-				isOpen={ isMigrateOpen }
-				isMigrating={ 'migrateEum' === activeAction }
+				isOpen={ null !== migrateTarget }
+				isMigrating={ isMigrating }
+				title={ __( 'Run migration', 'updatebee' ) }
+				description={ migrateCopy }
 				onClose={ handleCloseMigrateModal }
 				onMigrate={ handleConfirmMigrate }
 			/>
 			<ToolsHideImporterModal
-				isOpen={ isHideImporterOpen }
-				isHiding={ 'hideEum' === activeAction }
+				isOpen={ null !== hideTarget }
+				isHiding={ isHiding }
+				description={ hideCopy }
 				onClose={ handleCloseHideImporterModal }
 				onHide={ handleConfirmHideImporter }
 			/>

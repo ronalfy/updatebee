@@ -15,6 +15,7 @@ use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
+use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
@@ -75,6 +76,8 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_refresh_updates', array( $this, 'refresh_updates' ) );
 		add_action( 'wp_ajax_updatebee_migrate_eum', array( $this, 'migrate_eum' ) );
 		add_action( 'wp_ajax_updatebee_hide_eum_importer', array( $this, 'hide_eum_importer' ) );
+		add_action( 'wp_ajax_updatebee_migrate_cau', array( $this, 'migrate_cau' ) );
+		add_action( 'wp_ajax_updatebee_hide_cau_importer', array( $this, 'hide_cau_importer' ) );
 
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
@@ -1594,6 +1597,51 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'message' => __( 'The Easy Updates Manager importer will no longer be shown.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Migrate settings from Companion Auto Update to UpdateBee.
+	 */
+	public function migrate_cau(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-migrate-cau', 'nonce' );
+
+		$migrated = CompanionAutoUpdate::run();
+		if ( ! $migrated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'No Companion Auto Update settings were found to migrate.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'Companion Auto Update settings have been migrated to UpdateBee.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Hide the Companion Auto Update importer on the Tools screen.
+	 */
+	public function hide_cau_importer(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-hide-cau-importer', 'nonce' );
+
+		CompanionAutoUpdate::hide_importer();
+
+		wp_send_json_success(
+			array(
+				'message' => __( 'The Companion Auto Update importer will no longer be shown.', 'updatebee' ),
 			)
 		);
 	}
