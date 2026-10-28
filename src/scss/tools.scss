@@ -37,6 +37,10 @@
 }
 
 .updatebee-tools-card-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
 	margin: 0;
 	margin-top: auto;
 	padding-top: 16px;
@@ -50,4 +54,12 @@
 		transform: translateX(-50%);
 		z-index: 100100;
 	}
+}
+
+.updatebee-tools-migrate-modal-footer,
+.updatebee-tools-hide-importer-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
 }

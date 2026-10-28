@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Functions;
 
 /**
@@ -79,16 +80,28 @@ class Tools {
 		wp_localize_script(
 			'updatebee-tools',
 			'updatebeeTools',
-			array(
-				'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
-				'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
-				'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
-			)
+			self::get_script_data()
 		);
 
 		unset( $sub_tab );
 		?>
 		<div id="updatebee-tools-container"></div>
 		<?php
+	}
+
+	/**
+	 * Localized data for the Tools script.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function get_script_data(): array {
+		return array(
+			'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
+			'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
+			'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
+			'eumDetected'         => EasyUpdatesManager::should_show_importer(),
+			'migrateEumNonce'     => wp_create_nonce( 'updatebee-migrate-eum' ),
+			'hideEumNonce'        => wp_create_nonce( 'updatebee-hide-eum-importer' ),
+		);
 	}
 }
