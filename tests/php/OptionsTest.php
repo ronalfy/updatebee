@@ -8,6 +8,7 @@
 namespace UpdateBee\Tests;
 
 use Brain\Monkey\Functions as MonkeyFunctions;
+use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Options;
 
@@ -133,6 +134,10 @@ class OptionsTest extends TestCase {
 			->once()
 			->with( EasyUpdatesManager::HIDE_OPTION )
 			->andReturn( true );
+		MonkeyFunctions\expect( 'delete_site_option' )
+			->once()
+			->with( CompanionAutoUpdate::HIDE_OPTION )
+			->andReturn( true );
 
 		Options::reset_options();
 
@@ -149,11 +154,15 @@ class OptionsTest extends TestCase {
 			->once()
 			->with( EasyUpdatesManager::HIDE_OPTION )
 			->andReturn( true );
+		MonkeyFunctions\expect( 'delete_site_option' )
+			->once()
+			->with( CompanionAutoUpdate::HIDE_OPTION )
+			->andReturn( true );
 
 		Options::reset_importer_options();
 
 		// Brain Monkey expectations above are the assertions for this test.
-		$this->addToAssertionCount( 2 );
+		$this->addToAssertionCount( 3 );
 	}
 
 	/**

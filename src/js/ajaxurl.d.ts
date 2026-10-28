@@ -51,6 +51,9 @@ interface UpdateBeeTools {
 	eumDetected: boolean;
 	migrateEumNonce: string;
 	hideEumNonce: string;
+	cauDetected: boolean;
+	migrateCauNonce: string;
+	hideCauNonce: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;

@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Functions;
 
@@ -102,6 +103,9 @@ class Tools {
 			'eumDetected'         => EasyUpdatesManager::should_show_importer(),
 			'migrateEumNonce'     => wp_create_nonce( 'updatebee-migrate-eum' ),
 			'hideEumNonce'        => wp_create_nonce( 'updatebee-hide-eum-importer' ),
+			'cauDetected'         => CompanionAutoUpdate::should_show_importer(),
+			'migrateCauNonce'     => wp_create_nonce( 'updatebee-migrate-cau' ),
+			'hideCauNonce'        => wp_create_nonce( 'updatebee-hide-cau-importer' ),
 		);
 	}
 }
