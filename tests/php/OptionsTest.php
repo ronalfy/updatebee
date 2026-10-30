@@ -70,6 +70,7 @@ class OptionsTest extends TestCase {
 		$this->assertFalse( $options['disable_wp_cron'] );
 		$this->assertTrue( $options['fatal_error_detection'] );
 		$this->assertSame( array(), $options['fatal_email_recipients'] );
+		$this->assertFalse( $options['fatal_notify_slack'] );
 	}
 
 	/**

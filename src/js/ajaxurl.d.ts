@@ -64,6 +64,7 @@ interface UpdateBeeEmails {
 	wordpressSaveNonce: string;
 	fatalErrorDetection: boolean;
 	fatalEmailRecipients: string[];
+	fatalNotifySlack: boolean;
 	fatalSaveNonce: string;
 	successRetrieveNonce: string;
 	successSaveNonce: string;

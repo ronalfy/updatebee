@@ -3,7 +3,11 @@
  */
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { FormTokenField, ToggleControl } from '@wordpress/components';
+import {
+	CheckboxControl,
+	FormTokenField,
+	ToggleControl,
+} from '@wordpress/components';
 import { Button, Card } from '@wordpress/ui';
 import { isEmail } from '@wordpress/url';
 import sendCommand from '../../../utils/SendCommand';
@@ -26,6 +30,9 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 	);
 	const [ recipients, setRecipients ] = useState< string[] >(
 		updatebeeEmails.fatalEmailRecipients ?? []
+	);
+	const [ notifySlack, setNotifySlack ] = useState(
+		Boolean( updatebeeEmails.fatalNotifySlack )
 	);
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ recipientError, setRecipientError ] = useState( '' );
@@ -95,11 +102,13 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 			const response = await sendCommand< {
 				fatal_error_detection?: boolean;
 				fatal_email_recipients?: string[];
+				fatal_notify_slack?: boolean;
 				message?: string;
 			} >( 'updatebee_save_fatal_email_settings', {
 				nonce: updatebeeEmails.fatalSaveNonce,
 				enabled,
 				recipients,
+				notifySlack,
 			} );
 			const saved = response.data.data.fatal_error_detection;
 			if ( 'boolean' === typeof saved ) {
@@ -107,6 +116,9 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 			}
 			if ( Array.isArray( response.data.data.fatal_email_recipients ) ) {
 				setRecipients( response.data.data.fatal_email_recipients );
+			}
+			if ( 'boolean' === typeof response.data.data.fatal_notify_slack ) {
+				setNotifySlack( response.data.data.fatal_notify_slack );
 			}
 			onNotify(
 				response.data.data.message ??
@@ -124,7 +136,7 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 		} finally {
 			setIsSaving( false );
 		}
-	}, [ enabled, onNotify, recipients ] );
+	}, [ enabled, notifySlack, onNotify, recipients ] );
 
 	return (
 		<Card.Root className="updatebee-emails-card">
@@ -195,6 +207,28 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 								{ recipientError }
 							</p>
 						) }
+						<CheckboxControl
+							label={ __(
+								'Notify Slack when a fatal error is detected',
+								'updatebee'
+							) }
+							checked={ notifySlack }
+							disabled={
+								! updatebeeEmails.slackWebhookConfigured
+							}
+							onChange={ setNotifySlack }
+							help={
+								updatebeeEmails.slackWebhookConfigured
+									? __(
+											'Uses the Slack webhook saved under Advanced settings.',
+											'updatebee'
+									  )
+									: __(
+											'Add a Slack webhook URL in Advanced settings to enable this.',
+											'updatebee'
+									  )
+							}
+						/>
 					</>
 				) }
 				<div className="updatebee-emails-actions">

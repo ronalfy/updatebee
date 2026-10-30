@@ -247,7 +247,7 @@ class FatalDetectionTest extends TestCase {
 	public function test_inspect_skips_http_when_disabled(): void {
 		$this->stub_options( false );
 		MonkeyFunctions\when( 'is_multisite' )->justReturn( false );
-		MonkeyFunctions\expect( 'wp_remote_get' )->never();
+		MonkeyFunctions\expect( 'wp_safe_remote_get' )->never();
 
 		$detection = new Fatal_Detection();
 		$detection->inspect_update_results(
@@ -277,7 +277,7 @@ class FatalDetectionTest extends TestCase {
 				return $url;
 			}
 		);
-		MonkeyFunctions\when( 'wp_remote_get' )->justReturn( new \WP_Error( 'http_request_failed', 'timeout' ) );
+		MonkeyFunctions\when( 'wp_safe_remote_get' )->justReturn( new \WP_Error( 'http_request_failed', 'timeout' ) );
 		MonkeyFunctions\when( 'wp_remote_retrieve_body' )->justReturn( '' );
 
 		$detection = new Fatal_Detection();
@@ -316,7 +316,7 @@ class FatalDetectionTest extends TestCase {
 				return is_array( $response ) && isset( $response['body'] ) ? (string) $response['body'] : '';
 			}
 		);
-		MonkeyFunctions\when( 'wp_remote_get' )->justReturn(
+		MonkeyFunctions\when( 'wp_safe_remote_get' )->justReturn(
 			array(
 				'body' => $this->scrape_body(
 					$key,
@@ -350,7 +350,7 @@ class FatalDetectionTest extends TestCase {
 	public function test_inspect_harvests_core_rollback_error(): void {
 		$this->stub_options( true );
 		MonkeyFunctions\when( 'is_multisite' )->justReturn( false );
-		MonkeyFunctions\expect( 'wp_remote_get' )->never();
+		MonkeyFunctions\expect( 'wp_safe_remote_get' )->never();
 
 		$detection = new Fatal_Detection();
 		$detection->inspect_update_results(

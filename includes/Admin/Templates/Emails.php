@@ -9,6 +9,7 @@ namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Functions;
+use UpdateBee\Options;
 use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Init as Updates_Init;
 
@@ -92,6 +93,7 @@ class Emails {
 				'wordpressSaveNonce'            => wp_create_nonce( 'updatebee-save-wordpress-email-settings' ),
 				'fatalErrorDetection'           => Fatal_Detection::is_enabled(),
 				'fatalEmailRecipients'          => Email_Fatals::get_recipients_for_display(),
+				'fatalNotifySlack'              => (bool) Options::get_options( 'fatal_notify_slack' ),
 				'fatalSaveNonce'                => wp_create_nonce( 'updatebee-save-fatal-email-settings' ),
 				'successRetrieveNonce'          => wp_create_nonce( 'updatebee-retrieve-email-success-settings' ),
 				'successSaveNonce'              => wp_create_nonce( 'updatebee-save-email-success-settings' ),

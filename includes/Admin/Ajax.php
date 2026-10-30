@@ -14,6 +14,7 @@ use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
+use UpdateBee\Slack\Slack_Webhook;
 use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
@@ -1850,8 +1851,9 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-save-fatal-email-settings', 'nonce' );
 
-		$enabled    = $this->get_posted_enabled();
-		$recipients = $this->get_posted_email_recipients();
+		$enabled      = $this->get_posted_enabled();
+		$recipients   = $this->get_posted_email_recipients();
+		$notify_slack = $this->get_posted_notify_slack();
 
 		if ( $enabled && empty( $recipients ) ) {
 			wp_send_json_error(
@@ -1861,11 +1863,16 @@ class Ajax {
 			);
 		}
 
+		if ( $notify_slack && ! Slack_Webhook::is_configured() ) {
+			$notify_slack = false;
+		}
+
 		$updated = Options::update_options(
 			'',
 			array(
 				'fatal_error_detection'  => $enabled,
 				'fatal_email_recipients' => $recipients,
+				'fatal_notify_slack'     => $notify_slack,
 			)
 		);
 
@@ -1877,6 +1884,7 @@ class Ajax {
 			array(
 				'fatal_error_detection'  => Fatal_Detection::is_enabled(),
 				'fatal_email_recipients' => Email_Fatals::get_recipients_for_display(),
+				'fatal_notify_slack'     => (bool) Options::get_options( 'fatal_notify_slack' ),
 				'message'                => __( 'Fatal error report settings saved.', 'updatebee' ),
 			)
 		);
@@ -1979,6 +1987,27 @@ class Ajax {
 		}
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Sanitize a posted Slack notification flag.
+	 *
+	 * @return bool True when Slack should be notified.
+	 */
+	private function get_posted_notify_slack(): bool {
+		// Callers verify a nonce before reading the Slack flag.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST['notifySlack'] ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$value = wp_unslash( $_POST['notifySlack'] );
+		if ( is_array( $value ) ) {
+			return false;
+		}
+
+		return (bool) rest_sanitize_boolean( $value );
 	}
 
 	/**

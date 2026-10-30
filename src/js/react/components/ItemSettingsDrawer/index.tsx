@@ -113,8 +113,8 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 	const siteDefaultLabel = sprintf(
 		/* translators: %d: number of days. */
 		_n(
-			'Use site default (%d day)',
-			'Use site default (%d days)',
+			'Delayed Updates: Use site default (%d day)',
+			'Delayed Updates: Use site default (%d days)',
 			globalDelayDays,
 			'updatebee'
 		),
@@ -304,7 +304,7 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 						) }
 						<ToggleControl
 							label={ __(
-								'Use site default for untested updates',
+								'Untested Updates: Use site default for untested updates',
 								'updatebee'
 							) }
 							checked={ useUntestedDefault }

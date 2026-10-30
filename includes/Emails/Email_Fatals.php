@@ -9,6 +9,8 @@ namespace UpdateBee\Emails;
 
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Slack\Slack_Fatals;
+use UpdateBee\Slack\Slack_Webhook;
 use UpdateBee\Updates\Fatal_Detection;
 
 /**
@@ -39,18 +41,36 @@ class Email_Fatals {
 		}
 
 		$recipients = self::get_recipients();
-		if ( empty( $recipients ) ) {
+		if ( ! empty( $recipients ) ) {
+			$body = Emails::get_update_report_email(
+				$filtered,
+				__( 'Fatal error after automatic updates', 'updatebee' ),
+				__( 'A PHP fatal error was detected after automatic updates. UpdateBee did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
+				''
+			);
+
+			$this->send_email( $body, $recipients );
+		}
+
+		$this->maybe_send_slack_report( $filtered );
+	}
+
+	/**
+	 * Post a dedicated Slack fatal alert when enabled and a webhook is saved.
+	 *
+	 * @param array<int, array<string, mixed>> $updates Fatal log rows.
+	 */
+	private function maybe_send_slack_report( array $updates ): void {
+		if ( ! Options::get_options( 'fatal_notify_slack' ) ) {
 			return;
 		}
 
-		$body = Emails::get_update_report_email(
-			$filtered,
-			__( 'Fatal error after automatic updates', 'updatebee' ),
-			__( 'A PHP fatal error was detected after automatic updates. UpdateBee did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
-			''
-		);
+		if ( ! Slack_Webhook::is_configured() ) {
+			return;
+		}
 
-		$this->send_email( $body, $recipients );
+		$slack = new Slack_Fatals();
+		$slack->send_report( $updates );
 	}
 
 	/**
