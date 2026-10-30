@@ -16,7 +16,9 @@ UpdateBee gives a network administrator a single place to control automatic upda
 
 The plugin records each update attempt, including the previous version, the new version, and whether the update succeeded or was blocked. Optional email and Slack reports can summarize completed updates and updates that are still available.
 
-UpdateBee is a multisite plugin. Settings are managed from the network admin.
+UpdateBee is a multisite-capable plugin. Settings are managed from the network admin.
+
+Source code can be <a href="https://github.com/ronalfy/updatebee">found on GitHub</a>.
 
 == Installation ==
 
