@@ -2,7 +2,7 @@
  * WordPress native automatic update email toggle.
  */
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { FormTokenField, ToggleControl } from '@wordpress/components';
 import { Button, Card } from '@wordpress/ui';
 import { isEmail } from '@wordpress/url';
@@ -132,9 +132,13 @@ const WordPressEmailsCard = ( props: WordPressEmailsCardProps ) => {
 			</Card.Header>
 			<Card.Content className="updatebee-emails-card-content">
 				<p className="description">
-					{ __(
-						'When disabled, UpdateBee suppresses WordPress default notification emails for core, plugin, theme, and debug summary updates.',
-						'updatebee'
+					{ sprintf(
+						/* translators: %s: Plugin name. */
+						__(
+							'When disabled, %s suppresses WordPress default notification emails for core, plugin, theme, and debug summary updates.',
+							'updatebee'
+						),
+						updatebeeEmails.pluginName
 					) }
 				</p>
 				<ToggleControl

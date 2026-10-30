@@ -97,6 +97,7 @@ class Tools {
 	 */
 	public static function get_script_data(): array {
 		return array(
+			'pluginName'          => Functions::get_plugin_name(),
 			'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
 			'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
 			'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),

@@ -194,7 +194,7 @@ class Slack_Available_Updates {
 					'type'      => 'button',
 					'text'      => array(
 						'type'  => 'plain_text',
-						'text'  => __( 'UpdateBee', 'updatebee' ),
+						'text'  => Functions::get_plugin_name(),
 						'emoji' => true,
 					),
 					'value'     => 'view_updatebee',

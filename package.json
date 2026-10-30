@@ -5,7 +5,8 @@
 	"author": "MediaRon LLC",
 	"license": "GPL-3.0-or-later",
 	"scripts": {
-		"build": "wp-scripts build",
+		"composer:guard": "php bin/add-composer-guards.php",
+		"build": "wp-scripts build && npm run composer:guard",
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js src/js",
 		"lint:css": "wp-scripts lint-css src/scss",

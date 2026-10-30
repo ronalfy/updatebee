@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin;
 
+use UpdateBee\Branding;
 use UpdateBee\Functions;
 
 /**
@@ -39,11 +40,17 @@ class Settings_Page {
 	 * Output the settings header.
 	 */
 	public static function get_settings_header(): void {
+		$plugin_name     = Functions::get_plugin_name();
+		$has_custom_name = '' !== Branding::get_saved_name();
 		?>
 		<header class="updatebee-settings-header updatebee-wrap">
 			<h1 class="updatebee-settings-header__title">
 				<a href="<?php echo esc_url( Functions::get_settings_url() ); ?>">
-					<img src="<?php echo esc_url( Functions::get_plugin_url( '/assets/logo.png' ) ); ?>" alt="<?php echo esc_attr( Functions::get_plugin_name() ); ?>" />
+					<?php if ( $has_custom_name ) : ?>
+						<span class="updatebee-settings-header__wordmark"><?php echo esc_html( $plugin_name ); ?></span>
+					<?php else : ?>
+						<img src="<?php echo esc_url( Branding::get_default_logo_url() ); ?>" alt="<?php echo esc_attr( $plugin_name ); ?>" />
+					<?php endif; ?>
 				</a>
 			</h1>
 		</header>
@@ -296,6 +303,9 @@ class Settings_Page {
 				</symbol>
 				<symbol viewBox="0 0 50 50" id="icon-labs">
 					<path d="M44.1,13.9l-9-9C34.5,4.3,33.8,4,33,4s-1.5,0.3-2.1,0.9c-1,1-1.1,2.4-0.5,3.6L5.1,33.7c-2.8,2.8-2.8,7.4,0,10.2	c1.4,1.4,3.2,2.1,5.1,2.1s3.7-0.7,5.1-2.1l25.3-25.3C41,18.9,41.5,19,42,19c0.8,0,1.5-0.3,2.1-0.9C45.3,17,45.3,15,44.1,13.9z M42.7,16.7C42.5,16.9,42.3,17,42,17s-0.5-0.1-0.7-0.3l-0.1-0.1L37,12.4l-1.4,1.4l3.5,3.5L35.3,21H20.7l11-11.1l1,1l1.4-1.4	l-1.8-1.8l-0.1-0.1c-0.4-0.4-0.4-1,0-1.4C32.5,6.1,32.7,6,33,6s0.5,0.1,0.7,0.3l9,9C43.1,15.7,43.1,16.3,42.7,16.7z"></path>
+				</symbol>
+				<symbol viewBox="0 0 48 48" id="icon-branding">
+					<path d="M 24 4 C 12.977988 4 4 12.977996 4 24 C 4 35.022004 12.977988 44 24 44 C 35.022012 44 44 35.022004 44 24 C 44 12.977996 35.022012 4 24 4 z M 35.322266 12.677734 C 38.214734 15.570203 40 19.569876 40 24 C 40 32.860247 32.860253 40 24 40 C 19.569873 40 15.570203 38.214735 12.677734 35.322266 L 35.322266 12.677734 z"></path>
 				</symbol>
 			</defs>
 			</svg>

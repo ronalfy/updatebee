@@ -2,7 +2,7 @@
  * Tools maintenance actions (force updates, trigger cron, refresh updates).
  */
 import { useCallback, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import sendCommand from '../../../utils/SendCommand';
 import ToolsFooter, {
@@ -27,27 +27,43 @@ type ToolsMessagePayload = {
 	message: string;
 };
 
-const migrateDescriptions: Record< ImporterKey, string > = {
-	eum: __(
-		'This will overwrite overlapping UpdateBee settings with values from Easy Updates Manager.',
-		'updatebee'
+const getMigrateDescriptions = (): Record< ImporterKey, string > => ( {
+	eum: sprintf(
+		/* translators: %s: Plugin name. */
+		__(
+			'This will overwrite overlapping %s settings with values from Easy Updates Manager.',
+			'updatebee'
+		),
+		updatebeeTools.pluginName
 	),
-	cau: __(
-		'This will overwrite overlapping UpdateBee settings with values from Companion Auto Update.',
-		'updatebee'
+	cau: sprintf(
+		/* translators: %s: Plugin name. */
+		__(
+			'This will overwrite overlapping %s settings with values from Companion Auto Update.',
+			'updatebee'
+		),
+		updatebeeTools.pluginName
 	),
-};
+} );
 
-const hideDescriptions: Record< ImporterKey, string > = {
-	eum: __(
-		'After you hide this, Easy Updates Manager settings can only be imported again if you reset UpdateBee\'s import options.',
-		'updatebee'
+const getHideDescriptions = (): Record< ImporterKey, string > => ( {
+	eum: sprintf(
+		/* translators: %s: Plugin name. */
+		__(
+			"After you hide this, Easy Updates Manager settings can only be imported again if you reset %s's import options.",
+			'updatebee'
+		),
+		updatebeeTools.pluginName
 	),
-	cau: __(
-		'After you hide this, Companion Auto Update settings can only be imported again if you reset UpdateBee\'s import options.',
-		'updatebee'
+	cau: sprintf(
+		/* translators: %s: Plugin name. */
+		__(
+			"After you hide this, Companion Auto Update settings can only be imported again if you reset %s's import options.",
+			'updatebee'
+		),
+		updatebeeTools.pluginName
 	),
-};
+} );
 
 const ToolsMain = () => {
 	useEnableWpCompatOverlaySlot();
@@ -276,8 +292,11 @@ const ToolsMain = () => {
 	}, [ hideTarget, runToolAction ] );
 
 	const migrateCopy =
-		null === migrateTarget ? '' : migrateDescriptions[ migrateTarget ];
-	const hideCopy = null === hideTarget ? '' : hideDescriptions[ hideTarget ];
+		null === migrateTarget
+			? ''
+			: getMigrateDescriptions()[ migrateTarget ];
+	const hideCopy =
+		null === hideTarget ? '' : getHideDescriptions()[ hideTarget ];
 
 	return (
 		<div className="updatebee-tools-main">
@@ -384,9 +403,13 @@ const ToolsMain = () => {
 						</Card.Header>
 						<Card.Content className="updatebee-tools-card-content">
 							<p className="updatebee-tools-card-description">
-								{ __(
-									'Import core, plugin, theme, and translation settings from Easy Updates Manager. Overlapping UpdateBee settings will be replaced.',
-									'updatebee'
+								{ sprintf(
+									/* translators: %s: Plugin name. */
+									__(
+										'Import core, plugin, theme, and translation settings from Easy Updates Manager. Overlapping %s settings will be replaced.',
+										'updatebee'
+									),
+									updatebeeTools.pluginName
 								) }
 							</p>
 							<p className="updatebee-tools-card-actions">
@@ -431,9 +454,13 @@ const ToolsMain = () => {
 						</Card.Header>
 						<Card.Content className="updatebee-tools-card-content">
 							<p className="updatebee-tools-card-description">
-								{ __(
-									'Import core, plugin, theme, and translation settings from Companion Auto Update. Overlapping UpdateBee settings will be replaced. Deactivate Companion Auto Update afterward so its update filters do not override UpdateBee.',
-									'updatebee'
+								{ sprintf(
+									/* translators: %s: Plugin name. */
+									__(
+										'Import core, plugin, theme, and translation settings from Companion Auto Update. Overlapping %1$s settings will be replaced. Deactivate Companion Auto Update afterward so its update filters do not override %1$s.',
+										'updatebee'
+									),
+									updatebeeTools.pluginName
 								) }
 							</p>
 							<p className="updatebee-tools-card-actions">

@@ -82,13 +82,14 @@ class Advanced {
 			'updatebee-advanced',
 			'updatebeeAdvanced',
 			array(
+				'pluginName'                   => Functions::get_plugin_name(),
 				'saveNonce'                    => wp_create_nonce( 'updatebee-save-advanced-settings' ),
 				'resetNonce'                   => wp_create_nonce( 'updatebee-reset-options' ),
 				'delayUpdates'                 => absint( Options::get_options( 'delay_updates' ) ),
 				'blockUntestedUpdates'         => 'on' === Options::get_options( 'block_untested_updates' ),
 				'upgradeNoticeKeywords'        => (string) Options::get_options( 'upgrade_notice_keywords' ),
 				'upgradeNoticeKeywordsEnabled' => Upgrade_Notice_Keywords::is_enabled(),
-			'slackWebhookUrl'              => (string) Options::get_options( 'slack_webhook_url' ),
+				'slackWebhookUrl'              => (string) Options::get_options( 'slack_webhook_url' ),
 			)
 		);
 

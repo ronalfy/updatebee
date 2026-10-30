@@ -41,5 +41,9 @@ module.exports = {
 			process.cwd(),
 			'src/js/react/views/Advanced/index.tsx'
 		),
+		branding: path.resolve(
+			process.cwd(),
+			'src/js/react/views/Branding/index.tsx'
+		),
 	},
 };

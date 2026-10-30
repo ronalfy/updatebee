@@ -88,6 +88,7 @@ class Emails {
 			'updatebee-emails',
 			'updatebeeEmails',
 			array(
+				'pluginName'                    => Functions::get_plugin_name(),
 				'enableCoreEmails'              => Updates_Init::core_emails_enabled(),
 				'coreEmailRecipients'           => Updates_Init::get_core_email_recipients_for_display(),
 				'wordpressSaveNonce'            => wp_create_nonce( 'updatebee-save-wordpress-email-settings' ),

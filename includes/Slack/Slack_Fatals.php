@@ -99,7 +99,11 @@ class Slack_Fatals {
 				'type' => 'section',
 				'text' => array(
 					'type' => 'mrkdwn',
-					'text' => __( 'This is a fatal detection alert. UpdateBee did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
+					'text' => sprintf(
+						/* translators: %s: Plugin name. */
+						__( 'This is a fatal detection alert. %s did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
+						Functions::get_plugin_name()
+					),
 				),
 			),
 		);

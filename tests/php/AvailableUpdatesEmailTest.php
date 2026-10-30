@@ -205,9 +205,9 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\expect( 'wp_send_json_error' )->once();
 
 		$_POST = array(
-			'toField'      => array(),
-			'bccField'     => array(),
-			'notifySlack'  => 'false',
+			'toField'     => array(),
+			'bccField'    => array(),
+			'notifySlack' => 'false',
 		);
 
 		$report = new Email_Updates_Available();
@@ -231,6 +231,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 	 * Slack available message includes headline text.
 	 */
 	public function test_slack_available_message_headline(): void {
+		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
 		MonkeyFunctions\when( 'get_bloginfo' )->justReturn( 'Example' );
 		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );

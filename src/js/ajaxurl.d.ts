@@ -54,11 +54,13 @@ interface UpdateBeeTools {
 	cauDetected: boolean;
 	migrateCauNonce: string;
 	hideCauNonce: string;
+	pluginName: string;
 }
 
 declare const updatebeeTools: UpdateBeeTools;
 
 interface UpdateBeeEmails {
+	pluginName: string;
 	enableCoreEmails: boolean;
 	coreEmailRecipients: string[];
 	wordpressSaveNonce: string;
@@ -105,6 +107,25 @@ interface UpdateBeeAdvanced {
 	upgradeNoticeKeywords: string;
 	upgradeNoticeKeywordsEnabled: boolean;
 	slackWebhookUrl: string;
+	pluginName: string;
 }
+
+interface UpdateBeeBrandingDefaults {
+	name: string;
+	description: string;
+	author: string;
+	url: string;
+}
+
+interface UpdateBeeBranding {
+	saveNonce: string;
+	name: string;
+	description: string;
+	author: string;
+	url: string;
+	defaults: UpdateBeeBrandingDefaults;
+}
+
+declare const updatebeeBranding: UpdateBeeBranding;
 
 declare const updatebeeAdvanced: UpdateBeeAdvanced;

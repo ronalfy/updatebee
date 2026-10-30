@@ -38,10 +38,27 @@ body {
 		padding-top: var(--wpds-dimension-size-xs, 1rem);
 		padding-bottom: var(--wpds-dimension-size-xs, 1rem);
 
-		&__title img {
-			width: 100%;
-			height: auto;
-			max-width: 450px;
+		&__title {
+			margin: 0;
+
+			a {
+				color: inherit;
+				text-decoration: none;
+			}
+
+			img {
+				display: block;
+				height: auto;
+				max-width: 450px;
+			}
+		}
+
+		&__wordmark {
+			display: inline-block;
+			font-size: 1.75rem;
+			font-weight: 700;
+			line-height: 1.25;
+			letter-spacing: -0.02em;
 		}
 	}
 
@@ -390,4 +407,18 @@ h3.updatebee-panel-heading {
 		gap: 8px;
 		margin-top: var(--wpds-dimension-padding-sm);
 	}
+}
+
+.updatebee-settings-header__title img {
+	display: block;
+	height: auto;
+	max-width: 450px;
+}
+
+.updatebee-settings-header__wordmark {
+	display: inline-block;
+	font-size: 1.75rem;
+	font-weight: 700;
+	line-height: 1.25;
+	letter-spacing: -0.02em;
 }

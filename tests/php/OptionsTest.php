@@ -71,6 +71,10 @@ class OptionsTest extends TestCase {
 		$this->assertTrue( $options['fatal_error_detection'] );
 		$this->assertSame( array(), $options['fatal_email_recipients'] );
 		$this->assertFalse( $options['fatal_notify_slack'] );
+		$this->assertSame( '', $options['branding_name'] );
+		$this->assertSame( '', $options['branding_description'] );
+		$this->assertSame( '', $options['branding_author'] );
+		$this->assertSame( '', $options['branding_url'] );
 	}
 
 	/**

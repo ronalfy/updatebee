@@ -83,6 +83,10 @@ class Options {
 			'fatal_error_detection'            => true,
 			'fatal_email_recipients'           => array(),
 			'fatal_notify_slack'               => false,
+			'branding_name'                    => '',
+			'branding_description'             => '',
+			'branding_author'                  => '',
+			'branding_url'                     => '',
 		);
 
 		/**

@@ -45,7 +45,11 @@ class Email_Fatals {
 			$body = Emails::get_update_report_email(
 				$filtered,
 				__( 'Fatal error after automatic updates', 'updatebee' ),
-				__( 'A PHP fatal error was detected after automatic updates. UpdateBee did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
+				sprintf(
+					/* translators: %s: Plugin name. */
+					__( 'A PHP fatal error was detected after automatic updates. %s did not deactivate any plugins. WordPress Recovery Mode may still email a login link separately. WordPress may have restored a previous plugin version on its own.', 'updatebee' ),
+					Functions::get_plugin_name()
+				),
 				''
 			);
 
