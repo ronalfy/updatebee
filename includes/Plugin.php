@@ -7,6 +7,7 @@
 
 namespace UpdateBee;
 
+use UpdateBee\Abilities\Registry as Abilities_Registry;
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Network_Admin_Bar;
 use UpdateBee\Admin\Plugin_Settings_Links;
@@ -209,6 +210,8 @@ class Plugin {
 	 * Fired when the plugins for WordPress have finished loading.
 	 */
 	public function plugins_loaded(): void {
+		Abilities_Registry::boot();
+
 		$this->branding = new Branding();
 		$this->branding->run();
 
