@@ -408,10 +408,10 @@ abstract class Email_Report {
 		}
 
 		$subject              = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : '';
-		$include_core         = filter_var( $_POST['includeCore'] ?? false, FILTER_VALIDATE_BOOLEAN );
-		$include_plugins      = filter_var( $_POST['includePlugins'] ?? false, FILTER_VALIDATE_BOOLEAN );
-		$include_themes       = filter_var( $_POST['includeThemes'] ?? false, FILTER_VALIDATE_BOOLEAN );
-		$include_translations = filter_var( $_POST['includeTranslations'] ?? false, FILTER_VALIDATE_BOOLEAN );
+		$include_core         = filter_var( wp_unslash( $_POST['includeCore'] ?? false ), FILTER_VALIDATE_BOOLEAN );
+		$include_plugins      = filter_var( wp_unslash( $_POST['includePlugins'] ?? false ), FILTER_VALIDATE_BOOLEAN );
+		$include_themes       = filter_var( wp_unslash( $_POST['includeThemes'] ?? false ), FILTER_VALIDATE_BOOLEAN );
+		$include_translations = filter_var( wp_unslash( $_POST['includeTranslations'] ?? false ), FILTER_VALIDATE_BOOLEAN );
 		$send_schedule        = isset( $_POST['sendSchedule'] ) ? sanitize_text_field( wp_unslash( $_POST['sendSchedule'] ) ) : 'none';
 		$log_cutoff_days      = isset( $_POST['logCutoffDays'] ) ? absint( wp_unslash( $_POST['logCutoffDays'] ) ) : 7;
 		if ( $log_cutoff_days < 1 ) {

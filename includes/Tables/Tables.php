@@ -63,7 +63,7 @@ abstract class Tables {
 		}
 
 		if ( ! is_callable( array( $class_instance, 'get_instance' ) ) ) {
-			return new \WP_Error( 'invalid_table', __( 'Table is not callable.', 'gf-todoist' ) );
+			return new \WP_Error( 'invalid_table', __( 'Table is not callable.', 'updatebee' ) );
 		}
 		$instance = call_user_func( array( $class_instance, 'get_instance' ) );
 
@@ -277,7 +277,7 @@ abstract class Tables {
 		global $wpdb;
 
 		if ( empty( $records ) ) {
-			return new \WP_Error( 'no_records', __( 'No records to insert.', 'gf-todoist' ) );
+			return new \WP_Error( 'no_records', __( 'No records to insert.', 'updatebee' ) );
 		}
 
 		$table_name = static::get_table_name();
@@ -331,7 +331,7 @@ abstract class Tables {
 
 			if ( 0 === $result || false === $result ) {
 
-				return new \WP_Error( 'insert_failed', __( 'Failed to insert records.', 'gf-todoist' ) );
+				return new \WP_Error( 'insert_failed', __( 'Failed to insert records.', 'updatebee' ) );
 			}
 		}
 
@@ -413,7 +413,7 @@ abstract class Tables {
 			$result   = $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( false === $result ) {
-				return new \WP_Error( 'update_failed', __( 'Failed to update records.', 'gf-todoist' ) );
+				return new \WP_Error( 'update_failed', __( 'Failed to update records.', 'updatebee' ) );
 			}
 		}
 

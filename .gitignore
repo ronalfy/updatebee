@@ -62,6 +62,9 @@ web_modules/
 # Output of 'npm pack'
 *.tgz
 
+# Grunt release archive. Plugin Check rejects zip files inside the plugin.
+/updatebee.zip
+
 # Yarn Integrity file
 .yarn-integrity
 

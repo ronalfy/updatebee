@@ -2,7 +2,7 @@
  * Build UpdateBee plugin zip for distribution.
  *
  * What belongs in the zip
- * - Ship: updatebee.php, LICENSE, includes/, assets/, build/ (no source maps), languages/.
+ * - Ship: updatebee.php, readme.txt, LICENSE, includes/, assets/, build/ (no source maps), languages/.
  * - Production only: vendor/autoload.php and vendor/composer/ (PSR-4 autoload metadata).
  * - Omit: src/, tests/, composer.json, node_modules/, and other dev-only tooling.
  *
@@ -23,6 +23,7 @@ const path = require( 'path' );
 module.exports = function( grunt ) {
 	const sharedZipFiles = [
 		{ src: [ 'updatebee.php' ], dest: '/', filter: 'isFile' },
+		{ src: [ 'readme.txt' ], dest: '/', filter: 'isFile' },
 		{ src: [ 'LICENSE' ], dest: '/', filter: 'isFile' },
 		{ src: [ 'includes/**' ], dest: '/' },
 		{ src: [ 'assets/**' ], dest: '/' },
