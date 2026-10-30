@@ -4,7 +4,7 @@
  *
  * Runs via Composer's post-autoload-dump event.
  *
- * @package MediaRon_Block_Shortcuts_For_GB
+ * @package UpdateBee
  */
 
 // Prevent direct web access, but allow CLI execution.
@@ -12,12 +12,12 @@ if ( ! defined( 'ABSPATH' ) && 'cli' !== PHP_SAPI ) {
 	exit; // Exit if accessed directly.
 }
 
-$lib_dir      = __DIR__ . '/../lib';
-$composer_dir = $lib_dir . '/composer';
+$vendor_dir   = __DIR__ . '/../vendor';
+$composer_dir = $vendor_dir . '/composer';
 $files        = array();
 
-if ( is_file( $lib_dir . '/autoload.php' ) ) {
-	$files[] = $lib_dir . '/autoload.php';
+if ( is_file( $vendor_dir . '/autoload.php' ) ) {
+	$files[] = $vendor_dir . '/autoload.php';
 }
 
 if ( is_dir( $composer_dir ) ) {
@@ -29,7 +29,7 @@ if ( is_dir( $composer_dir ) ) {
 }
 
 if ( empty( $files ) ) {
-	echo "No Composer files found in {$lib_dir}\n";
+	echo "No Composer files found in {$vendor_dir}\n";
 	exit( 1 );
 }
 
@@ -55,7 +55,7 @@ GUARD;
  * @param string $guard    Guard block to insert.
  * @return string|false Modified contents, or false on error.
  */
-function mrshortcutsgb_insert_abspath_guard( $contents, $guard ) {
+function updatebee_insert_abspath_guard( $contents, $guard ) {
 	if ( substr( $contents, 0, 5 ) !== '<?php' ) {
 		return false;
 	}
@@ -135,7 +135,7 @@ foreach ( $files as $file ) {
 		continue;
 	}
 
-	$new_contents = mrshortcutsgb_insert_abspath_guard( $contents, $guard );
+	$new_contents = updatebee_insert_abspath_guard( $contents, $guard );
 
 	if ( false === $new_contents ) {
 		echo "Skipping {$file}: does not start with <?php\n";

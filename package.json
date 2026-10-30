@@ -6,6 +6,8 @@
 	"license": "GPL-3.0-or-later",
 	"scripts": {
 		"composer:guard": "php bin/add-composer-guards.php",
+		"release": "grunt release",
+		"compress": "grunt compress",
 		"build": "wp-scripts build && npm run composer:guard",
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js src/js",
@@ -32,6 +34,9 @@
 		"@wordpress/theme": "^2.1.0",
 		"@wordpress/ui": "^0.22.0",
 		"axios": "^1.12.2",
+		"grunt": "^1.6.3",
+		"grunt-cli": "^1.5.0",
+		"grunt-contrib-compress": "^2.0.0",
 		"qs": "^6.14.0",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
