@@ -6,6 +6,7 @@ import { __ } from '@wordpress/i18n';
 export type LogUpdateStatus =
 	| 'success'
 	| 'failure'
+	| 'fatal'
 	| 'blocked'
 	| 'skipped'
 	| 'delayed';
@@ -26,6 +27,10 @@ export const LOG_UPDATE_STATUS_OPTIONS: LogUpdateStatusOption[] = [
 	{
 		value: 'failure',
 		label: __( 'Failure', 'updatebee' ),
+	},
+	{
+		value: 'fatal',
+		label: __( 'Fatal', 'updatebee' ),
 	},
 	{
 		value: 'blocked',

@@ -75,7 +75,7 @@ class Emails {
 		foreach ( $update_items as $update_type => $update_item ) {
 			$has_details = false;
 			foreach ( $update_item as $normalized ) {
-				if ( '' !== $normalized['detail_url'] ) {
+				if ( '' !== $normalized['detail_url'] || '' !== $normalized['fatal_message'] ) {
 					$has_details = true;
 					break;
 				}
@@ -125,8 +125,9 @@ class Emails {
 			return array();
 		}
 
-		$detail_url   = isset( $row['detail_url'] ) ? (string) $row['detail_url'] : '';
-		$detail_label = isset( $row['detail_label'] ) ? (string) $row['detail_label'] : '';
+		$detail_url    = isset( $row['detail_url'] ) ? (string) $row['detail_url'] : '';
+		$detail_label  = isset( $row['detail_label'] ) ? (string) $row['detail_label'] : '';
+		$fatal_message = isset( $row['fatal_message'] ) ? (string) $row['fatal_message'] : '';
 		if ( '' === $detail_label && '' !== $detail_url ) {
 			$detail_label = __( 'View details', 'updatebee' );
 		}
@@ -140,6 +141,7 @@ class Emails {
 			'update_status' => isset( $row['update_status'] ) ? (string) $row['update_status'] : '',
 			'detail_url'    => $detail_url,
 			'detail_label'  => $detail_label,
+			'fatal_message' => $fatal_message,
 		);
 	}
 
@@ -185,6 +187,12 @@ class Emails {
 			<td><?php echo esc_html( $normalized['date'] ); ?></td>
 			<?php if ( $has_details ) : ?>
 				<td>
+					<?php if ( '' !== $normalized['fatal_message'] ) : ?>
+						<?php echo esc_html( $normalized['fatal_message'] ); ?>
+						<?php if ( '' !== $normalized['detail_url'] ) : ?>
+							<br />
+						<?php endif; ?>
+					<?php endif; ?>
 					<?php if ( '' !== $normalized['detail_url'] ) : ?>
 						<a href="<?php echo esc_url( $normalized['detail_url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $normalized['detail_label'] ); ?></a>
 					<?php endif; ?>

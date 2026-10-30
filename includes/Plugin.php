@@ -17,6 +17,7 @@ use UpdateBee\Cron\Disable_Wp_Cron;
 use UpdateBee\Cron\Schedules as Cron_Schedules;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Emails\Email_Failures;
+use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Emails\Email_Updates_Available;
 use UpdateBee\Slack\Slack_Report;
@@ -27,6 +28,7 @@ use UpdateBee\Tables\{
 	Table_Themes,
 };
 use UpdateBee\Logs as Update_Logs;
+use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Init as Updates_Init;
 
 /**
@@ -119,6 +121,20 @@ class Plugin {
 	private Email_Failures $email_failures;
 
 	/**
+	 * Immediate fatal error emails.
+	 *
+	 * @var Email_Fatals
+	 */
+	private Email_Fatals $email_fatals;
+
+	/**
+	 * Post-update fatal detection.
+	 *
+	 * @var Fatal_Detection
+	 */
+	private Fatal_Detection $fatal_detection;
+
+	/**
 	 * Slack reports after updates finish.
 	 *
 	 * @var Slack_Report
@@ -207,6 +223,9 @@ class Plugin {
 		$this->updates_init = new Updates_Init();
 		$this->updates_init->run();
 
+		$this->fatal_detection = new Fatal_Detection();
+		$this->fatal_detection->run();
+
 		$this->update_logs = new Update_Logs();
 		$this->update_logs->run();
 
@@ -224,6 +243,9 @@ class Plugin {
 
 		$this->email_failures = new Email_Failures();
 		$this->email_failures->run();
+
+		$this->email_fatals = new Email_Fatals();
+		$this->email_fatals->run();
 
 		$this->email_updates_available = new Email_Updates_Available();
 		$this->email_updates_available->run();

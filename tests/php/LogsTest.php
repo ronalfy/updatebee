@@ -8,8 +8,10 @@
 namespace UpdateBee\Tests;
 
 use Brain\Monkey\Functions as MonkeyFunctions;
+use ReflectionClass;
 use UpdateBee\Logs;
 use UpdateBee\Tables\Table_Logs;
+use UpdateBee\Updates\Fatal_Detection;
 
 /**
  * Logs test case.
@@ -635,5 +637,286 @@ class LogsTest extends TestCase {
 		$formatted = Logs::format_stacktrace_for_display( serialize( $trace ) );
 
 		$this->assertStringContainsString( "do_action('upgrader_process_complete')", $formatted );
+	}
+
+	/**
+	 * Stub helpers used when writing a fatal automatic-update log.
+	 */
+	private function stub_fatal_insert_helpers(): void {
+		MonkeyFunctions\when( 'is_multisite' )->justReturn( false );
+		MonkeyFunctions\when( 'is_network_admin' )->justReturn( false );
+		MonkeyFunctions\when( 'is_plugin_active_for_network' )->justReturn( false );
+		MonkeyFunctions\when( 'admin_url' )->alias(
+			static function ( $path = '' ) {
+				return 'https://example.com/wp-admin/' . $path;
+			}
+		);
+		MonkeyFunctions\when( 'add_query_arg' )->alias(
+			static function ( $args, $url ) {
+				$tab = is_array( $args ) && isset( $args['tab'] ) ? (string) $args['tab'] : '';
+				return $url . '&tab=' . $tab;
+			}
+		);
+		MonkeyFunctions\when( 'sanitize_title' )->returnArg();
+		MonkeyFunctions\when( 'wp_json_encode' )->alias(
+			static function ( $data ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Test double.
+				return (string) json_encode( $data );
+			}
+		);
+	}
+
+	/**
+	 * Build a wpdb mock that records inserted status and notes.
+	 *
+	 * @return object
+	 */
+	private function create_status_wpdb_mock(): object {
+		return new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last inserted update status.
+			 *
+			 * @var string|null
+			 */
+			public $inserted_status = null;
+
+			/**
+			 * Last inserted notes.
+			 *
+			 * @var string|null
+			 */
+			public $inserted_raw = null;
+
+			/**
+			 * Last inserted stacktrace.
+			 *
+			 * @var string|null
+			 */
+			public $inserted_stacktrace = null;
+
+			/**
+			 * Mock wpdb insert.
+			 *
+			 * @param string               $table Table name.
+			 * @param array<string, mixed> $data  Row data.
+			 * @return bool
+			 */
+			public function insert( $table, $data ) {
+				unset( $table );
+				$this->inserted_status     = $data['update_status'] ?? null;
+				$this->inserted_raw        = $data['raw'] ?? null;
+				$this->inserted_stacktrace = $data['stacktrace'] ?? null;
+				return true;
+			}
+		};
+	}
+
+	/**
+	 * Core rollback WP_Error codes are logged as fatal.
+	 */
+	public function test_automatic_updates_marks_rollback_error_as_fatal(): void {
+		$this->stub_log_helpers();
+		$this->stub_fatal_insert_helpers();
+		Fatal_Detection::reset();
+
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.7.3',
+			)
+		);
+
+		$wpdb = $this->create_status_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$plugin_result = (object) array(
+			'name'     => 'Hello Dolly',
+			'messages' => array(),
+			'result'   => new \WP_Error( 'plugin_update_fatal_error_rollback_successful', 'The previously installed version has been restored.' ),
+			'item'     => (object) array(
+				'plugin'          => 'hello-dolly/hello.php',
+				'slug'            => 'hello-dolly',
+				'current_version' => '1.7.2',
+				'new_version'     => '1.7.3',
+			),
+		);
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'plugin' => array( $plugin_result ),
+			)
+		);
+
+		$this->assertSame( 'fatal', $wpdb->inserted_status );
+		$this->assertStringContainsString( 'restored', strtolower( (string) $wpdb->inserted_raw ) );
+	}
+
+	/**
+	 * Non-fatal WP_Error results stay failures.
+	 */
+	public function test_automatic_updates_marks_generic_wp_error_as_failure(): void {
+		$this->stub_log_helpers();
+		Fatal_Detection::reset();
+
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.7.2',
+			)
+		);
+
+		$wpdb = $this->create_status_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$plugin_result = (object) array(
+			'name'     => 'Hello Dolly',
+			'messages' => array(),
+			'result'   => new \WP_Error( 'download_failed', 'Could not download.' ),
+			'item'     => (object) array(
+				'plugin'          => 'hello-dolly/hello.php',
+				'slug'            => 'hello-dolly',
+				'current_version' => '1.7.2',
+				'new_version'     => '1.7.3',
+			),
+		);
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'plugin' => array( $plugin_result ),
+			)
+		);
+
+		$this->assertSame( 'failure', $wpdb->inserted_status );
+	}
+
+	/**
+	 * A scrape finding upgrades a successful plugin log to fatal.
+	 */
+	public function test_automatic_updates_applies_scrape_finding(): void {
+		$this->stub_log_helpers();
+		$this->stub_fatal_insert_helpers();
+		Fatal_Detection::reset();
+
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		$property = ( new ReflectionClass( Fatal_Detection::class ) )->getProperty( 'findings' );
+		$property->setAccessible( true );
+		$property->setValue(
+			null,
+			array(
+				'plugin:hello-dolly' => array(
+					'type'   => 'plugin',
+					'slug'   => 'hello-dolly',
+					'source' => 'scrape',
+					'error'  => array(
+						'type'    => E_ERROR,
+						'message' => 'Call to undefined function foo()',
+						'file'    => 'wp-content/plugins/hello-dolly/hello.php',
+						'line'    => 4,
+					),
+				),
+			)
+		);
+
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.7.3',
+			)
+		);
+
+		$wpdb = $this->create_status_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$plugin_result = (object) array(
+			'name'     => 'Hello Dolly',
+			'messages' => array(),
+			'result'   => true,
+			'item'     => (object) array(
+				'plugin'          => 'hello-dolly/hello.php',
+				'slug'            => 'hello-dolly',
+				'current_version' => '1.7.2',
+				'new_version'     => '1.7.3',
+			),
+		);
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'plugin' => array( $plugin_result ),
+			)
+		);
+
+		$this->assertSame( 'fatal', $wpdb->inserted_status );
+		$this->assertStringContainsString( 'Call to undefined function foo()', (string) $wpdb->inserted_raw );
+		$this->assertNotEmpty( $wpdb->inserted_stacktrace );
+		Fatal_Detection::reset();
+	}
+
+	/**
+	 * Failure digest queries include fatal rows.
+	 */
+	public function test_get_failure_logs_includes_fatal_status(): void {
+		$this->stub_log_helpers();
+
+		$wpdb = new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last SQL query.
+			 *
+			 * @var string
+			 */
+			public $query_ran = '';
+
+			/**
+			 * Mock wpdb prepare.
+			 *
+			 * @param string $query Query.
+			 * @param mixed  ...$args Args.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				return vsprintf( str_replace( '%s', "'%s'", $query ), $args );
+			}
+
+			/**
+			 * Mock wpdb get_results.
+			 *
+			 * @param string $query Query.
+			 * @return array<int, array<string, string>>
+			 */
+			public function get_results( $query ) {
+				$this->query_ran = $query;
+				return array();
+			}
+		};
+		$this->set_mock_wpdb( $wpdb );
+
+		Logs::get_failure_logs();
+
+		$this->assertStringContainsString( "'failure'", $wpdb->query_ran );
+		$this->assertStringContainsString( "'fatal'", $wpdb->query_ran );
 	}
 }

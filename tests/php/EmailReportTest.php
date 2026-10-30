@@ -83,10 +83,34 @@ class EmailReportTest extends TestCase {
 	}
 
 	/**
+	 * Immediate failure reports skip fatal rows so Email_Fatals can send them.
+	 */
+	public function test_failure_filter_excludes_fatal_rows(): void {
+		$options = Email_Failures::get_defaults();
+		$updates = array(
+			array(
+				'name'          => 'Hello Dolly',
+				'update_type'   => 'plugin',
+				'update_status' => 'fatal',
+			),
+			array(
+				'name'          => 'Broken',
+				'update_type'   => 'plugin',
+				'update_status' => 'failure',
+			),
+		);
+
+		$filtered = $this->filter_updates( Email_Failures::class, $updates, $options );
+
+		$this->assertCount( 1, $filtered );
+		$this->assertSame( 'failure', $filtered[0]['update_status'] );
+	}
+
+	/**
 	 * Test include flags limit update types.
 	 */
 	public function test_filter_respects_include_flags(): void {
-		$options = Email_Successes::get_defaults();
+		$options                 = Email_Successes::get_defaults();
 		$options['include_core'] = false;
 
 		$updates = array(

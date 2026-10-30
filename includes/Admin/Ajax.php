@@ -9,10 +9,12 @@ namespace UpdateBee\Admin;
 
 use UpdateBee\Cron\Clear_Logs;
 use UpdateBee\Emails\Email_Failures;
+use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
+use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
@@ -69,6 +71,7 @@ class Ajax {
 		// Email Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_email_settings', array( $this, 'retrieve_email_settings' ) );
 		add_action( 'wp_ajax_updatebee_save_wordpress_email_settings', array( $this, 'save_wordpress_email_settings' ) );
+		add_action( 'wp_ajax_updatebee_save_fatal_email_settings', array( $this, 'save_fatal_email_settings' ) );
 
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
@@ -1833,6 +1836,48 @@ class Ajax {
 				'enable_core_emails'    => Updates_Init::core_emails_enabled(),
 				'core_email_recipients' => Updates_Init::get_core_email_recipients(),
 				'message'               => __( 'Email settings saved.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Save fatal error detection and email recipients.
+	 */
+	public function save_fatal_email_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-fatal-email-settings', 'nonce' );
+
+		$enabled    = $this->get_posted_enabled();
+		$recipients = $this->get_posted_email_recipients();
+
+		if ( $enabled && empty( $recipients ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You must enter at least one email address.', 'updatebee' ),
+				)
+			);
+		}
+
+		$updated = Options::update_options(
+			'',
+			array(
+				'fatal_error_detection'  => $enabled,
+				'fatal_email_recipients' => $recipients,
+			)
+		);
+
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'fatal_error_detection'  => Fatal_Detection::is_enabled(),
+				'fatal_email_recipients' => Email_Fatals::get_recipients_for_display(),
+				'message'                => __( 'Fatal error report settings saved.', 'updatebee' ),
 			)
 		);
 	}

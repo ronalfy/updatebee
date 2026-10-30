@@ -10,6 +10,7 @@
 namespace UpdateBee;
 
 use UpdateBee\Tables\Table_Logs;
+use UpdateBee\Updates\Fatal_Detection;
 
 /**
  * Class Logs
@@ -108,13 +109,18 @@ class Logs {
 					$current_version = sanitize_text_field( $wp_version );
 					$user_id         = 0;
 					$raw             = '';
+					$stacktrace      = '';
 					if ( isset( $core->messages ) && is_array( $core->messages ) ) {
 						foreach ( $core->messages as $message ) {
 							$raw .= $message . "\n\r\n\r";
 						}
 					}
+					$resolved   = $this->resolve_automatic_status( $update_type, $slug, $core->result ?? null, $status, $raw );
+					$status     = $resolved['status'];
+					$raw        = $resolved['raw'];
+					$stacktrace = $resolved['stacktrace'];
 					delete_site_option( self::CORE_VERSION_OPTION );
-					$this->insert_log( $name, $slug, $user_id, (string) $prev_version, $current_version, 'automatic', $update_type, $status, $raw );
+					$this->insert_log( $name, $slug, $user_id, (string) $prev_version, $current_version, 'automatic', $update_type, $status, $raw, $stacktrace );
 					break;
 				case 'plugin':
 					foreach ( $results as $plugin ) {
@@ -131,7 +137,7 @@ class Logs {
 						$new_version  = isset( $plugin->item->new_version ) ? sanitize_text_field( (string) $plugin->item->new_version ) : '';
 						$user_id      = 0;
 						$raw          = '';
-						// If new version is less than or equal to version_from, mark as failure.
+						$stacktrace   = '';
 
 						// Get plugin info from WordPress Core.
 						$plugin_info                 = get_plugin_data( WP_PLUGIN_DIR . '/' . $plugin_file, false, false );
@@ -146,7 +152,11 @@ class Logs {
 								$raw .= $message . "\n\r\n\r";
 							}
 						}
-						$this->insert_log( $name, $slug, $user_id, $prev_version, $new_version, 'automatic', $update_type, $status, $raw );
+						$resolved   = $this->resolve_automatic_status( $update_type, $slug, $plugin->result ?? null, $status, $raw );
+						$status     = $resolved['status'];
+						$raw        = $resolved['raw'];
+						$stacktrace = $resolved['stacktrace'];
+						$this->insert_log( $name, $slug, $user_id, $prev_version, $new_version, 'automatic', $update_type, $status, $raw, $stacktrace );
 					}
 					break;
 				case 'theme':
@@ -162,6 +172,7 @@ class Logs {
 						$current_version = isset( $theme->item->new_version ) ? sanitize_text_field( (string) $theme->item->new_version ) : '';
 						$user_id         = 0;
 						$raw             = '';
+						$stacktrace      = '';
 						// If new version is less than or equal to version_from, mark as failure.
 						if ( version_compare( $current_version, $prev_version, '<=' ) || $prev_version === $current_version ) {
 							$status = 'failure';
@@ -171,7 +182,11 @@ class Logs {
 								$raw .= $message . "\n\r";
 							}
 						}
-						$this->insert_log( $name, $slug, $user_id, $prev_version, $current_version, 'automatic', $update_type, $status, $raw );
+						$resolved   = $this->resolve_automatic_status( $update_type, $slug, $theme->result ?? null, $status, $raw );
+						$status     = $resolved['status'];
+						$raw        = $resolved['raw'];
+						$stacktrace = $resolved['stacktrace'];
+						$this->insert_log( $name, $slug, $user_id, $prev_version, $current_version, 'automatic', $update_type, $status, $raw, $stacktrace );
 					}
 					break;
 				case 'translation':
@@ -343,7 +358,7 @@ class Logs {
 		 */
 		do_action( 'updatebee_after_log_insert', $name, $slug, $user_id, $prev_version, $current_version, $update_type, $status, $notes );
 
-		self::$current_updates[] = array(
+		$entry = array(
 			'name'          => $name,
 			'slug'          => $slug,
 			'user_id'       => $user_id,
@@ -353,7 +368,118 @@ class Logs {
 			'update_type'   => $update_type,
 			'update_status' => $status,
 			'date'          => current_time( 'mysql' ),
+			'raw'           => $notes,
 		);
+
+		if ( 'fatal' === $status ) {
+			$entry['fatal_message'] = self::summarize_fatal_message( (string) $notes );
+			$entry['detail_url']    = Functions::get_settings_url( 'logs' );
+			$entry['detail_label']  = __( 'View logs', 'updatebee' );
+		}
+
+		self::$current_updates[] = $entry;
+	}
+
+	/**
+	 * Resolve automatic-update status from WP_Error results and fatal findings.
+	 *
+	 * @param string $type            plugin|theme|core.
+	 * @param string $slug            Extension slug.
+	 * @param mixed  $result          Upgrader result.
+	 * @param string $version_status  Status from version comparison.
+	 * @param string $raw             Accumulated notes.
+	 * @return array{status: string, raw: string, stacktrace: string}
+	 */
+	private function resolve_automatic_status( string $type, string $slug, $result, string $version_status, string $raw ): array {
+		$status     = $version_status;
+		$stacktrace = '';
+
+		$result_status = Fatal_Detection::status_from_result( $result );
+		if ( is_string( $result_status ) ) {
+			$status = $result_status;
+			if ( is_wp_error( $result ) ) {
+				$messages = $result->get_error_messages();
+				if ( is_array( $messages ) ) {
+					foreach ( $messages as $message ) {
+						$raw .= $message . "\n";
+					}
+				}
+			}
+		}
+
+		$finding = Fatal_Detection::get_finding( $type, $slug );
+		if ( null === $finding && in_array( $type, array( 'plugin', 'theme' ), true ) && 'success' === $status ) {
+			$finding = Fatal_Detection::get_unattributed();
+		}
+
+		if ( is_array( $finding ) && isset( $finding['error'] ) && is_array( $finding['error'] ) ) {
+			$can_apply = ( 'failure' !== $status ) || Fatal_Detection::is_fatal_result( $result );
+			if ( $can_apply ) {
+				$status     = 'fatal';
+				$raw       .= self::format_fatal_error_notes( $finding['error'] );
+				$encoded    = wp_json_encode( $finding['error'] );
+				$stacktrace = is_string( $encoded ) ? $encoded : '';
+			}
+		}
+
+		return array(
+			'status'     => $status,
+			'raw'        => $raw,
+			'stacktrace' => $stacktrace,
+		);
+	}
+
+	/**
+	 * Format scrape/core fatal details for the log notes column.
+	 *
+	 * @param array<string, mixed> $error Error payload.
+	 * @return string
+	 */
+	private static function format_fatal_error_notes( array $error ): string {
+		$parts = array();
+		if ( ! empty( $error['message'] ) ) {
+			$parts[] = sprintf(
+				/* translators: %s: PHP error message. */
+				__( 'Error: %s', 'updatebee' ),
+				(string) $error['message']
+			);
+		}
+		if ( ! empty( $error['file'] ) ) {
+			$parts[] = sprintf(
+				/* translators: %s: File path. */
+				__( 'File: %s', 'updatebee' ),
+				(string) $error['file']
+			);
+		}
+		if ( ! empty( $error['line'] ) ) {
+			$parts[] = sprintf(
+				/* translators: %d: Line number. */
+				__( 'Line: %d', 'updatebee' ),
+				(int) $error['line']
+			);
+		}
+
+		return empty( $parts ) ? '' : implode( "\n", $parts ) . "\n";
+	}
+
+	/**
+	 * First line of fatal notes for email tables.
+	 *
+	 * @param string $notes Raw notes.
+	 * @return string
+	 */
+	private static function summarize_fatal_message( string $notes ): string {
+		$notes = trim( $notes );
+		if ( '' === $notes ) {
+			return __( 'A PHP fatal error was detected after this update.', 'updatebee' );
+		}
+
+		$lines = preg_split( '/\r\n|\r|\n/', $notes );
+		if ( ! is_array( $lines ) || empty( $lines[0] ) ) {
+			return __( 'A PHP fatal error was detected after this update.', 'updatebee' );
+		}
+
+		return (string) $lines[0];
 	}
 
 	/**
@@ -1072,18 +1198,18 @@ class Logs {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public static function get_failure_logs( array $supported = array(), $since_last_timestamp = '' ): array {
-		return self::get_logs_by_status( 'failure', $supported, $since_last_timestamp );
+		return self::get_logs_by_status( array( 'failure', 'fatal' ), $supported, $since_last_timestamp );
 	}
 
 	/**
 	 * Query logs by status.
 	 *
-	 * @param string              $status               success|failure.
-	 * @param array<string, bool> $supported            Supported update types.
-	 * @param int|string          $since_last_timestamp Optional UNIX timestamp filter.
+	 * @param string|array<int, string> $status               success|failure|fatal or a list of those.
+	 * @param array<string, bool>       $supported            Supported update types.
+	 * @param int|string                $since_last_timestamp Optional UNIX timestamp filter.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function get_logs_by_status( string $status, array $supported, $since_last_timestamp ): array {
+	private static function get_logs_by_status( $status, array $supported, $since_last_timestamp ): array {
 		global $wpdb;
 
 		$defaults  = array(
@@ -1109,6 +1235,18 @@ class Logs {
 		}
 
 		if ( empty( $types ) ) {
+			return array();
+		}
+
+		$allowed_statuses = array( 'success', 'failure', 'fatal', 'blocked', 'skipped', 'delayed' );
+		$statuses         = is_array( $status ) ? $status : array( $status );
+		$statuses         = array_values(
+			array_intersect(
+				array_map( 'strval', $statuses ),
+				$allowed_statuses
+			)
+		);
+		if ( empty( $statuses ) ) {
 			return array();
 		}
 
@@ -1138,7 +1276,9 @@ class Logs {
 			$where .= $wpdb->prepare( ' AND date > %s', $cutoff_datetime );
 		}
 
-		$where .= $wpdb->prepare( ' AND update_status = %s', $status );
+		$status_placeholders = implode( ', ', array_fill( 0, count( $statuses ), '%s' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Placeholders are generated from a counted list of statuses.
+		$where .= $wpdb->prepare( ' AND update_status IN (' . $status_placeholders . ')', ...$statuses );
 
 		$where .= ' AND update_type IN (' . implode( ',', $types ) . ')';
 

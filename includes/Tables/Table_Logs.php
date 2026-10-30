@@ -261,7 +261,7 @@ class Table_Logs extends Tables {
 		$allowed_values = array(
 			'update_offer'  => array( 'automatic', 'manual' ),
 			'update_type'   => array( 'core', 'plugin', 'theme', 'translation' ),
-			'update_status' => array( 'success', 'failure', 'blocked', 'skipped', 'delayed' ),
+			'update_status' => array( 'success', 'failure', 'fatal', 'blocked', 'skipped', 'delayed' ),
 		);
 
 		foreach ( $allowed_values as $column => $valid ) {
@@ -427,7 +427,7 @@ class Table_Logs extends Tables {
 		}
 
 		$update_status = is_string( $args['update_status'] ) ? $args['update_status'] : 'all';
-		if ( in_array( $update_status, array( 'success', 'failure', 'blocked', 'skipped', 'delayed' ), true ) ) {
+		if ( in_array( $update_status, array( 'success', 'failure', 'fatal', 'blocked', 'skipped', 'delayed' ), true ) ) {
 			$where[]  = 'update_status = %s';
 			$values[] = $update_status;
 		}
