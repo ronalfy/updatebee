@@ -2,7 +2,7 @@
  * Advanced reset options card and drawer.
  */
 import { useCallback, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { cog } from '@wordpress/icons';
 import { Button, Card, CheckboxControl, Drawer } from '@wordpress/ui';
 
@@ -67,9 +67,13 @@ const resetItems: Array< {
 	{
 		id: 'importers',
 		label: __( 'Reset importers', 'updatebee' ),
-		description: __(
-			'Restores hidden importer cards on the Tools screen. This does not reset UpdateBee settings.',
-			'updatebee'
+		description: sprintf(
+			/* translators: %s: Plugin name. */
+			__(
+				'Restores hidden importer cards on the Tools screen. This does not reset %s settings.',
+				'updatebee'
+			),
+			updatebeeAdvanced.pluginName
 		),
 	},
 	{

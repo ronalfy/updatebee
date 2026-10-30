@@ -2,7 +2,7 @@
  * Emails admin tab.
  */
 import { useCallback, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import EmailReportCard from './EmailReportCard';
 import EmailsFooter from './EmailsFooter';
@@ -40,9 +40,13 @@ const EmailsMain = () => {
 	return (
 		<div className="updatebee-emails-main">
 			<p className="updatebee-emails-intro">
-				{ __(
-					'Control WordPress built-in update emails and configure UpdateBee success, failure, and fatal error reports.',
-					'updatebee'
+				{ sprintf(
+					/* translators: %s: Plugin name. */
+					__(
+						'Control WordPress built-in update emails and configure %s success, failure, and fatal error reports.',
+						'updatebee'
+					),
+					updatebeeEmails.pluginName
 				) }
 			</p>
 			<WordPressEmailsCard onNotify={ showSnackbar } />

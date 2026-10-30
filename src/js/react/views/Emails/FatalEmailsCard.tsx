@@ -2,7 +2,7 @@
  * Immediate fatal error report toggle and recipients.
  */
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import {
 	CheckboxControl,
 	FormTokenField,
@@ -147,9 +147,13 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 			</Card.Header>
 			<Card.Content className="updatebee-emails-card-content">
 				<p className="description">
-					{ __(
-						'UpdateBee checks the front of the site and wp-admin after automatic plugin and theme updates. It never deactivates plugins. WordPress 6.6 or later may still restore a previous plugin version on its own.',
-						'updatebee'
+					{ sprintf(
+						/* translators: %s: Plugin name. */
+						__(
+							'%s checks the front of the site and wp-admin after automatic plugin and theme updates. It never deactivates plugins. WordPress 6.6 or later may still restore a previous plugin version on its own.',
+							'updatebee'
+						),
+						updatebeeEmails.pluginName
 					) }
 				</p>
 				<ToggleControl

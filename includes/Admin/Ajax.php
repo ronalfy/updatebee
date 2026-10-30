@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin;
 
+use UpdateBee\Branding;
 use UpdateBee\Cron\Clear_Logs;
 use UpdateBee\Emails\Email_Failures;
 use UpdateBee\Emails\Email_Fatals;
@@ -86,6 +87,9 @@ class Ajax {
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
 		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
+
+		// Branding Ajax actions.
+		add_action( 'wp_ajax_updatebee_save_branding_settings', array( $this, 'save_branding_settings' ) );
 	}
 
 	/**
@@ -1581,7 +1585,11 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'Easy Updates Manager settings have been migrated to UpdateBee.', 'updatebee' ),
+				'message' => sprintf(
+					/* translators: %s: Plugin name. */
+					__( 'Easy Updates Manager settings have been migrated to %s.', 'updatebee' ),
+					Functions::get_plugin_name()
+				),
 			)
 		);
 	}
@@ -1626,7 +1634,11 @@ class Ajax {
 
 		wp_send_json_success(
 			array(
-				'message' => __( 'Companion Auto Update settings have been migrated to UpdateBee.', 'updatebee' ),
+				'message' => sprintf(
+					/* translators: %s: Plugin name. */
+					__( 'Companion Auto Update settings have been migrated to %s.', 'updatebee' ),
+					Functions::get_plugin_name()
+				),
 			)
 		);
 	}
@@ -2029,6 +2041,45 @@ class Ajax {
 		}
 
 		return (bool) rest_sanitize_boolean( $value );
+	}
+
+	/**
+	 * Save branding / white-label settings.
+	 */
+	public function save_branding_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-branding-settings', 'nonce' );
+
+		$to_save = Branding::sanitize_settings(
+			array(
+				'branding_name'        => isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in Branding::sanitize_settings().
+				'branding_description' => isset( $_POST['description'] ) ? wp_unslash( $_POST['description'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in Branding::sanitize_settings().
+				'branding_author'      => isset( $_POST['author'] ) ? wp_unslash( $_POST['author'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in Branding::sanitize_settings().
+				'branding_url'         => isset( $_POST['url'] ) ? wp_unslash( $_POST['url'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in Branding::sanitize_settings().
+			)
+		);
+
+		$updated = Options::update_options( '', $to_save );
+		if ( null === $updated ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Branding settings could not be saved.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'name'        => Branding::get_saved_name(),
+				'description' => Branding::get_saved_description(),
+				'author'      => Branding::get_saved_author(),
+				'url'         => Branding::get_saved_url(),
+				'message'     => __( 'Branding settings have been saved.', 'updatebee' ),
+			)
+		);
 	}
 
 	/**

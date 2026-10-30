@@ -163,6 +163,13 @@ class Plugin {
 	private Network_Admin_Bar $network_admin_bar;
 
 	/**
+	 * White-label branding.
+	 *
+	 * @var Branding
+	 */
+	private Branding $branding;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Plugin
@@ -202,6 +209,9 @@ class Plugin {
 	 * Fired when the plugins for WordPress have finished loading.
 	 */
 	public function plugins_loaded(): void {
+		$this->branding = new Branding();
+		$this->branding->run();
+
 		$this->admin_settings_links = new Plugin_Settings_Links();
 		$this->admin_settings_links->run();
 
