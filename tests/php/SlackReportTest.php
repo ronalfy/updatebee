@@ -209,6 +209,7 @@ class SlackReportTest extends TestCase {
 		$this->assertSame( '*Trigger:* Manual', $blocks[3]['fields'][1]['text'] );
 		$this->assertSame( '*Succeeded:* 1', $blocks[3]['fields'][2]['text'] );
 		$this->assertSame( '*Failed:* 1', $blocks[3]['fields'][3]['text'] );
+		$this->assertCount( 5, $blocks[3]['fields'] );
 		$this->assertSame( '*User:* Ada Lovelace', $blocks[3]['fields'][4]['text'] );
 		$this->assertSame( 'WordPress core', $blocks[5]['text']['text'] );
 		$this->assertSame( 'Plugins', $blocks[8]['text']['text'] );
@@ -217,6 +218,32 @@ class SlackReportTest extends TestCase {
 		$button = $blocks[11]['elements'][0];
 		$this->assertSame( 'view_logs', $button['action_id'] );
 		$this->assertStringContainsString( 'tab=logs', $button['url'] );
+	}
+
+	/**
+	 * Fatal rows add a Fatals field.
+	 */
+	public function test_build_message_includes_fatal_count(): void {
+		$this->stub_helpers();
+		$report  = new Slack_Report();
+		$message = $report->build_message(
+			array(
+				array(
+					'name'          => 'Hello Dolly',
+					'update_type'   => 'plugin',
+					'from_version'  => '1.7.2',
+					'to_version'    => '1.7.3',
+					'update_status' => 'fatal',
+					'user_id'       => '0',
+				),
+			),
+			'automatic'
+		);
+
+		$fields = $message['blocks'][3]['fields'];
+		$this->assertSame( '*Succeeded:* 0', $fields[2]['text'] );
+		$this->assertSame( '*Failed:* 0', $fields[3]['text'] );
+		$this->assertSame( '*Fatals:* 1', $fields[4]['text'] );
 	}
 
 	/**

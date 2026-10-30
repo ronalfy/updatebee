@@ -80,6 +80,9 @@ class Options {
 			'upgrade_notice_keywords_enabled'  => false,
 			'block_untested_updates'           => 'off',
 			'disable_wp_cron'                  => false,
+			'fatal_error_detection'            => true,
+			'fatal_email_recipients'           => array(),
+			'fatal_notify_slack'               => false,
 		);
 
 		/**

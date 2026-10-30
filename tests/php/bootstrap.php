@@ -122,6 +122,24 @@ if ( ! class_exists( 'WP_Error' ) ) {
 		public function get_error_message() {
 			return $this->message;
 		}
+
+		/**
+		 * Get error codes.
+		 *
+		 * @return array<int, string>
+		 */
+		public function get_error_codes() {
+			return '' === $this->code ? array() : array( $this->code );
+		}
+
+		/**
+		 * Get error messages.
+		 *
+		 * @return array<int, string>
+		 */
+		public function get_error_messages() {
+			return '' === $this->message ? array() : array( $this->message );
+		}
 	}
 }
 

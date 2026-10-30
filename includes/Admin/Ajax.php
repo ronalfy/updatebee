@@ -9,10 +9,13 @@ namespace UpdateBee\Admin;
 
 use UpdateBee\Cron\Clear_Logs;
 use UpdateBee\Emails\Email_Failures;
+use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Emails\Email_Successes;
 use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
+use UpdateBee\Slack\Slack_Webhook;
+use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
@@ -69,6 +72,7 @@ class Ajax {
 		// Email Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_email_settings', array( $this, 'retrieve_email_settings' ) );
 		add_action( 'wp_ajax_updatebee_save_wordpress_email_settings', array( $this, 'save_wordpress_email_settings' ) );
+		add_action( 'wp_ajax_updatebee_save_fatal_email_settings', array( $this, 'save_fatal_email_settings' ) );
 
 		// Tools Ajax actions.
 		add_action( 'wp_ajax_updatebee_force_updates', array( $this, 'force_updates' ) );
@@ -1838,6 +1842,55 @@ class Ajax {
 	}
 
 	/**
+	 * Save fatal error detection and email recipients.
+	 */
+	public function save_fatal_email_settings(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-save-fatal-email-settings', 'nonce' );
+
+		$enabled      = $this->get_posted_enabled();
+		$recipients   = $this->get_posted_email_recipients();
+		$notify_slack = $this->get_posted_notify_slack();
+
+		if ( $enabled && empty( $recipients ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You must enter at least one email address.', 'updatebee' ),
+				)
+			);
+		}
+
+		if ( $notify_slack && ! Slack_Webhook::is_configured() ) {
+			$notify_slack = false;
+		}
+
+		$updated = Options::update_options(
+			'',
+			array(
+				'fatal_error_detection'  => $enabled,
+				'fatal_email_recipients' => $recipients,
+				'fatal_notify_slack'     => $notify_slack,
+			)
+		);
+
+		if ( null === $updated ) {
+			wp_send_json_error();
+		}
+
+		wp_send_json_success(
+			array(
+				'fatal_error_detection'  => Fatal_Detection::is_enabled(),
+				'fatal_email_recipients' => Email_Fatals::get_recipients_for_display(),
+				'fatal_notify_slack'     => (bool) Options::get_options( 'fatal_notify_slack' ),
+				'message'                => __( 'Fatal error report settings saved.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
 	 * Save delayed automatic update days, keywords, and untested updates.
 	 */
 	public function save_advanced_settings(): void {
@@ -1934,6 +1987,27 @@ class Ajax {
 		}
 
 		wp_send_json_success( $response );
+	}
+
+	/**
+	 * Sanitize a posted Slack notification flag.
+	 *
+	 * @return bool True when Slack should be notified.
+	 */
+	private function get_posted_notify_slack(): bool {
+		// Callers verify a nonce before reading the Slack flag.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST['notifySlack'] ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$value = wp_unslash( $_POST['notifySlack'] );
+		if ( is_array( $value ) ) {
+			return false;
+		}
+
+		return (bool) rest_sanitize_boolean( $value );
 	}
 
 	/**

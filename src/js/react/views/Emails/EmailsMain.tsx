@@ -6,6 +6,7 @@ import { __ } from '@wordpress/i18n';
 import { useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import EmailReportCard from './EmailReportCard';
 import EmailsFooter from './EmailsFooter';
+import FatalEmailsCard from './FatalEmailsCard';
 import WordPressEmailsCard from './WordPressEmailsCard';
 import type { SnackbarState, SnackbarType } from '../Tools/ToolsFooter';
 
@@ -40,7 +41,7 @@ const EmailsMain = () => {
 		<div className="updatebee-emails-main">
 			<p className="updatebee-emails-intro">
 				{ __(
-					'Control WordPress built-in update emails and configure UpdateBee success and failure reports.',
+					'Control WordPress built-in update emails and configure UpdateBee success, failure, and fatal error reports.',
 					'updatebee'
 				) }
 			</p>
@@ -65,6 +66,7 @@ const EmailsMain = () => {
 				deliveryOptions={ null }
 				onNotify={ showSnackbar }
 			/>
+			<FatalEmailsCard onNotify={ showSnackbar } />
 			<EmailReportCard
 				kind="updates-available"
 				title={ __( 'Available updates', 'updatebee' ) }

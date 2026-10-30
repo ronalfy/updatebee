@@ -87,12 +87,15 @@ class Slack_Report {
 		$logs_url  = Functions::get_settings_url( 'logs' );
 		$successes = 0;
 		$failures  = 0;
+		$fatals    = 0;
 
 		foreach ( $rows as $row ) {
 			if ( 'success' === $row['update_status'] ) {
 				++$successes;
 			} elseif ( 'failure' === $row['update_status'] ) {
 				++$failures;
+			} elseif ( 'fatal' === $row['update_status'] ) {
+				++$fatals;
 			}
 		}
 
@@ -118,6 +121,13 @@ class Slack_Report {
 				'text' => __( '*Failed:*', 'updatebee' ) . ' ' . (string) $failures,
 			),
 		);
+
+		if ( $fatals > 0 ) {
+			$fields[] = array(
+				'type' => 'mrkdwn',
+				'text' => __( '*Fatals:*', 'updatebee' ) . ' ' . (string) $fatals,
+			);
+		}
 
 		if ( 'manual' === $offer ) {
 			$fields[] = array(
