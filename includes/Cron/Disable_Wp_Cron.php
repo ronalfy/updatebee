@@ -108,6 +108,7 @@ class Disable_Wp_Cron {
 		}
 
 		if ( self::is_option_enabled() && ! defined( 'DISABLE_WP_CRON' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant this setting controls.
 			define( 'DISABLE_WP_CRON', true );
 		}
 	}

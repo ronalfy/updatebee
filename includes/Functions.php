@@ -392,7 +392,7 @@ class Functions {
 		$blocked  = 0;
 		switch ( $type ) {
 			case 'plugins':
-				$plugins = apply_filters( 'all_plugins', get_plugins() );
+				$plugins = self::get_installed_plugin_files();
 				foreach ( $plugins as $file => $plugin ) {
 					if ( self::auto_updates_enabled( $file, 'plugin' ) ) {
 						++$enabled;
@@ -403,7 +403,7 @@ class Functions {
 				$blocked = count( Options::get_options( 'blocked_plugins' ) );
 				break;
 			case 'themes':
-				$themes = apply_filters( 'all_themes', wp_get_themes() );
+				$themes = self::get_installed_themes();
 				foreach ( $themes as $slug => $theme ) {
 					if ( self::auto_updates_enabled( $slug, 'theme' ) ) {
 						++$enabled;
@@ -444,7 +444,7 @@ class Functions {
 	public static function get_auto_updates_plugins( $mode = 'active' ) {
 
 		// Gets all active plugins on the current site.
-		$plugins                       = apply_filters( 'all_plugins', get_plugins() );
+		$plugins                       = self::get_installed_plugin_files();
 		$auto_updated_plugins          = array();
 		$auto_updated_plugins_disabled = array();
 
@@ -518,7 +518,7 @@ class Functions {
 						$translation_slug = sanitize_title( $group . '-' . $locale ); // admin-da_DK.
 
 						$plugin_updates = get_site_transient( 'update_plugins' );
-						$plugins        = apply_filters( 'all_plugins', get_plugins() );
+						$plugins        = self::get_installed_plugin_files();
 						$plugin_data    = array();
 						if ( isset( $plugin_updates->response ) ) {
 							foreach ( $plugin_updates->response as $plugin_path => $update_info ) {
@@ -685,8 +685,8 @@ class Functions {
 	 */
 	public static function get_auto_updates_themes( $mode = 'active' ) {
 
-		// Gets all active plugins on the current site.
-		$themes                       = apply_filters( 'all_themes', wp_get_themes() );
+		// Gets all installed themes on the current site.
+		$themes                       = self::get_installed_themes();
 		$auto_updated_themes          = array();
 		$auto_updated_themes_disabled = array();
 
@@ -1049,13 +1049,13 @@ class Functions {
 			return false;
 		}
 
-		$table_name = Table_Logs::get_table_name();
+		$table_name = \esc_sql( Table_Logs::get_table_name() );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching -- Deduplicating custom logs table.
 		$found = $wpdb->get_var(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is internal.
-				"SELECT id FROM {$table_name} WHERE slug = %s AND update_type = %s AND update_status = %s AND to_version = %s LIMIT 1",
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is escaped with esc_sql.
+				"SELECT id FROM `{$table_name}` WHERE slug = %s AND update_type = %s AND update_status = %s AND to_version = %s LIMIT 1",
 				$id,
 				$type,
 				$status,
@@ -1215,6 +1215,7 @@ class Functions {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
 		$all_plugins = apply_filters( 'all_plugins', get_plugins() );
 		if ( ! is_array( $all_plugins ) ) {
 			return array();
@@ -1358,6 +1359,7 @@ class Functions {
 	 * @return array<string, \WP_Theme> Theme objects.
 	 */
 	public static function get_installed_themes(): array {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
 		$all_themes = apply_filters( 'all_themes', wp_get_themes() );
 		if ( ! is_array( $all_themes ) ) {
 			return array();

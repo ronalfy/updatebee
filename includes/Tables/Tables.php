@@ -226,8 +226,9 @@ abstract class Tables {
 	public static function drop_table() {
 		global $wpdb;
 		// Initialize the database connection.
-		$table_name = sanitize_key( static::get_table_name( true ) );
-		$result     = $wpdb->query( "DROP TABLE IF EXISTS {$table_name}" );
+		$table_name = \esc_sql( static::get_table_name( true ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dropping a plugin-owned table; name escaped with esc_sql.
+		$result = $wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
 
 		// Remove the version and schema fingerprint options.
 		delete_option( static::get_table_name( false ) . '_version' );
@@ -256,9 +257,9 @@ abstract class Tables {
 	 */
 	public static function get_count() {
 		global $wpdb;
-		$table_name = static::get_table_name();
-		$sql        = "SELECT COUNT(*) FROM $table_name";
-		$count      = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$table_name = \esc_sql( static::get_table_name() );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Plugin-owned table; name escaped with esc_sql.
+		$count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$table_name}`" );
 
 		if ( is_wp_error( $count ) || ! is_numeric( $count ) ) {
 			return 0;
@@ -280,7 +281,7 @@ abstract class Tables {
 			return new \WP_Error( 'no_records', __( 'No records to insert.', 'updatebee' ) );
 		}
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 
 		// Remove ID from columns, as we don't need it for the insert.
 		$columns = array_keys( static::$columns );
@@ -326,8 +327,8 @@ abstract class Tables {
 				implode( ', ', $placeholders )
 			);
 
-			$prepared = $wpdb->prepare( $sql, $data ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$result   = $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query is prepared; table name escaped with esc_sql.
+			$result = $wpdb->query( $wpdb->prepare( $sql, $data ) );
 
 			if ( 0 === $result || false === $result ) {
 
@@ -351,7 +352,7 @@ abstract class Tables {
 			return new \WP_Error( 'no_records', __( 'No records to update.', 'updatebee' ) );
 		}
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 		$columns    = array_keys( static::$columns );
 		$columns    = array_diff( $columns, array( 'id' ) );
 		$chunks     = array_chunk( $records, 50 ); // Process in chunks of 50 records.
@@ -409,8 +410,8 @@ abstract class Tables {
 				implode( ',', $ids )
 			);
 
-			$prepared = $wpdb->prepare( $sql, $data ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$result   = $wpdb->query( $prepared ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query is prepared; table name escaped with esc_sql.
+			$result = $wpdb->query( $wpdb->prepare( $sql, $data ) );
 
 			if ( false === $result ) {
 				return new \WP_Error( 'update_failed', __( 'Failed to update records.', 'updatebee' ) );
@@ -433,7 +434,7 @@ abstract class Tables {
 			return new \WP_Error( 'no_records', __( 'No records to delete.', 'updatebee' ) );
 		}
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 		$chunks     = array_chunk( $records, 50 ); // Process in chunks of 50 records.
 
 		foreach ( $chunks as $chunk ) {
@@ -453,11 +454,10 @@ abstract class Tables {
 				continue;
 			}
 
-			// Create placeholders for the IDs.
-			$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+			$id_list = implode( ',', $ids );
 
-			$sql    = $wpdb->prepare( "DELETE FROM {$table_name} WHERE id IN ($placeholders)", $ids ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- IDs are absint; table name escaped with esc_sql.
+			$result = $wpdb->query( "DELETE FROM `{$table_name}` WHERE id IN ({$id_list})" );
 
 			if ( false === $result ) {
 				return new \WP_Error( 'delete_failed', __( 'Failed to delete records.', 'updatebee' ) );
@@ -482,21 +482,34 @@ abstract class Tables {
 			return false;
 		}
 
-		$table_name = static::get_table_name();
-		$column_def = static::$columns[ $column ];
+		$column_def  = static::$columns[ $column ];
+		$table_name  = \esc_sql( static::get_table_name() );
+		$placeholder = isset( $column_def['prepare_symbol'] ) ? (string) $column_def['prepare_symbol'] : '%s';
 
 		// Sanitize the value using the column's sanitize callback.
 		if ( is_callable( $column_def['sanitize'] ) ) {
 			$value = call_user_func( $column_def['sanitize'], $value );
 		}
 
-		// Prepare the query.
-		$query = $wpdb->prepare(
-			"SELECT * FROM {$table_name} WHERE {$column} = {$column_def['prepare_symbol']} LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$value
-		);
-
-		$result = $wpdb->get_row( $query, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table/column names are escaped or allow-listed; value is prepared.
+		if ( '%d' === $placeholder ) {
+			$result = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM `{$table_name}` WHERE `{$column}` = %d LIMIT 1",
+					$value
+				),
+				ARRAY_A
+			);
+		} else {
+			$result = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM `{$table_name}` WHERE `{$column}` = %s LIMIT 1",
+					$value
+				),
+				ARRAY_A
+			);
+		}
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		return $result ? $result : false;
 	}
@@ -518,8 +531,9 @@ abstract class Tables {
 	protected static function get_all() {
 		global $wpdb;
 
-		$table_name = self::get_table_name();
-		$results    = $wpdb->get_results( "SELECT * FROM {$table_name}", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$table_name = \esc_sql( self::get_table_name() );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Plugin-owned table; name escaped with esc_sql.
+		$results = $wpdb->get_results( "SELECT * FROM `{$table_name}`", ARRAY_A );
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();

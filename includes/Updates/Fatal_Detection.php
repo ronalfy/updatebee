@@ -500,10 +500,12 @@ class Fatal_Detection {
 		}
 
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- Match core loopback scrape timeout.
 			set_time_limit( 300 );
 		}
 
-		$timeout   = 50;
+		$timeout = 50;
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter, matching core loopback.
 		$sslverify = apply_filters( 'https_local_ssl_verify', false, $url );
 		$request   = add_query_arg( $scrape_params, $url );
 		$response  = wp_safe_remote_get(

@@ -238,14 +238,9 @@ class Settings_Page {
 				 *
 				 * @param string $current_sub_tab Sub tab.
 				 */
-				do_action(
-					sprintf(
-						'updatebee_admin_sub_tab_%s_%s',
-						sanitize_title( $current_tab ),
-						sanitize_title( $current_sub_tab )
-					),
-					$current_sub_tab
-				);
+				$sub_tab_hook = 'updatebee_admin_sub_tab_' . sanitize_title( $current_tab ) . '_' . sanitize_title( $current_sub_tab );
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook is prefixed with updatebee_admin_sub_tab_.
+				do_action( $sub_tab_hook, $current_sub_tab );
 			}
 		}
 
@@ -258,6 +253,7 @@ class Settings_Page {
 			 * @param string      $current_tab     Tab.
 			 * @param string|null $current_sub_tab Sub tab.
 			 */
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Action name comes from the prefixed updatebee_admin_tabs filter.
 			do_action( $do_action, $current_tab, $current_sub_tab );
 		}
 

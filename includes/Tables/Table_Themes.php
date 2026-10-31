@@ -171,9 +171,9 @@ class Table_Themes extends Tables {
 	public static function get_all_notes(): array {
 		global $wpdb;
 
-		$table_name = static::get_table_name();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$results = $wpdb->get_results( "SELECT theme_slug, notes FROM {$table_name}", ARRAY_A );
+		$table_name = \esc_sql( static::get_table_name() );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup; name escaped with esc_sql.
+		$results = $wpdb->get_results( "SELECT theme_slug, notes FROM `{$table_name}`", ARRAY_A );
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();
@@ -220,9 +220,9 @@ class Table_Themes extends Tables {
 			return array();
 		}
 
-		$table_name = static::get_table_name();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$results = $wpdb->get_results( "SELECT theme_slug, delay_days, block_untested_updates FROM {$table_name}", ARRAY_A );
+		$table_name = \esc_sql( static::get_table_name() );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup; name escaped with esc_sql.
+		$results = $wpdb->get_results( "SELECT theme_slug, delay_days, block_untested_updates FROM `{$table_name}`", ARRAY_A );
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();

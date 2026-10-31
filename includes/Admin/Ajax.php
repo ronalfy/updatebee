@@ -208,10 +208,7 @@ class Ajax {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
-		$all_plugins = apply_filters( 'all_plugins', get_plugins() );
-		if ( ! is_array( $all_plugins ) ) {
-			$all_plugins = array();
-		}
+		$all_plugins = Functions::get_installed_plugin_files();
 
 		$active_plugin_slugs = Functions::get_active_plugins();
 		if ( ! is_array( $active_plugin_slugs ) ) {
@@ -934,7 +931,7 @@ class Ajax {
 
 		$filters = array();
 		if ( isset( $_POST['filters'] ) && is_array( $_POST['filters'] ) ) {
-			$raw_filters = Functions::sanitize_array_recursive( wp_unslash( $_POST['filters'] ) );
+			$raw_filters = map_deep( wp_unslash( $_POST['filters'] ), 'sanitize_text_field' );
 			foreach ( $raw_filters as $filter ) {
 				if ( ! is_array( $filter ) || ! isset( $filter['field'] ) || ! isset( $filter['value'] ) ) {
 					continue;

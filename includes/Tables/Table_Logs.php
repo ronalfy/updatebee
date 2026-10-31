@@ -192,20 +192,21 @@ class Table_Logs extends Tables {
 	public static function get_logs(): array {
 		global $wpdb;
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 		$limit      = absint( apply_filters( 'updatebee_log_table_limit', 500 ) );
 		if ( $limit < 1 ) {
 			$limit = 500;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated internally.
-		$sql = $wpdb->prepare(
-			"SELECT * FROM {$table_name} ORDER BY id DESC LIMIT %d",
-			$limit
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name escaped with esc_sql.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM `{$table_name}` ORDER BY id DESC LIMIT %d",
+				$limit
+			),
+			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();
@@ -242,7 +243,7 @@ class Table_Logs extends Tables {
 		$sort_field          = in_array( $args['sort_field'], $allowed_sort_fields, true ) ? $args['sort_field'] : 'id';
 		$sort_direction      = 'asc' === strtolower( $args['sort_direction'] ) ? 'ASC' : 'DESC';
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 
 		$where  = array( '1=1' );
 		$values = array();
@@ -273,27 +274,30 @@ class Table_Logs extends Tables {
 
 		$where_sql = implode( ' AND ', $where );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Safe values and internally-generated table/column names.
-		$count_sql = $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$table_name} WHERE {$where_sql}",
-			$values
-		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$total = (int) $wpdb->get_var( $count_sql );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table/column names are escaped or allow-listed; values are prepared.
+		if ( ! empty( $values ) ) {
+			$total = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM `{$table_name}` WHERE {$where_sql}",
+					...$values
+				)
+			);
+		} else {
+			$total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table_name}` WHERE {$where_sql}" );
+		}
 
 		$query_values   = $values;
 		$query_values[] = $per_page;
 		$query_values[] = $offset;
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$sql = $wpdb->prepare(
-			"SELECT * FROM {$table_name} WHERE {$where_sql} ORDER BY {$sort_field} {$sort_direction} LIMIT %d OFFSET %d",
-			$query_values
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM `{$table_name}` WHERE {$where_sql} ORDER BY {$sort_field} {$sort_direction} LIMIT %d OFFSET %d",
+				...$query_values
+			),
+			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			$results = array();
@@ -318,17 +322,17 @@ class Table_Logs extends Tables {
 			return null;
 		}
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is generated internally.
-		$sql = $wpdb->prepare(
-			"SELECT * FROM {$table_name} WHERE id = %d LIMIT 1",
-			$id
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name escaped with esc_sql.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM `{$table_name}` WHERE id = %d LIMIT 1",
+				$id
+			),
+			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$row = $wpdb->get_row( $sql, ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		if ( empty( $row ) || ! is_array( $row ) ) {
 			return null;
@@ -345,11 +349,10 @@ class Table_Logs extends Tables {
 	public static function clear_logs(): bool {
 		global $wpdb;
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is generated internally.
-		$result = $wpdb->query( "DELETE FROM {$table_name}" );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name escaped with esc_sql.
+		$result = $wpdb->query( "DELETE FROM `{$table_name}`" );
 
 		return false !== $result;
 	}
@@ -367,20 +370,20 @@ class Table_Logs extends Tables {
 
 		global $wpdb;
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 		$cutoff     = wp_date( 'Y-m-d H:i:s', time() - ( $days * DAY_IN_SECONDS ) );
 		if ( ! is_string( $cutoff ) || '' === $cutoff ) {
 			return false;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Table name is generated internally.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name escaped with esc_sql.
 		$result = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table_name} WHERE date < %s",
+				"DELETE FROM `{$table_name}` WHERE date < %s",
 				$cutoff
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		return false !== $result;
 	}
@@ -405,7 +408,7 @@ class Table_Logs extends Tables {
 			)
 		);
 
-		$table_name = static::get_table_name();
+		$table_name = \esc_sql( static::get_table_name() );
 		$limit      = absint( apply_filters( 'updatebee_export_log_limit', 500 ) );
 		if ( $limit < 1 ) {
 			$limit = 500;
@@ -447,14 +450,15 @@ class Table_Logs extends Tables {
 		$where_sql = implode( ' AND ', $where );
 		$values[]  = $limit;
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and safe placeholders are generated internally.
-		$sql = $wpdb->prepare(
-			"SELECT name, slug, user_id, from_version, to_version, update_offer, update_type, update_status, date FROM {$table_name} WHERE {$where_sql} ORDER BY id ASC LIMIT %d",
-			$values
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Table name escaped; WHERE fragments are allow-listed.
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT name, slug, user_id, from_version, to_version, update_offer, update_type, update_status, date FROM `{$table_name}` WHERE {$where_sql} ORDER BY id ASC LIMIT %d",
+				...$values
+			),
+			ARRAY_A
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table lookup.
-		$results = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		if ( empty( $results ) || is_wp_error( $results ) ) {
 			return array();

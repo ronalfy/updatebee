@@ -101,12 +101,18 @@ class Email_Updates_Available extends Email_Report {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private function options_from_send_now_request() {
+		check_ajax_referer( 'updatebee-send-email-updates-available-now', 'nonce' );
+
 		$saved = static::get_options();
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
-		$to_field = isset( $_POST['toField'] ) ? wp_unslash( $_POST['toField'] ) : ( $saved['to_field'] ?? array() );
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below.
-		$bcc_field = isset( $_POST['bccField'] ) ? wp_unslash( $_POST['bccField'] ) : ( $saved['bcc_field'] ?? array() );
+		$to_field = $saved['to_field'] ?? array();
+		if ( isset( $_POST['toField'] ) && is_array( $_POST['toField'] ) ) {
+			$to_field = array_map( 'sanitize_email', wp_unslash( $_POST['toField'] ) );
+		}
+		$bcc_field = $saved['bcc_field'] ?? array();
+		if ( isset( $_POST['bccField'] ) && is_array( $_POST['bccField'] ) ) {
+			$bcc_field = array_map( 'sanitize_email', wp_unslash( $_POST['bccField'] ) );
+		}
 
 		if ( ! is_array( $to_field ) ) {
 			$to_field = array();
@@ -120,16 +126,21 @@ class Email_Updates_Available extends Email_Report {
 
 		$subject = isset( $_POST['subject'] ) ? sanitize_text_field( wp_unslash( $_POST['subject'] ) ) : (string) ( $saved['subject'] ?? '' );
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
-		$include_core = filter_var( wp_unslash( $_POST['includeCore'] ?? $saved['include_core'] ?? true ), FILTER_VALIDATE_BOOLEAN );
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
-		$include_plugins = filter_var( wp_unslash( $_POST['includePlugins'] ?? $saved['include_plugins'] ?? true ), FILTER_VALIDATE_BOOLEAN );
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
-		$include_themes = filter_var( wp_unslash( $_POST['includeThemes'] ?? $saved['include_themes'] ?? true ), FILTER_VALIDATE_BOOLEAN );
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
-		$include_translations = filter_var( wp_unslash( $_POST['includeTranslations'] ?? $saved['include_translations'] ?? true ), FILTER_VALIDATE_BOOLEAN );
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean flags validated below.
-		$notify_slack = filter_var( wp_unslash( $_POST['notifySlack'] ?? $saved['notify_slack'] ?? false ), FILTER_VALIDATE_BOOLEAN );
+		$include_core         = isset( $_POST['includeCore'] )
+			? (bool) \rest_sanitize_boolean( wp_unslash( $_POST['includeCore'] ) )
+			: (bool) ( $saved['include_core'] ?? true );
+		$include_plugins      = isset( $_POST['includePlugins'] )
+			? (bool) \rest_sanitize_boolean( wp_unslash( $_POST['includePlugins'] ) )
+			: (bool) ( $saved['include_plugins'] ?? true );
+		$include_themes       = isset( $_POST['includeThemes'] )
+			? (bool) \rest_sanitize_boolean( wp_unslash( $_POST['includeThemes'] ) )
+			: (bool) ( $saved['include_themes'] ?? true );
+		$include_translations = isset( $_POST['includeTranslations'] )
+			? (bool) \rest_sanitize_boolean( wp_unslash( $_POST['includeTranslations'] ) )
+			: (bool) ( $saved['include_translations'] ?? true );
+		$notify_slack         = isset( $_POST['notifySlack'] )
+			? (bool) \rest_sanitize_boolean( wp_unslash( $_POST['notifySlack'] ) )
+			: (bool) ( $saved['notify_slack'] ?? false );
 
 		if ( $notify_slack && ! \UpdateBee\Slack\Slack_Webhook::is_configured() ) {
 			return new \WP_Error(

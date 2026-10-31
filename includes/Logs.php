@@ -1250,7 +1250,7 @@ class Logs {
 			return array();
 		}
 
-		$tablename = sanitize_text_field( Table_Logs::get_table_name() );
+		$tablename = \esc_sql( Table_Logs::get_table_name() );
 
 		$valid_timestamp      = false;
 		$since_last_timestamp = absint( $since_last_timestamp );
@@ -1297,7 +1297,7 @@ class Logs {
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table query.
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Query is assembled from prepared fragments and an escaped table name.
 		$results = $wpdb->get_results( $query, \ARRAY_A );
 
 		if ( empty( $results ) || ! is_array( $results ) ) {

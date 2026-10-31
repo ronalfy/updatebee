@@ -147,6 +147,7 @@ class Init {
 	 */
 	public static function schedule_update_checks(): void {
 		if ( ! defined( 'DOING_CRON' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant required to run update checks.
 			define( 'DOING_CRON', true );
 		}
 
@@ -215,6 +216,7 @@ class Init {
 	 */
 	public function auto_update(): void {
 		if ( wp_doing_cron() && ! doing_action( 'wp_maybe_auto_update' ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core action.
 			do_action( 'wp_maybe_auto_update' );
 		}
 	}

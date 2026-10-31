@@ -80,10 +80,10 @@ class Cron_Ajax {
 	}
 
 	/**
-	 * Resolve context from current ajax action suffix.
+	 * Resolve context from the current ajax hook suffix.
 	 */
 	private function get_context_from_action(): ?string {
-		$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+		$action = current_action();
 		foreach ( self::SLUGS as $slug ) {
 			if ( str_ends_with( $action, $slug ) ) {
 				return Updates_Cron::context_from_slug( $slug );
@@ -111,25 +111,28 @@ class Cron_Ajax {
 	 * Save schedule for one context.
 	 */
 	public function ajax_save_cron_schedule(): void {
-		$this->verify_request();
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( Updates_Cron::NONCE_ACTION, 'nonce' );
 
 		$context = $this->get_context_from_action();
 		if ( null === $context ) {
 			wp_send_json_error();
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized in Updates_Cron.
-		$days_list = isset( $_POST['days_list'] ) ? wp_unslash( $_POST['days_list'] ) : array();
-		if ( ! is_array( $days_list ) ) {
-			$days_list = array();
+		$days_list = array();
+		if ( isset( $_POST['days_list'] ) && is_array( $_POST['days_list'] ) ) {
+			$days_list = map_deep( wp_unslash( $_POST['days_list'] ), 'sanitize_text_field' );
 		}
 
 		$input = array(
-			'schedule'   => isset( $_POST['schedule'] ) ? wp_unslash( $_POST['schedule'] ) : '',
-			'day'        => isset( $_POST['day'] ) ? wp_unslash( $_POST['day'] ) : '',
-			'week'       => isset( $_POST['week'] ) ? wp_unslash( $_POST['week'] ) : '',
-			'start_time' => isset( $_POST['start_time'] ) ? wp_unslash( $_POST['start_time'] ) : '',
-			'day_num'    => isset( $_POST['day_num'] ) ? wp_unslash( $_POST['day_num'] ) : '',
+			'schedule'   => isset( $_POST['schedule'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule'] ) ) : '',
+			'day'        => isset( $_POST['day'] ) ? sanitize_text_field( wp_unslash( $_POST['day'] ) ) : '',
+			'week'       => isset( $_POST['week'] ) ? sanitize_text_field( wp_unslash( $_POST['week'] ) ) : '',
+			'start_time' => isset( $_POST['start_time'] ) ? sanitize_text_field( wp_unslash( $_POST['start_time'] ) ) : '',
+			'day_num'    => isset( $_POST['day_num'] ) ? sanitize_text_field( wp_unslash( $_POST['day_num'] ) ) : '',
 			'days_list'  => $days_list,
 		);
 
@@ -161,7 +164,11 @@ class Cron_Ajax {
 	 * Save the network-wide disable WordPress native cron option.
 	 */
 	public function ajax_save_disable_wp_cron(): void {
-		$this->verify_request();
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( Updates_Cron::NONCE_ACTION, 'nonce' );
 
 		if ( ! Disable_Wp_Cron::can_manage_option() ) {
 			wp_send_json_error(
@@ -172,13 +179,8 @@ class Cron_Ajax {
 			);
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce verified above.
-		$raw = isset( $_POST['enabled'] ) ? wp_unslash( $_POST['enabled'] ) : false;
-		if ( is_array( $raw ) ) {
-			$enabled = false;
-		} else {
-			$enabled = (bool) rest_sanitize_boolean( $raw );
-		}
+		$raw     = isset( $_POST['enabled'] ) ? sanitize_text_field( wp_unslash( $_POST['enabled'] ) ) : '';
+		$enabled = (bool) \rest_sanitize_boolean( $raw );
 
 		$updated = Options::update_options(
 			Disable_Wp_Cron::OPTION_KEY,
@@ -251,7 +253,11 @@ class Cron_Ajax {
 	 * Delete a cron event.
 	 */
 	public function ajax_delete_cron_event(): void {
-		$this->verify_events_request();
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( Cron_Events::EVENTS_NONCE_ACTION, 'nonce' );
 
 		$hook      = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
 		$sig       = isset( $_POST['sig'] ) ? sanitize_text_field( wp_unslash( $_POST['sig'] ) ) : '';
@@ -286,7 +292,11 @@ class Cron_Ajax {
 	 * Run a cron event immediately.
 	 */
 	public function ajax_run_cron_event(): void {
-		$this->verify_events_request();
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( Cron_Events::EVENTS_NONCE_ACTION, 'nonce' );
 
 		$hook = isset( $_POST['hook'] ) ? sanitize_text_field( wp_unslash( $_POST['hook'] ) ) : '';
 		$sig  = isset( $_POST['sig'] ) ? sanitize_text_field( wp_unslash( $_POST['sig'] ) ) : '';

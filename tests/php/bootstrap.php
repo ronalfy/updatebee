@@ -51,6 +51,37 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( 'esc_sql' ) ) {
+	/**
+	 * Test stub for esc_sql().
+	 *
+	 * @param string|array $data Data to escape.
+	 * @return string|array
+	 */
+	function esc_sql( $data ) {
+		return $data;
+	}
+}
+
+if ( ! function_exists( 'rest_sanitize_boolean' ) ) {
+	/**
+	 * Test stub for rest_sanitize_boolean().
+	 *
+	 * @param mixed $value Value to sanitize.
+	 * @return bool
+	 */
+	function rest_sanitize_boolean( $value ) {
+		if ( is_string( $value ) ) {
+			$value = strtolower( $value );
+			if ( in_array( $value, array( 'false', '0', 'no', 'off', '' ), true ) ) {
+				return false;
+			}
+		}
+
+		return (bool) $value;
+	}
+}
+
 if ( ! function_exists( 'wp_unslash' ) ) {
 	/**
 	 * Test stub for wp_unslash().
