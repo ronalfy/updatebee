@@ -6,13 +6,12 @@
  * Version:           1.0.0
  * Requires at least: 7.0
  * Tested up to:      7.1
- * Requires PHP:      8.0
+ * Requires PHP:      8.2
  * Author:            MediaRon LLC
  * Author URI:        https://mediaron.com
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       updatebee
- * Domain Path:       /languages
  * Network:           true
  *
  * @package updatebee
