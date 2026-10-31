@@ -5,7 +5,6 @@
  * Description:       Take complete control over your automatic updates.
  * Version:           1.0.0
  * Requires at least: 7.0
- * Tested up to:      7.1
  * Requires PHP:      8.2
  * Author:            MediaRon LLC
  * Author URI:        https://mediaron.com

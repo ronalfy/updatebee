@@ -29,6 +29,7 @@ module.exports = function( grunt ) {
 		{ src: [ 'assets/**' ], dest: '/' },
 		{ src: [ 'build/**', '!build/**/*.map' ], dest: '/' },
 		{ src: [ 'languages/**' ], dest: '/' },
+		{ src: [ 'composer.json	' ], dest: '/', filter: 'isFile' },
 	];
 
 	grunt.registerTask(
