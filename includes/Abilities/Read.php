@@ -14,6 +14,7 @@ use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
 use UpdateBee\Updates\Fatal_Detection;
+use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
 
 /**
@@ -359,7 +360,11 @@ class Read {
 	 * @return array<string, mixed> Update offers keyed by file or stylesheet.
 	 */
 	private static function transient_response( string $transient ): array {
-		$updates = get_site_transient( $transient );
+		$updates = Hide_Blocked_Updates::unfiltered(
+			static function () use ( $transient ) {
+				return get_site_transient( $transient );
+			}
+		);
 		if ( ! is_object( $updates ) || ! isset( $updates->response ) || ! is_array( $updates->response ) ) {
 			return array();
 		}
@@ -373,7 +378,11 @@ class Read {
 	 * @return array<int, array<string, string>> Core offers.
 	 */
 	private static function core_updates(): array {
-		$core = get_site_transient( 'update_core' );
+		$core = Hide_Blocked_Updates::unfiltered(
+			static function () {
+				return get_site_transient( 'update_core' );
+			}
+		);
 		if ( ! is_object( $core ) || empty( $core->updates ) || ! is_array( $core->updates ) ) {
 			return array();
 		}
@@ -484,7 +493,11 @@ class Read {
 		$seen = array();
 
 		foreach ( array( 'update_core', 'update_plugins', 'update_themes' ) as $transient ) {
-			$updates = get_site_transient( $transient );
+			$updates = Hide_Blocked_Updates::unfiltered(
+				static function () use ( $transient ) {
+					return get_site_transient( $transient );
+				}
+			);
 			if ( ! is_object( $updates ) || empty( $updates->translations ) || ! is_array( $updates->translations ) ) {
 				continue;
 			}
