@@ -26,6 +26,7 @@ class Init {
 		Themes::get_instance();
 		Translations::get_instance();
 		Delay_Updates::get_instance();
+		Hide_Blocked_Updates::get_instance();
 		Upgrade_Notice_Keywords::get_instance();
 		Untested_Updates::get_instance();
 

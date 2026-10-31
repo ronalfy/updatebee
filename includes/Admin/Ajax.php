@@ -17,6 +17,7 @@ use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Slack\Slack_Webhook;
 use UpdateBee\Updates\Fatal_Detection;
+use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
@@ -269,7 +270,11 @@ class Ajax {
 			$all_plugins[ $file ] = $plugin;
 		}
 
-		$plugin_info = get_site_transient( 'update_plugins' );
+		$plugin_info = Hide_Blocked_Updates::unfiltered(
+			static function () {
+				return get_site_transient( 'update_plugins' );
+			}
+		);
 		if ( is_object( $plugin_info ) ) {
 			foreach ( $all_plugins as $plugin_file => $plugin_data ) {
 				if ( ! is_string( $plugin_file ) || ! is_array( $plugin_data ) ) {
@@ -605,7 +610,11 @@ class Ajax {
 			);
 		}
 
-		$theme_info = get_site_transient( 'update_themes' );
+		$theme_info = Hide_Blocked_Updates::unfiltered(
+			static function () {
+				return get_site_transient( 'update_themes' );
+			}
+		);
 		if ( is_object( $theme_info ) ) {
 			foreach ( $all_themes as $stylesheet => $theme_data ) {
 				if ( ! is_string( $stylesheet ) || ! is_array( $theme_data ) ) {
