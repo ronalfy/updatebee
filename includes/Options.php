@@ -87,6 +87,9 @@ class Options {
 			'branding_description'             => '',
 			'branding_author'                  => '',
 			'branding_url'                     => '',
+			'admin_bar_enabled'                => false,
+			'admin_bar_show_admin'             => true,
+			'admin_bar_show_frontend'          => true,
 		);
 
 		/**

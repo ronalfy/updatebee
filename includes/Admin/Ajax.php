@@ -1880,7 +1880,7 @@ class Ajax {
 	}
 
 	/**
-	 * Save delayed automatic update days, keywords, and untested updates.
+	 * Save delayed updates, keywords, Slack, untested updates, and the toolbar menu.
 	 */
 	public function save_advanced_settings(): void {
 		if ( ! Functions::can_access_options() ) {
@@ -1919,6 +1919,25 @@ class Ajax {
 			$to_save['slack_webhook_url'] = '' !== $raw ? esc_url_raw( $raw ) : '';
 		}
 
+		$admin_bar_keys = array(
+			Admin_Bar_Menu::OPTION_ENABLED,
+			Admin_Bar_Menu::OPTION_SHOW_ADMIN,
+			Admin_Bar_Menu::OPTION_SHOW_FRONTEND,
+		);
+		foreach ( $admin_bar_keys as $admin_bar_key ) {
+			if ( ! isset( $_POST[ $admin_bar_key ] ) ) {
+				continue;
+			}
+
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean is sanitized below.
+			$admin_bar_value = wp_unslash( $_POST[ $admin_bar_key ] );
+			if ( is_array( $admin_bar_value ) ) {
+				continue;
+			}
+
+			$to_save[ $admin_bar_key ] = (bool) rest_sanitize_boolean( $admin_bar_value );
+		}
+
 		if ( empty( $to_save ) ) {
 			wp_send_json_error(
 				array(
@@ -1936,7 +1955,20 @@ class Ajax {
 			);
 		}
 
+		$saving_admin_bar = isset( $to_save[ Admin_Bar_Menu::OPTION_ENABLED ] )
+			|| isset( $to_save[ Admin_Bar_Menu::OPTION_SHOW_ADMIN ] )
+			|| isset( $to_save[ Admin_Bar_Menu::OPTION_SHOW_FRONTEND ] );
+
 		if (
+			$saving_admin_bar
+			&& ! isset( $to_save['upgrade_notice_keywords'] )
+			&& ! isset( $to_save['upgrade_notice_keywords_enabled'] )
+			&& ! isset( $to_save['delay_updates'] )
+			&& ! isset( $to_save['block_untested_updates'] )
+			&& ! isset( $to_save['slack_webhook_url'] )
+		) {
+			$message = __( 'Admin bar menu has been saved.', 'updatebee' );
+		} elseif (
 			( isset( $to_save['upgrade_notice_keywords'] ) || isset( $to_save['upgrade_notice_keywords_enabled'] ) )
 			&& ! isset( $to_save['delay_updates'] )
 			&& ! isset( $to_save['block_untested_updates'] )
@@ -1973,6 +2005,12 @@ class Ajax {
 
 		if ( isset( $to_save['slack_webhook_url'] ) ) {
 			$response['slack_webhook_url'] = $to_save['slack_webhook_url'];
+		}
+
+		foreach ( $admin_bar_keys as $admin_bar_key ) {
+			if ( isset( $to_save[ $admin_bar_key ] ) ) {
+				$response[ $admin_bar_key ] = (bool) $to_save[ $admin_bar_key ];
+			}
 		}
 
 		wp_send_json_success( $response );

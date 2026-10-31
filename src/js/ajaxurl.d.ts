@@ -107,6 +107,9 @@ interface UpdateBeeAdvanced {
 	upgradeNoticeKeywords: string;
 	upgradeNoticeKeywordsEnabled: boolean;
 	slackWebhookUrl: string;
+	adminBarEnabled: boolean;
+	adminBarShowAdmin: boolean;
+	adminBarShowFrontend: boolean;
 	pluginName: string;
 }
 

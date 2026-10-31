@@ -8,6 +8,7 @@
 namespace UpdateBee;
 
 use UpdateBee\Abilities\Registry as Abilities_Registry;
+use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Network_Admin_Bar;
 use UpdateBee\Admin\Plugin_Settings_Links;
@@ -164,6 +165,13 @@ class Plugin {
 	private Network_Admin_Bar $network_admin_bar;
 
 	/**
+	 * Toolbar shortcut menu.
+	 *
+	 * @var Admin_Bar_Menu
+	 */
+	private Admin_Bar_Menu $admin_bar_menu;
+
+	/**
 	 * White-label branding.
 	 *
 	 * @var Branding
@@ -226,6 +234,9 @@ class Plugin {
 
 		$this->network_admin_bar = new Network_Admin_Bar();
 		$this->network_admin_bar->run();
+
+		$this->admin_bar_menu = new Admin_Bar_Menu();
+		$this->admin_bar_menu->run();
 
 		$this->enqueue = new Enqueue();
 		$this->enqueue->run();
