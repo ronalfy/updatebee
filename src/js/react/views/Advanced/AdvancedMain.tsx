@@ -6,6 +6,7 @@ import { useCallback, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import sendCommand from '../../../utils/SendCommand';
+import AdminBarMenuDrawer from './AdminBarMenuDrawer';
 import AdvancedFooter, {
 	type SnackbarState,
 	type SnackbarType,
@@ -19,6 +20,9 @@ type AdvancedMessagePayload = {
 	block_untested_updates?: boolean;
 	upgrade_notice_keywords?: string;
 	slack_webhook_url?: string;
+	admin_bar_enabled?: boolean;
+	admin_bar_show_admin?: boolean;
+	admin_bar_show_frontend?: boolean;
 };
 
 /**
@@ -47,6 +51,7 @@ const AdvancedMain = () => {
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isSavingUntested, setIsSavingUntested ] = useState( false );
 	const [ isSavingKeywords, setIsSavingKeywords ] = useState( false );
+	const [ isSavingAdminBar, setIsSavingAdminBar ] = useState( false );
 	const [ isSavingSlack, setIsSavingSlack ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
@@ -61,7 +66,12 @@ const AdvancedMain = () => {
 	);
 
 	const isBusy =
-		isSaving || isSavingUntested || isSavingKeywords || isSavingSlack || isResetting;
+		isSaving ||
+		isSavingUntested ||
+		isSavingKeywords ||
+		isSavingAdminBar ||
+		isSavingSlack ||
+		isResetting;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -413,8 +423,26 @@ const AdvancedMain = () => {
 				</Card.Root>
 
 				<UpgradeNoticeKeywordsDrawer
-					disabled={ isSaving || isSavingUntested || isSavingSlack || isResetting }
+					disabled={
+						isSaving ||
+						isSavingUntested ||
+						isSavingSlack ||
+						isSavingAdminBar ||
+						isResetting
+					}
 					onSavingChange={ setIsSavingKeywords }
+					onSnackbar={ showSnackbar }
+				/>
+
+				<AdminBarMenuDrawer
+					disabled={
+						isSaving ||
+						isSavingUntested ||
+						isSavingKeywords ||
+						isSavingSlack ||
+						isResetting
+					}
+					onSavingChange={ setIsSavingAdminBar }
 					onSnackbar={ showSnackbar }
 				/>
 

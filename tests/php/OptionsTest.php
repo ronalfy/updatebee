@@ -75,6 +75,9 @@ class OptionsTest extends TestCase {
 		$this->assertSame( '', $options['branding_description'] );
 		$this->assertSame( '', $options['branding_author'] );
 		$this->assertSame( '', $options['branding_url'] );
+		$this->assertFalse( $options['admin_bar_enabled'] );
+		$this->assertTrue( $options['admin_bar_show_admin'] );
+		$this->assertTrue( $options['admin_bar_show_frontend'] );
 	}
 
 	/**

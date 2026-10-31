@@ -7,6 +7,7 @@
 
 namespace UpdateBee\Admin\Templates;
 
+use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
@@ -90,6 +91,9 @@ class Advanced {
 				'upgradeNoticeKeywords'        => (string) Options::get_options( 'upgrade_notice_keywords' ),
 				'upgradeNoticeKeywordsEnabled' => Upgrade_Notice_Keywords::is_enabled(),
 				'slackWebhookUrl'              => (string) Options::get_options( 'slack_webhook_url' ),
+				'adminBarEnabled'              => (bool) Options::get_options( Admin_Bar_Menu::OPTION_ENABLED ),
+				'adminBarShowAdmin'            => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_ADMIN ),
+				'adminBarShowFrontend'         => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_FRONTEND ),
 			)
 		);
 

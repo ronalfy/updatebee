@@ -209,3 +209,7 @@ if ( ! function_exists( 'is_wp_error' ) ) {
 		return $thing instanceof WP_Error;
 	}
 }
+
+if ( ! class_exists( 'WP_Admin_Bar' ) ) {
+	require_once __DIR__ . '/WP_Admin_Bar_Stub.php';
+}
