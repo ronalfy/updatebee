@@ -51,12 +51,7 @@ const ToolsMigrateModal = ( props: ToolsMigrateModalProps ) => {
 			isDismissible={ ! isMigrating }
 		>
 			<p>{ description }</p>
-			<p>
-				{ __(
-					'Are you sure you want to continue?',
-					'updatebee'
-				) }
-			</p>
+			<p>{ __( 'Are you sure you want to continue?', 'updatebee' ) }</p>
 			<div className="updatebee-tools-migrate-modal-footer">
 				<Button
 					variant="secondary"

@@ -185,9 +185,15 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 							disabled={ isSaving }
 						/>
 						<ToggleControl
-							label={ __( 'Enable Slack notifications', 'updatebee' ) }
+							label={ __(
+								'Enable Slack notifications',
+								'updatebee'
+							) }
 							checked={ draftSettings.slackEnabled }
-							disabled={ isSaving || ! updatebeeLogs.slackWebhookConfigured }
+							disabled={
+								isSaving ||
+								! updatebeeLogs.slackWebhookConfigured
+							}
 							onChange={ ( checked: boolean ) => {
 								setDraftSettings( ( current ) => ( {
 									...current,

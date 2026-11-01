@@ -11,9 +11,7 @@ import {
 	defaultCronScheduleValues,
 	mapPayloadToFormValues,
 } from './cron-form-utils';
-import CronScheduleForm, {
-	CronScheduleFormLoading,
-} from './CronScheduleForm';
+import CronScheduleForm, { CronScheduleFormLoading } from './CronScheduleForm';
 
 type CronScheduleCardProps = {
 	slug: CronContextSlug;

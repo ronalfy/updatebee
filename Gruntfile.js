@@ -20,7 +20,7 @@
 const { execSync } = require( 'child_process' );
 const path = require( 'path' );
 
-module.exports = function( grunt ) {
+module.exports = function ( grunt ) {
 	const sharedZipFiles = [
 		{ src: [ 'updatebee.php' ], dest: '/', filter: 'isFile' },
 		{ src: [ 'readme.txt' ], dest: '/', filter: 'isFile' },
@@ -42,14 +42,14 @@ module.exports = function( grunt ) {
 					{
 						stdio: 'inherit',
 						cwd: path.resolve( __dirname ),
-					},
+					}
 				);
 			} catch ( err ) {
 				grunt.fail.fatal(
-					'composer install --no-dev failed. Install Composer and run from the plugin root, or use grunt compress for a dev zip without vendor/.',
+					'composer install --no-dev failed. Install Composer and run from the plugin root, or use grunt compress for a dev zip without vendor/.'
 				);
 			}
-		},
+		}
 	);
 
 	grunt.registerTask(
@@ -62,14 +62,14 @@ module.exports = function( grunt ) {
 					{
 						stdio: 'inherit',
 						cwd: path.resolve( __dirname ),
-					},
+					}
 				);
 			} catch ( err ) {
 				grunt.fail.fatal(
-					'composer install failed. Install Composer and run from the plugin root.',
+					'composer install failed. Install Composer and run from the plugin root.'
 				);
 			}
-		},
+		}
 	);
 
 	grunt.initConfig( {
@@ -80,7 +80,11 @@ module.exports = function( grunt ) {
 				},
 				files: [
 					...sharedZipFiles,
-					{ src: [ 'vendor/autoload.php' ], dest: '/', filter: 'isFile' },
+					{
+						src: [ 'vendor/autoload.php' ],
+						dest: '/',
+						filter: 'isFile',
+					},
 					{ src: [ 'vendor/composer/**' ], dest: '/' },
 				],
 			},
@@ -100,22 +104,30 @@ module.exports = function( grunt ) {
 		'composer-install',
 	];
 
-	grunt.registerTask( 'composer_guard', 'Add ABSPATH guards to Composer-generated files.', function() {
-		const done = this.async();
-		const { exec } = require( 'child_process' );
-		exec( 'php bin/add-composer-guards.php', { cwd: path.resolve( __dirname ) }, function( error, stdout, stderr ) {
-			if ( error ) {
-				grunt.log.error( error );
-				if ( stderr ) {
-					grunt.log.error( stderr );
+	grunt.registerTask(
+		'composer_guard',
+		'Add ABSPATH guards to Composer-generated files.',
+		function () {
+			const done = this.async();
+			const { exec } = require( 'child_process' );
+			exec(
+				'php bin/add-composer-guards.php',
+				{ cwd: path.resolve( __dirname ) },
+				function ( error, stdout, stderr ) {
+					if ( error ) {
+						grunt.log.error( error );
+						if ( stderr ) {
+							grunt.log.error( stderr );
+						}
+						done( false );
+						return;
+					}
+					grunt.log.write( stdout );
+					done();
 				}
-				done( false );
-				return;
-			}
-			grunt.log.write( stdout );
-			done();
-		} );
-	} );
+			);
+		}
+	);
 
 	grunt.registerTask( 'default', productionZip );
 	grunt.registerTask( 'release', productionZip );
@@ -123,5 +135,9 @@ module.exports = function( grunt ) {
 
 	grunt.loadNpmTasks( 'grunt-contrib-compress' );
 	grunt.renameTask( 'compress', 'zip' );
-	grunt.registerTask( 'compress', 'Zip shared runtime files without vendor/autoload.', [ 'zip:dev' ] );
+	grunt.registerTask(
+		'compress',
+		'Zip shared runtime files without vendor/autoload.',
+		[ 'zip:dev' ]
+	);
 };

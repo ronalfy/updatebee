@@ -8,11 +8,14 @@
 namespace UpdateBee\Tests;
 
 use Brain\Monkey\Functions as MonkeyFunctions;
+use ReflectionClass;
+use UpdateBee\Admin\Ajax;
 use UpdateBee\Emails\Available_Updates;
 use UpdateBee\Emails\Email_Updates_Available;
 use UpdateBee\Emails\Emails;
 use UpdateBee\Options;
 use UpdateBee\Slack\Slack_Available_Updates;
+use UpdateBee\Updates\Hide_Blocked_Updates;
 
 /**
  * Available updates email test case.
@@ -24,6 +27,8 @@ class AvailableUpdatesEmailTest extends TestCase {
 	 */
 	protected function tearDown(): void {
 		Options::flush_cache();
+		$this->reset_hide_blocked_singleton();
+		$_POST = array();
 		parent::tearDown();
 	}
 
@@ -295,5 +300,280 @@ class AvailableUpdatesEmailTest extends TestCase {
 		$data = Available_Updates::refresh_and_capture();
 
 		$this->assertSame( $plugins, $data['plugins'] );
+	}
+
+	/**
+	 * A newer plugin version is returned without the package URL.
+	 */
+	public function test_plugin_offer_returns_newer_version(): void {
+		$this->stub_offer_helpers( '1.0' );
+
+		$offer = Available_Updates::plugin_offer( 'akismet/akismet.php' );
+
+		$this->assertIsArray( $offer );
+		$this->assertSame( '2.0', $offer['new_version'] );
+		$this->assertSame( 'Security release.', $offer['upgrade_notice'] );
+		$this->assertTrue( $offer['has_package'] );
+		$this->assertSame( 'update-nonce', $offer['nonce'] );
+		$this->assertArrayNotHasKey( 'package', $offer );
+	}
+
+	/**
+	 * An offer is omitted when the installed version already matches.
+	 */
+	public function test_plugin_offer_returns_null_when_versions_match(): void {
+		$this->stub_offer_helpers( '2.0' );
+
+		$this->assertNull( Available_Updates::plugin_offer( 'akismet/akismet.php' ) );
+	}
+
+	/**
+	 * A missing upgrade notice stays an empty string.
+	 */
+	public function test_plugin_offer_empty_upgrade_notice_stays_empty(): void {
+		$this->stub_offer_helpers(
+			'1.0',
+			(object) array(
+				'new_version'    => '2.0',
+				'upgrade_notice' => '',
+				'package'        => 'https://downloads.example.com/akismet.zip',
+			)
+		);
+
+		$offer = Available_Updates::plugin_offer( 'akismet/akismet.php' );
+
+		$this->assertIsArray( $offer );
+		$this->assertSame( '', $offer['upgrade_notice'] );
+	}
+
+	/**
+	 * A blocked plugin still has an offer because the transient is read unfiltered.
+	 */
+	public function test_plugin_offer_includes_blocked_plugin(): void {
+		$this->stub_offer_helpers( '5.0' );
+		$this->stub_options(
+			array(
+				'blocked_plugins' => array( 'akismet' ),
+			)
+		);
+
+		$plugins = (object) array(
+			'response' => array(
+				'akismet/akismet.php' => (object) array(
+					'new_version'    => '5.1',
+					'upgrade_notice' => '',
+					'package'        => 'https://downloads.example.com/akismet.zip',
+				),
+			),
+		);
+		$hide    = Hide_Blocked_Updates::get_instance();
+		MonkeyFunctions\when( 'get_site_transient' )->alias(
+			static function ( $key ) use ( $hide, $plugins ) {
+				if ( 'update_plugins' !== $key ) {
+					return false;
+				}
+
+				return $hide->filter_plugins( $plugins );
+			}
+		);
+
+		$offer = Available_Updates::plugin_offer( 'akismet/akismet.php' );
+
+		$this->assertIsArray( $offer );
+		$this->assertSame( '5.1', $offer['new_version'] );
+	}
+
+	/**
+	 * A newer theme version includes its upgrade notice.
+	 */
+	public function test_theme_offer_returns_newer_version(): void {
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_kses_post' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_create_nonce' )->justReturn( 'theme-nonce' );
+		MonkeyFunctions\when( 'wp_get_theme' )->alias(
+			static function () {
+				return new class() {
+					/**
+					 * Theme header value.
+					 *
+					 * @param string $key Header key.
+					 * @return string
+					 */
+					public function get( $key ) {
+						return 'Version' === $key ? '1.0' : '';
+					}
+				};
+			}
+		);
+		MonkeyFunctions\when( 'get_site_transient' )->alias(
+			static function ( $key ) {
+				if ( 'update_themes' !== $key ) {
+					return false;
+				}
+
+				return (object) array(
+					'response' => array(
+						'twentytwentyfour' => array(
+							'new_version'    => '1.3',
+							'upgrade_notice' => 'Fixes a security issue.',
+							'package'        => 'https://downloads.example.com/theme.zip',
+						),
+					),
+				);
+			}
+		);
+
+		$offer = Available_Updates::theme_offer( 'twentytwentyfour' );
+
+		$this->assertIsArray( $offer );
+		$this->assertSame( '1.3', $offer['new_version'] );
+		$this->assertSame( 'Fixes a security issue.', $offer['upgrade_notice'] );
+		$this->assertTrue( $offer['has_package'] );
+		$this->assertArrayNotHasKey( 'package', $offer );
+	}
+
+	/**
+	 * A blocked plugin is rejected before the upgrader runs.
+	 */
+	public function test_update_plugin_refuses_blocked_file_before_upgrader(): void {
+		$this->stub_options(
+			array(
+				'blocked_plugins' => array( 'akismet' ),
+			)
+		);
+		MonkeyFunctions\when( 'is_plugin_active_for_network' )->justReturn( false );
+		MonkeyFunctions\when( 'is_multisite' )->justReturn( false );
+		MonkeyFunctions\when( 'is_network_admin' )->justReturn( false );
+		MonkeyFunctions\when( 'current_user_can' )->alias(
+			static function ( $capability ) {
+				return in_array( $capability, array( 'manage_options', 'update_plugins' ), true );
+			}
+		);
+		MonkeyFunctions\when( 'check_ajax_referer' )->justReturn( true );
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
+		MonkeyFunctions\when( 'sanitize_title' )->returnArg( 1 );
+		MonkeyFunctions\when( 'get_plugins' )->justReturn(
+			array(
+				'akismet/akismet.php' => array(
+					'Name' => 'Akismet',
+				),
+			)
+		);
+		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
+		MonkeyFunctions\when( 'wp_send_json_error' )->alias(
+			static function ( $data = null ) {
+				$message = '';
+				if ( is_array( $data ) && isset( $data['message'] ) ) {
+					$message = (string) $data['message'];
+				}
+
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Test double, not rendered output.
+				throw new \RuntimeException( $message );
+			}
+		);
+		MonkeyFunctions\expect( 'wp_update_plugins' )->never();
+
+		$_POST = array(
+			'file'  => 'akismet/akismet.php',
+			'nonce' => 'test',
+		);
+
+		$ajax = new Ajax();
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'Plugin updates are blocked.' );
+
+		$ajax->update_plugin();
+	}
+
+	/**
+	 * Stub the helpers used while reading one plugin offer.
+	 *
+	 * @param string $installed_version Installed plugin version.
+	 * @param object $item              Update item.
+	 */
+	private function stub_offer_helpers( string $installed_version, $item = null ): void {
+		if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+			define( 'WP_PLUGIN_DIR', ABSPATH . 'wp-content/plugins' );
+		}
+
+		if ( null === $item ) {
+			$item = (object) array(
+				'new_version'    => '2.0',
+				'upgrade_notice' => 'Security release.',
+				'package'        => 'https://downloads.example.com/akismet.zip',
+			);
+		}
+
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_kses_post' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_create_nonce' )->justReturn( 'update-nonce' );
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => $installed_version,
+			)
+		);
+		MonkeyFunctions\when( 'get_site_transient' )->alias(
+			static function ( $key ) use ( $item ) {
+				if ( 'update_plugins' !== $key ) {
+					return false;
+				}
+
+				return (object) array(
+					'response' => array(
+						'akismet/akismet.php' => $item,
+					),
+				);
+			}
+		);
+	}
+
+	/**
+	 * Store plugin options and clear the in-memory cache.
+	 *
+	 * @param array<string, mixed> $options Option overrides.
+	 */
+	private function stub_options( array $options ): void {
+		MonkeyFunctions\when( 'wp_parse_args' )->alias(
+			static function ( $args, $defaults ) {
+				if ( ! is_array( $args ) ) {
+					$args = array();
+				}
+				if ( ! is_array( $defaults ) ) {
+					$defaults = array();
+				}
+
+				return array_merge( $defaults, $args );
+			}
+		);
+		MonkeyFunctions\when( 'get_site_option' )->alias(
+			static function ( $key, $default_value = false ) use ( $options ) {
+				if ( 'updatebee_options' === $key ) {
+					return $options;
+				}
+
+				return $default_value;
+			}
+		);
+		Options::flush_cache();
+	}
+
+	/**
+	 * Clear the hide-blocked singleton and its suspend flag.
+	 */
+	private function reset_hide_blocked_singleton(): void {
+		$reflection = new ReflectionClass( Hide_Blocked_Updates::class );
+
+		$instance = $reflection->getProperty( 'instance' );
+		$instance->setAccessible( true );
+		$instance->setValue( null, null );
+
+		$suspended = $reflection->getProperty( 'suspended' );
+		$suspended->setAccessible( true );
+		$suspended->setValue( null, false );
 	}
 }

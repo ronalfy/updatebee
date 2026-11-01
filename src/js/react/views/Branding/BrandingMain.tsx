@@ -81,7 +81,9 @@ const BrandingMain = () => {
 			.then( ( response ) => {
 				const payload = response.data.data;
 				setName(
-					'string' === typeof payload.name ? payload.name : name.trim()
+					'string' === typeof payload.name
+						? payload.name
+						: name.trim()
 				);
 				setDescription(
 					'string' === typeof payload.description

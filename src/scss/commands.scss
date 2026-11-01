@@ -1,0 +1,15 @@
+/**
+ * Snackbar placement for the admin command palette action.
+ *
+ * Matches the fixed snackbar used on UpdateBee screens, so the notice is
+ * visible on any wp-admin page after the palette closes.
+ */
+#updatebee-command-notices {
+	.updatebee-snackbar {
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 100100;
+	}
+}

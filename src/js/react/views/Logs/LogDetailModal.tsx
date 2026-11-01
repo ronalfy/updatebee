@@ -25,9 +25,9 @@ type LogDetailModalProps = {
  * @param notes.notes
  * @param notes       Raw notes.
  */
-const NotesContent = ({ notes }: { notes: string }) => (
+const NotesContent = ( { notes }: { notes: string } ) => (
 	<div className="updatebee-log-detail updatebee-log-detail--notes">
-		{notes}
+		{ notes }
 	</div>
 );
 
@@ -37,9 +37,9 @@ const NotesContent = ({ notes }: { notes: string }) => (
  * @param stacktrace.stacktrace
  * @param stacktrace            Formatted stack trace.
  */
-const StacktraceContent = ({ stacktrace }: { stacktrace: string }) => (
+const StacktraceContent = ( { stacktrace }: { stacktrace: string } ) => (
 	<pre className="updatebee-log-detail updatebee-log-detail--stacktrace">
-		{stacktrace}
+		{ stacktrace }
 	</pre>
 );
 
@@ -48,12 +48,12 @@ const StacktraceContent = ({ stacktrace }: { stacktrace: string }) => (
  *
  * @param text Text to copy.
  */
-const copyToClipboard = (text: string) => {
-	if ('' === text || !navigator.clipboard) {
+const copyToClipboard = ( text: string ) => {
+	if ( '' === text || ! navigator.clipboard ) {
 		return;
 	}
 
-	void navigator.clipboard.writeText(text);
+	void navigator.clipboard.writeText( text );
 };
 
 /**
@@ -61,67 +61,67 @@ const copyToClipboard = (text: string) => {
  *
  * @param props Modal state and content.
  */
-const LogDetailModal = (props: LogDetailModalProps) => {
+const LogDetailModal = ( props: LogDetailModalProps ) => {
 	const { log, isOpen, isLoading, error, detail, onClose } = props;
 
-	if (!isOpen || !log) {
+	if ( ! isOpen || ! log ) {
 		return null;
 	}
 
-	const hasNotes = Boolean(detail?.notes.trim());
-	const hasStacktrace = Boolean(detail?.stacktrace.trim());
+	const hasNotes = Boolean( detail?.notes.trim() );
+	const hasStacktrace = Boolean( detail?.stacktrace.trim() );
 
 	let body = null;
 
-	if (isLoading) {
+	if ( isLoading ) {
 		body = (
 			<>
-				<h2>{log.Name}</h2>
+				<h2>{ log.Name }</h2>
 				<p className="updatebee-log-detail-loading">
-					{__('Loading…', 'updatebee')}
+					{ __( 'Loading…', 'updatebee' ) }
 				</p>
 			</>
 		);
-	} else if ('' !== error) {
+	} else if ( '' !== error ) {
 		body = (
 			<>
-				<h2>{log.Name}</h2>
-				<p className="updatebee-log-detail-error">{error}</p>
+				<h2>{ log.Name }</h2>
+				<p className="updatebee-log-detail-error">{ error }</p>
 			</>
 		);
-	} else if (detail) {
-		if (hasNotes && hasStacktrace) {
+	} else if ( detail ) {
+		if ( hasNotes && hasStacktrace ) {
 			body = (
 				<>
-					<h2>{log.Name}</h2>
+					<h2>{ log.Name }</h2>
 					<TabPanel
 						className="updatebee-log-detail-tabs"
 						activeClass="is-active"
 						initialTabName="notes"
-						tabs={[
+						tabs={ [
 							{
 								name: 'notes',
-								title: __('Notes', 'updatebee'),
+								title: __( 'Notes', 'updatebee' ),
 							},
 							{
 								name: 'stacktrace',
-								title: __('Stack trace', 'updatebee'),
+								title: __( 'Stack trace', 'updatebee' ),
 							},
-						]}
+						] }
 					>
-						{(tab) => (
+						{ ( tab ) => (
 							<div className="updatebee-log-detail-tab-panel">
-								{'notes' === tab.name ? (
-									<NotesContent notes={detail.notes} />
+								{ 'notes' === tab.name ? (
+									<NotesContent notes={ detail.notes } />
 								) : (
 									<StacktraceContent
-										stacktrace={detail.stacktrace}
+										stacktrace={ detail.stacktrace }
 									/>
-								)}
+								) }
 								<div className="updatebee-log-detail-tab-actions">
 									<Button
 										variant="secondary"
-										onClick={() =>
+										onClick={ () =>
 											copyToClipboard(
 												'notes' === tab.name
 													? detail.notes
@@ -129,45 +129,47 @@ const LogDetailModal = (props: LogDetailModalProps) => {
 											)
 										}
 									>
-										{__('Copy', 'updatebee')}
+										{ __( 'Copy', 'updatebee' ) }
 									</Button>
 								</div>
 							</div>
-						)}
+						) }
 					</TabPanel>
 				</>
 			);
-		} else if (hasNotes) {
+		} else if ( hasNotes ) {
 			body = (
 				<>
-					<h2>{log.Name}</h2>
+					<h2>{ log.Name }</h2>
 					<div className="updatebee-log-detail-single">
-						<NotesContent notes={detail.notes} />
+						<NotesContent notes={ detail.notes } />
 						<div className="updatebee-log-detail-tab-actions">
 							<Button
 								variant="secondary"
-								onClick={() => copyToClipboard(detail.notes)}
+								onClick={ () =>
+									copyToClipboard( detail.notes )
+								}
 							>
-								{__('Copy', 'updatebee')}
+								{ __( 'Copy', 'updatebee' ) }
 							</Button>
 						</div>
 					</div>
 				</>
 			);
-		} else if (hasStacktrace) {
+		} else if ( hasStacktrace ) {
 			body = (
 				<>
-					<h2>{log.Name}</h2>
+					<h2>{ log.Name }</h2>
 					<div className="updatebee-log-detail-single">
-						<StacktraceContent stacktrace={detail.stacktrace} />
+						<StacktraceContent stacktrace={ detail.stacktrace } />
 						<div className="updatebee-log-detail-tab-actions">
 							<Button
 								variant="secondary"
-								onClick={() =>
-									copyToClipboard(detail.stacktrace)
+								onClick={ () =>
+									copyToClipboard( detail.stacktrace )
 								}
 							>
-								{__('Copy', 'updatebee')}
+								{ __( 'Copy', 'updatebee' ) }
 							</Button>
 						</div>
 					</div>
@@ -176,12 +178,12 @@ const LogDetailModal = (props: LogDetailModalProps) => {
 		} else {
 			body = (
 				<>
-					<h2>{log.Name}</h2>
+					<h2>{ log.Name }</h2>
 					<p>
-						{__(
+						{ __(
 							'No notes or stack trace are available for this entry.',
 							'updatebee'
-						)}
+						) }
 					</p>
 				</>
 			);
@@ -191,12 +193,12 @@ const LogDetailModal = (props: LogDetailModalProps) => {
 	return (
 		<Modal
 			className="updatebee-log-detail-modal"
-			title={__('Log Details', 'updatebee')}
-			onRequestClose={onClose}
+			title={ __( 'Log Details', 'updatebee' ) }
+			onRequestClose={ onClose }
 			shouldCloseOnClickOutside
 			shouldCloseOnEsc
 		>
-			{body}
+			{ body }
 		</Modal>
 	);
 };

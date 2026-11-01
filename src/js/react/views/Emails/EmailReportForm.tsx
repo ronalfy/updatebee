@@ -40,7 +40,8 @@ type EmailReportFormProps = {
 /**
  * Validate recipient tokens when delivery is enabled.
  *
- * @param values Form values.
+ * @param values     Form values.
+ * @param reportKind
  * @return Error message or empty string.
  */
 const validateRecipients = (
@@ -84,9 +85,7 @@ const validateRecipients = (
  * @param values Form values.
  * @return Error message or empty string.
  */
-const validateSendNowRecipients = (
-	values: EmailReportFormValues
-): string => {
+const validateSendNowRecipients = ( values: EmailReportFormValues ): string => {
 	if ( values.notifySlack ) {
 		return '';
 	}
@@ -125,8 +124,14 @@ type EmailReportFormFieldsProps = {
  * @param props Handlers and ajax config.
  */
 const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
-	const { config, previewUrl, onSaved, onNotify, deliveryOptions, reportKind } =
-		props;
+	const {
+		config,
+		previewUrl,
+		onSaved,
+		onNotify,
+		deliveryOptions,
+		reportKind,
+	} = props;
 	const [ isSaving, setIsSaving ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ isSendingNow, setIsSendingNow ] = useState( false );
@@ -309,7 +314,10 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 				__experimentalValidateInput={ ( token ) => {
 					if ( ! isEmail( token ) ) {
 						onNotify(
-							__( 'One or more email addresses are invalid.', 'updatebee' ),
+							__(
+								'One or more email addresses are invalid.',
+								'updatebee'
+							),
 							'error'
 						);
 						return false;
@@ -334,7 +342,10 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 				__experimentalValidateInput={ ( token ) => {
 					if ( ! isEmail( token ) ) {
 						onNotify(
-							__( 'One or more email addresses are invalid.', 'updatebee' ),
+							__(
+								'One or more email addresses are invalid.',
+								'updatebee'
+							),
 							'error'
 						);
 						return false;
@@ -503,9 +514,7 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					<Button
 						variant="primary"
 						type="submit"
-						disabled={
-							isSaving || isResetting || isSendingNow
-						}
+						disabled={ isSaving || isResetting || isSendingNow }
 						isBusy={ isSaving }
 					>
 						{ __( 'Save', 'updatebee' ) }

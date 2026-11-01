@@ -153,9 +153,11 @@ const CronEventsMain = ( props: CronEventsMainProps ) => {
 			}
 			setIsBusy( true );
 			try {
-				const response = await sendCommand< CronEventsListPayload & {
-					message?: string;
-				} >( 'updatebee_run_cron_event', {
+				const response = await sendCommand<
+					CronEventsListPayload & {
+						message?: string;
+					}
+				>( 'updatebee_run_cron_event', {
 					nonce: updatebeeCron.eventsNonce,
 					hook: item.hook,
 					sig: item.sig,
@@ -196,9 +198,11 @@ const CronEventsMain = ( props: CronEventsMainProps ) => {
 
 			setIsBusy( true );
 			try {
-				const response = await sendCommand< CronEventsListPayload & {
-					message?: string;
-				} >( 'updatebee_delete_cron_event', {
+				const response = await sendCommand<
+					CronEventsListPayload & {
+						message?: string;
+					}
+				>( 'updatebee_delete_cron_event', {
 					nonce: updatebeeCron.eventsNonce,
 					hook: item.hook,
 					sig: item.sig,

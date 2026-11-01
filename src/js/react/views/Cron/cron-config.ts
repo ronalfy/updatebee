@@ -14,7 +14,9 @@ export type CronAjaxConfig = {
  *
  * @param slug plugin_updates|theme_updates|core_updates.
  */
-export const getCronAjaxConfig = ( slug: CronContextSlug ): CronAjaxConfig => ( {
+export const getCronAjaxConfig = (
+	slug: CronContextSlug
+): CronAjaxConfig => ( {
 	retrieveAction: `updatebee_get_cron_schedule_${ slug }`,
 	saveAction: `updatebee_save_cron_schedule_${ slug }`,
 	resetAction: `updatebee_reset_cron_schedule_${ slug }`,
