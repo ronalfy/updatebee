@@ -2,7 +2,9 @@
  * Admin command palette actions for refreshing and forcing updates.
  */
 import '../../scss/commands.scss';
+import { ReactSpinner1 } from '@mediaron/react-spinners';
 import { useCommand } from '@wordpress/commands';
+import { Modal } from '@wordpress/components';
 import {
 	createRoot,
 	StrictMode,
@@ -26,6 +28,15 @@ type NoticeState = {
 	type: 'success' | 'error';
 };
 
+type PaletteAction = {
+	action: string;
+	nonce: string;
+	progressLabel: string;
+	fallbackMessage: string;
+	errorMessage: string;
+	close: () => void;
+};
+
 const INITIAL_NOTICE: NoticeState = {
 	isVisible: false,
 	message: '',
@@ -33,12 +44,15 @@ const INITIAL_NOTICE: NoticeState = {
 };
 
 /**
- * Register update commands and show their results in a snackbar.
+ * Register update commands, show progress, then a snackbar.
  *
- * @return Snackbar notice, when one is visible.
+ * @return Progress modal and snackbar notice.
  */
 const UpdateCommands = () => {
 	const [ notice, setNotice ] = useState< NoticeState >( INITIAL_NOTICE );
+	const [ progressLabel, setProgressLabel ] = useState< string | null >(
+		null
+	);
 	const isRunning = useRef( false );
 
 	const showNotice = useCallback(
@@ -59,37 +73,46 @@ const UpdateCommands = () => {
 		} ) );
 	}, [] );
 
+	/**
+	 * Ignore dismiss attempts while a request is still running.
+	 */
+	const ignoreDismiss = useCallback( () => {}, [] );
+
+	const finishAction = useCallback(
+		( message: string, type: NoticeState[ 'type' ] ) => {
+			isRunning.current = false;
+			setProgressLabel( null );
+			showNotice( message, type );
+		},
+		[ showNotice ]
+	);
+
 	const runAction = useCallback(
-		(
-			action: string,
-			nonce: string,
-			fallbackMessage: string,
-			errorMessage: string,
-			close: () => void
-		) => {
-			close();
+		( paletteAction: PaletteAction ) => {
+			paletteAction.close();
 
 			if ( isRunning.current ) {
 				return;
 			}
 
 			isRunning.current = true;
+			setProgressLabel( paletteAction.progressLabel );
 
-			void sendCommand< MessagePayload >( action, { nonce } )
+			void sendCommand< MessagePayload >( paletteAction.action, {
+				nonce: paletteAction.nonce,
+			} )
 				.then( ( response ) => {
-					showNotice(
-						response.data.data?.message || fallbackMessage,
+					finishAction(
+						response.data.data?.message ||
+							paletteAction.fallbackMessage,
 						'success'
 					);
 				} )
 				.catch( () => {
-					showNotice( errorMessage, 'error' );
-				} )
-				.finally( () => {
-					isRunning.current = false;
+					finishAction( paletteAction.errorMessage, 'error' );
 				} );
 		},
-		[ showNotice ]
+		[ finishAction ]
 	);
 
 	useCommand( {
@@ -101,13 +124,20 @@ const UpdateCommands = () => {
 		),
 		keywords: COMMAND_KEYWORDS,
 		callback: ( { close } ) => {
-			runAction(
-				'updatebee_refresh_updates',
-				updatebeeCommands.refreshUpdatesNonce,
-				__( 'Updates have been refreshed.', 'updatebee' ),
-				__( 'Updates could not be refreshed.', 'updatebee' ),
-				close
-			);
+			runAction( {
+				action: 'updatebee_refresh_updates',
+				nonce: updatebeeCommands.refreshUpdatesNonce,
+				progressLabel: __( 'Refreshing updates…', 'updatebee' ),
+				fallbackMessage: __(
+					'Updates have been refreshed.',
+					'updatebee'
+				),
+				errorMessage: __(
+					'Updates could not be refreshed.',
+					'updatebee'
+				),
+				close,
+			} );
 		},
 	} );
 
@@ -117,23 +147,50 @@ const UpdateCommands = () => {
 		searchLabel: __( 'Force plugin, theme, and core updates', 'updatebee' ),
 		keywords: COMMAND_KEYWORDS,
 		callback: ( { close } ) => {
-			runAction(
-				'updatebee_force_updates',
-				updatebeeCommands.forceUpdatesNonce,
-				__( 'Force updates completed.', 'updatebee' ),
-				__( 'Force updates could not be completed.', 'updatebee' ),
-				close
-			);
+			runAction( {
+				action: 'updatebee_force_updates',
+				nonce: updatebeeCommands.forceUpdatesNonce,
+				progressLabel: __( 'Forcing updates…', 'updatebee' ),
+				fallbackMessage: __( 'Force updates completed.', 'updatebee' ),
+				errorMessage: __(
+					'Force updates could not be completed.',
+					'updatebee'
+				),
+				close,
+			} );
 		},
 	} );
 
 	return (
-		<Snackbar
-			isVisible={ notice.isVisible }
-			message={ notice.message }
-			type={ notice.type }
-			onClose={ handleClose }
-		/>
+		<>
+			{ progressLabel && (
+				<Modal
+					className="updatebee-command-progress-modal"
+					overlayClassName="updatebee-command-progress-overlay"
+					title={ progressLabel }
+					size="small"
+					isDismissible={ false }
+					shouldCloseOnClickOutside={ false }
+					shouldCloseOnEsc={ false }
+					onRequestClose={ ignoreDismiss }
+				>
+					<div className="updatebee-command-progress">
+						<ReactSpinner1
+							size={ 36 }
+							speedMultiplier={ 1.3 }
+							color="currentColor"
+							aria-hidden
+						/>
+					</div>
+				</Modal>
+			) }
+			<Snackbar
+				isVisible={ notice.isVisible }
+				message={ notice.message }
+				type={ notice.type }
+				onClose={ handleClose }
+			/>
+		</>
 	);
 };
 
