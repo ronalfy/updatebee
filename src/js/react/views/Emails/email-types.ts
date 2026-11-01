@@ -40,5 +40,4 @@ export type EmailReportOptionsPayload = {
 	log_cutoff_days?: number;
 };
 
-
 export type EmailReportKind = 'success' | 'failure' | 'updates-available';

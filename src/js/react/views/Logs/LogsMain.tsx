@@ -1,11 +1,7 @@
 /**
  * Logs screen: update history with DataViews filters.
  */
-import {
-	DataViews,
-	type Field,
-	type View,
-} from '@wordpress/dataviews';
+import { DataViews, type Field, type View } from '@wordpress/dataviews';
 import {
 	useCallback,
 	useEffect,
@@ -217,8 +213,7 @@ type LogNameCellProps = {
 const LogNameCell = ( props: LogNameCellProps ) => {
 	const { name, slug, updateType } = props;
 
-	const displayName =
-		name.length > 30 ? name.slice( 0, 30 ) + '…' : name;
+	const displayName = name.length > 30 ? name.slice( 0, 30 ) + '…' : name;
 
 	return (
 		<span className="updatebee-log-name">
@@ -231,7 +226,9 @@ const LogNameCell = ( props: LogNameCellProps ) => {
 			</svg>
 			<span className="updatebee-log-name-text">
 				<Tooltip text={ name }>
-					<span className="updatebee-log-name-title">{ displayName }</span>
+					<span className="updatebee-log-name-title">
+						{ displayName }
+					</span>
 				</Tooltip>
 				{ slug && (
 					<p className="description updatebee-log-name-slug">
@@ -415,11 +412,11 @@ const LogsMain = () => {
 				getValue: ( { item } ) =>
 					`${ item.Name } ${ item.Slug }`.trim(),
 				render: ( { item } ) => (
-						<LogNameCell
-							name={ item.Name }
-							slug={ item.Slug }
-							updateType={ item.UpdateType }
-						/>
+					<LogNameCell
+						name={ item.Name }
+						slug={ item.Slug }
+						updateType={ item.UpdateType }
+					/>
 				),
 			},
 			{

@@ -85,9 +85,7 @@ export const mapPayloadToFormValues = (
 			scheduleFromNested?.day ??
 			payload.day ??
 			defaultScheduleOptions().day,
-		week: normalizeWeekForUi(
-			scheduleFromNested?.week ?? payload.week
-		),
+		week: normalizeWeekForUi( scheduleFromNested?.week ?? payload.week ),
 		startTime:
 			scheduleFromNested?.startTime ??
 			payload.start_time ??

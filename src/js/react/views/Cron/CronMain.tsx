@@ -20,25 +20,21 @@ const resolveInitialSubtab = (): CronSubtab =>
 const CronMain = () => {
 	useEnableWpCompatOverlaySlot();
 
-	const [ activeTab, setActiveTab ] = useState< CronSubtab >(
-		resolveInitialSubtab
-	);
+	const [ activeTab, setActiveTab ] =
+		useState< CronSubtab >( resolveInitialSubtab );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
 		type: 'success',
 	} );
 
-	const onNotify = useCallback(
-		( message: string, type: SnackbarType ) => {
-			setSnackbar( {
-				isVisible: true,
-				message,
-				type,
-			} );
-		},
-		[]
-	);
+	const onNotify = useCallback( ( message: string, type: SnackbarType ) => {
+		setSnackbar( {
+			isVisible: true,
+			message,
+			type,
+		} );
+	}, [] );
 
 	const onSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {

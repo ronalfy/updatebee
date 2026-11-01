@@ -9,6 +9,7 @@ namespace UpdateBee\Admin;
 
 use UpdateBee\Branding;
 use UpdateBee\Cron\Clear_Logs;
+use UpdateBee\Emails\Available_Updates;
 use UpdateBee\Emails\Email_Failures;
 use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Emails\Email_Successes;
@@ -48,6 +49,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_bulk_plugin_action', array( $this, 'bulk_plugin_action' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_settings', array( $this, 'save_plugin_settings' ) );
+		add_action( 'wp_ajax_updatebee_update_plugin', array( $this, 'update_plugin' ) );
 
 		// Theme Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_themes', array( $this, 'retrieve_themes' ) );
@@ -57,6 +59,7 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_bulk_theme_action', array( $this, 'bulk_theme_action' ) );
 		add_action( 'wp_ajax_updatebee_save_theme_note', array( $this, 'save_theme_note' ) );
 		add_action( 'wp_ajax_updatebee_save_theme_settings', array( $this, 'save_theme_settings' ) );
+		add_action( 'wp_ajax_updatebee_update_theme', array( $this, 'update_theme' ) );
 
 		// Translation Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_translations', array( $this, 'retrieve_translations' ) );
@@ -272,44 +275,45 @@ class Ajax {
 				return get_site_transient( 'update_plugins' );
 			}
 		);
-		if ( is_object( $plugin_info ) ) {
-			foreach ( $all_plugins as $plugin_file => $plugin_data ) {
-				if ( ! is_string( $plugin_file ) || ! is_array( $plugin_data ) ) {
-					continue;
-				}
-				if ( isset( $plugin_data['Description'] ) ) {
-					$plugin_data['Description'] = wp_trim_words( wp_strip_all_tags( $plugin_data['Description'] ), 20, '...' );
-				}
+		foreach ( $all_plugins as $plugin_file => $plugin_data ) {
+			if ( ! is_string( $plugin_file ) || ! is_array( $plugin_data ) ) {
+				continue;
+			}
+			if ( isset( $plugin_data['Description'] ) ) {
+				$plugin_data['Description'] = wp_trim_words( wp_strip_all_tags( $plugin_data['Description'] ), 20, '...' );
+			}
 
-				$extra = null;
+			$extra = null;
+			if ( is_object( $plugin_info ) ) {
 				if ( isset( $plugin_info->response[ $plugin_file ] ) ) {
 					$extra = $plugin_info->response[ $plugin_file ];
 				} elseif ( isset( $plugin_info->no_update[ $plugin_file ] ) ) {
 					$extra = $plugin_info->no_update[ $plugin_file ];
 				}
-
-				if ( is_object( $extra ) || is_array( $extra ) ) {
-					$all_plugins[ $plugin_file ] = array_merge( (array) $extra, $plugin_data );
-				}
-
-				$slug = $all_plugins[ $plugin_file ]['slug'] ?? '';
-				if ( is_string( $slug ) && '' !== $slug ) {
-					// AJAX is not a network admin request, so self_admin_url() cannot be used here.
-					$plugin_install_url                     = Functions::is_multisite() ? network_admin_url( 'plugin-install.php' ) : admin_url( 'plugin-install.php' );
-					$all_plugins[ $plugin_file ]['Details'] = esc_url_raw(
-						add_query_arg(
-							array(
-								'tab'       => 'plugin-information',
-								'plugin'    => $slug,
-								'TB_iframe' => 'true',
-								'width'     => 600,
-								'height'    => 550,
-							),
-							$plugin_install_url
-						)
-					);
-				}
 			}
+
+			$plugin_data           = $this->copy_update_display_fields( $plugin_data, $extra );
+			$plugin_data['Update'] = Available_Updates::plugin_offer( $plugin_file );
+
+			$slug = $plugin_data['slug'] ?? '';
+			if ( is_string( $slug ) && '' !== $slug ) {
+				// AJAX is not a network admin request, so self_admin_url() cannot be used here.
+				$plugin_install_url     = Functions::is_multisite() ? network_admin_url( 'plugin-install.php' ) : admin_url( 'plugin-install.php' );
+				$plugin_data['Details'] = esc_url_raw(
+					add_query_arg(
+						array(
+							'tab'       => 'plugin-information',
+							'plugin'    => $slug,
+							'TB_iframe' => 'true',
+							'width'     => 600,
+							'height'    => 550,
+						),
+						$plugin_install_url
+					)
+				);
+			}
+
+			$all_plugins[ $plugin_file ] = $plugin_data;
 		}
 
 		$options = Options::get_options();
@@ -612,28 +616,26 @@ class Ajax {
 				return get_site_transient( 'update_themes' );
 			}
 		);
-		if ( is_object( $theme_info ) ) {
-			foreach ( $all_themes as $stylesheet => $theme_data ) {
-				if ( ! is_string( $stylesheet ) || ! is_array( $theme_data ) ) {
-					continue;
-				}
-				if ( isset( $theme_data['Description'] ) ) {
-					$theme_data['Description'] = wp_trim_words( wp_strip_all_tags( $theme_data['Description'] ), 20, '...' );
-				}
+		foreach ( $all_themes as $stylesheet => $theme_data ) {
+			if ( ! is_string( $stylesheet ) || ! is_array( $theme_data ) ) {
+				continue;
+			}
+			if ( isset( $theme_data['Description'] ) ) {
+				$theme_data['Description'] = wp_trim_words( wp_strip_all_tags( $theme_data['Description'] ), 20, '...' );
+			}
 
-				$extra = null;
+			$extra = null;
+			if ( is_object( $theme_info ) ) {
 				if ( isset( $theme_info->response[ $stylesheet ] ) ) {
 					$extra = $theme_info->response[ $stylesheet ];
 				} elseif ( isset( $theme_info->no_update[ $stylesheet ] ) ) {
 					$extra = $theme_info->no_update[ $stylesheet ];
 				}
-
-				if ( is_object( $extra ) || is_array( $extra ) ) {
-					$all_themes[ $stylesheet ] = array_merge( (array) $extra, $theme_data );
-				} else {
-					$all_themes[ $stylesheet ] = $theme_data;
-				}
 			}
+
+			$theme_data                = $this->copy_update_display_fields( $theme_data, $extra );
+			$theme_data['Update']      = Available_Updates::theme_offer( $stylesheet );
+			$all_themes[ $stylesheet ] = $theme_data;
 		}
 
 		$options = Options::get_options();
@@ -1482,6 +1484,226 @@ class Ajax {
 		}
 
 		return array_values( array_unique( $sanitized ) );
+	}
+
+	/**
+	 * Copy directory display fields from an update offer without exposing the package.
+	 *
+	 * @param array<string, mixed> $row   Asset row.
+	 * @param mixed                $extra Update metadata.
+	 * @return array<string, mixed>
+	 */
+	private function copy_update_display_fields( array $row, $extra ): array {
+		if ( ! is_object( $extra ) && ! is_array( $extra ) ) {
+			return $row;
+		}
+
+		$extra = (array) $extra;
+		foreach ( array( 'slug', 'icons', 'id', 'url' ) as $key ) {
+			if ( ! isset( $extra[ $key ] ) || isset( $row[ $key ] ) ) {
+				continue;
+			}
+
+			$row[ $key ] = $extra[ $key ];
+		}
+
+		return $row;
+	}
+
+	/**
+	 * Whether a manual upgrader result installed the asset.
+	 *
+	 * @param mixed  $result Upgrader bulk result.
+	 * @param string $asset  Plugin file or theme stylesheet.
+	 * @return bool
+	 */
+	private function manual_update_succeeded( $result, string $asset ): bool {
+		if ( ! is_array( $result ) || ! array_key_exists( $asset, $result ) ) {
+			return false;
+		}
+
+		$item_result = $result[ $asset ];
+
+		return ! empty( $item_result ) && ! is_wp_error( $item_result );
+	}
+
+	/**
+	 * Failure text from an upgrader result or its skin.
+	 *
+	 * @param mixed                  $result   Upgrader bulk result.
+	 * @param string                 $asset    Plugin file or theme stylesheet.
+	 * @param \WP_Ajax_Upgrader_Skin $skin     Ajax upgrader skin.
+	 * @param string                 $fallback Message when the skin has no error.
+	 * @return string
+	 */
+	private function manual_update_failure_message( $result, string $asset, \WP_Ajax_Upgrader_Skin $skin, string $fallback ): string {
+		if ( is_array( $result ) && isset( $result[ $asset ] ) && is_wp_error( $result[ $asset ] ) ) {
+			$message = $result[ $asset ]->get_error_message();
+			if ( is_string( $message ) && '' !== $message ) {
+				return $message;
+			}
+		}
+
+		$errors = $skin->get_errors();
+		if ( is_wp_error( $errors ) ) {
+			$messages = array_filter(
+				$errors->get_error_messages(),
+				static function ( $message ): bool {
+					return is_string( $message ) && '' !== $message;
+				}
+			);
+			if ( ! empty( $messages ) ) {
+				return implode( ' ', $messages );
+			}
+		}
+
+		return $fallback;
+	}
+
+	/**
+	 * Install one plugin update from the Plugins screen.
+	 */
+	public function update_plugin(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_plugins' ) ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-update-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Plugin could not be updated.', 'updatebee' ),
+				)
+			);
+		}
+
+		if ( Functions::auto_updates_blocked( $file, 'plugin' ) || Functions::plugin_updates_fully_blocked() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Plugin updates are blocked.', 'updatebee' ),
+				)
+			);
+		}
+
+		$updated = $this->run_plugin_upgrade( $file );
+		if ( ! $this->manual_update_succeeded( $updated['result'], $file ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $this->manual_update_failure_message(
+						$updated['result'],
+						$file,
+						$updated['skin'],
+						__( 'Plugin could not be updated.', 'updatebee' )
+					),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'version' => Functions::get_plugin_current_version( $file ),
+				'message' => __( 'Plugin updated.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Install one theme update from the Themes screen.
+	 */
+	public function update_theme(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_themes' ) ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-update-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Theme could not be updated.', 'updatebee' ),
+				)
+			);
+		}
+
+		if ( Functions::auto_updates_blocked( $stylesheet, 'theme' ) || Functions::theme_updates_fully_blocked() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Theme updates are blocked.', 'updatebee' ),
+				)
+			);
+		}
+
+		$updated = $this->run_theme_upgrade( $stylesheet );
+		if ( ! $this->manual_update_succeeded( $updated['result'], $stylesheet ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $this->manual_update_failure_message(
+						$updated['result'],
+						$stylesheet,
+						$updated['skin'],
+						__( 'Theme could not be updated.', 'updatebee' )
+					),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'version' => Functions::get_theme_current_version( $stylesheet ),
+				'message' => __( 'Theme updated.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Run a single plugin upgrade with blocked offers still visible to the upgrader.
+	 *
+	 * @param string $file Plugin basename.
+	 * @return array{result: mixed, skin: \WP_Ajax_Upgrader_Skin}
+	 */
+	private function run_plugin_upgrade( string $file ): array {
+		return Hide_Blocked_Updates::unfiltered(
+			static function () use ( $file ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				wp_update_plugins();
+
+				$skin     = new \WP_Ajax_Upgrader_Skin();
+				$upgrader = new \Plugin_Upgrader( $skin );
+
+				return array(
+					'result' => $upgrader->bulk_upgrade( array( $file ) ),
+					'skin'   => $skin,
+				);
+			}
+		);
+	}
+
+	/**
+	 * Run a single theme upgrade with blocked offers still visible to the upgrader.
+	 *
+	 * @param string $stylesheet Theme stylesheet.
+	 * @return array{result: mixed, skin: \WP_Ajax_Upgrader_Skin}
+	 */
+	private function run_theme_upgrade( string $stylesheet ): array {
+		return Hide_Blocked_Updates::unfiltered(
+			static function () use ( $stylesheet ) {
+				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+				require_once ABSPATH . 'wp-admin/includes/theme.php';
+				wp_update_themes();
+
+				$skin     = new \WP_Ajax_Upgrader_Skin();
+				$upgrader = new \Theme_Upgrader( $skin );
+
+				return array(
+					'result' => $upgrader->bulk_upgrade( array( $stylesheet ) ),
+					'skin'   => $skin,
+				);
+			}
+		);
 	}
 
 	/**

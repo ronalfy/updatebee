@@ -84,10 +84,7 @@ const CronScheduleForm = ( props: CronScheduleFormProps ) => {
 				}
 			);
 			applyNextRunFromPayload( response.data.data );
-			onNotify(
-				__( 'Cron schedule saved.', 'updatebee' ),
-				'success'
-			);
+			onNotify( __( 'Cron schedule saved.', 'updatebee' ), 'success' );
 		} catch {
 			onNotify(
 				__( 'Could not save cron schedule.', 'updatebee' ),
@@ -110,10 +107,7 @@ const CronScheduleForm = ( props: CronScheduleFormProps ) => {
 			const mapped = mapPayloadToFormValues( response.data.data );
 			setValues( mapped );
 			applyNextRunFromPayload( response.data.data );
-			onNotify(
-				__( 'Cron schedule reset.', 'updatebee' ),
-				'success'
-			);
+			onNotify( __( 'Cron schedule reset.', 'updatebee' ), 'success' );
 		} catch {
 			onNotify(
 				__( 'Could not reset cron schedule.', 'updatebee' ),

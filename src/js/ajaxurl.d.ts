@@ -59,6 +59,13 @@ interface UpdateBeeTools {
 
 declare const updatebeeTools: UpdateBeeTools;
 
+interface UpdateBeeCommands {
+	forceUpdatesNonce: string;
+	refreshUpdatesNonce: string;
+}
+
+declare const updatebeeCommands: UpdateBeeCommands;
+
 interface UpdateBeeEmails {
 	pluginName: string;
 	enableCoreEmails: boolean;

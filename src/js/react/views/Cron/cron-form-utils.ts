@@ -88,8 +88,7 @@ export const defaultDaysListForSchedule = (
 export const mapPayloadToFormValues = (
 	payload: CronSchedulePayload
 ): CronScheduleFormValues => {
-	const schedule = ( payload.schedule ??
-		'twelve-hours' ) as CronFrequency;
+	const schedule = ( payload.schedule ?? 'twelve-hours' ) as CronFrequency;
 	const daysList = Array.isArray( payload.days_list )
 		? payload.days_list.map( ( day ) => Number( day ) ).filter( Boolean )
 		: defaultDaysListForSchedule( schedule );

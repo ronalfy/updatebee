@@ -36,7 +36,8 @@ export const getReportAjaxConfig = (
 
 	if ( 'updates-available' === kind ) {
 		return {
-			retrieveAction: 'updatebee_retrieve_email_updates_available_options',
+			retrieveAction:
+				'updatebee_retrieve_email_updates_available_options',
 			saveAction: 'updatebee_save_email_updates_available_options',
 			resetAction: 'updatebee_reset_email_updates_available_options',
 			sendNowAction: 'updatebee_send_email_updates_available_now',

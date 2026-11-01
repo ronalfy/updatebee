@@ -26,6 +26,9 @@ import {
 	useWatch,
 } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
+import AssetUpdatePanel, {
+	type AssetUpdate,
+} from '../../components/AssetUpdatePanel';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
@@ -67,6 +70,7 @@ export type ThemeItem = {
 	DelayDays: number | null;
 	AllowUntested: boolean;
 	SettingsNonce: string;
+	Update: AssetUpdate | null;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -228,6 +232,7 @@ const ThemesList = ( props: {
 		allowUntested: boolean
 	) => void;
 	onNotesChange: ( stylesheet: string, notes: string ) => void;
+	onThemeUpdated: ( stylesheet: string, version: string ) => void;
 } ) => {
 	const {
 		themes,
@@ -237,6 +242,7 @@ const ThemesList = ( props: {
 		onDelayChange,
 		onAllowUntestedChange,
 		onNotesChange,
+		onThemeUpdated,
 	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< ThemesFormValues >();
@@ -253,6 +259,8 @@ const ThemesList = ( props: {
 		| 'blocked'
 		| 'unblocked'
 		| 'patches-only'
+		| 'update-available'
+		| 'has-notes'
 		| 'third-party'
 		| 'org-theme'
 	>( '' );
@@ -415,6 +423,16 @@ const ThemesList = ( props: {
 					break;
 				case 'patches-only':
 					if ( ! patchesOnly ) {
+						return false;
+					}
+					break;
+				case 'update-available':
+					if ( ! theme.Update ) {
+						return false;
+					}
+					break;
+				case 'has-notes':
+					if ( '' === ( theme.Notes || '' ).trim() ) {
 						return false;
 					}
 					break;
@@ -791,6 +809,14 @@ const ThemesList = ( props: {
 				value: 'patches-only',
 			},
 			{
+				label: __( 'Update Available', 'updatebee' ),
+				value: 'update-available',
+			},
+			{
+				label: __( 'Has Notes', 'updatebee' ),
+				value: 'has-notes',
+			},
+			{
 				label: __( 'Third-party Themes', 'updatebee' ),
 				value: 'third-party',
 			},
@@ -830,6 +856,8 @@ const ThemesList = ( props: {
 										| 'blocked'
 										| 'unblocked'
 										| 'patches-only'
+										| 'update-available'
+										| 'has-notes'
 										| 'third-party'
 										| 'org-theme'
 								);
@@ -897,13 +925,19 @@ const ThemesList = ( props: {
 									assetName={ theme.Name }
 									assetId={ theme.Stylesheet }
 									delayDays={ theme.DelayDays }
-									allowUntested={ Boolean( theme.AllowUntested ) }
-									blockUntestedUpdates={ blockUntestedUpdates }
+									allowUntested={ Boolean(
+										theme.AllowUntested
+									) }
+									blockUntestedUpdates={
+										blockUntestedUpdates
+									}
 									settingsNonce={ theme.SettingsNonce }
 									globalDelayDays={ globalDelayDays }
 									disabled={ isBusy }
 									onDelayChange={ onDelayChange }
-									onAllowUntestedChange={ onAllowUntestedChange }
+									onAllowUntestedChange={
+										onAllowUntestedChange
+									}
 									showSnackbar={ showSnackbar }
 								/>
 								<div className="updatebee-theme-column updatebee-theme-column-checkbox">
@@ -1095,7 +1129,10 @@ const ThemesList = ( props: {
 										</tbody>
 									</table>
 								</div>
-								<div></div>
+								<div
+									className="updatebee-theme-column updatebee-theme-column-separator"
+									aria-hidden="true"
+								></div>
 								<div className="updatebee-theme-column updatebee-theme-column-info">
 									{ getThemeBadges( theme ) }
 									<div className="updatebee-theme-actions">
@@ -1368,11 +1405,31 @@ const ThemesList = ( props: {
 										showSnackbar={ showSnackbar }
 									/>
 								</div>
-
-								<div
-									className="updatebee-theme-column updatebee-theme-column-separator"
-									aria-hidden="true"
-								></div>
+								{ theme.Update && (
+									<AssetUpdatePanel
+										kind="theme"
+										assetId={ theme.Stylesheet }
+										update={ theme.Update }
+										blocked={ isBlocked }
+										updatesFullyBlocked={
+											'blocked' === autoUpdatesStatus
+										}
+										disabled={ isBusy }
+										onUpdated={ ( version ) => {
+											onThemeUpdated(
+												theme.Stylesheet,
+												version
+											);
+										} }
+										onBusy={ ( busy ) => {
+											setThemeBusy(
+												theme.Stylesheet,
+												busy
+											);
+										} }
+										showSnackbar={ showSnackbar }
+									/>
+								) }
 							</div>
 						);
 					} ) }
@@ -1428,7 +1485,7 @@ const ThemesMain = () => {
 	/**
 	 * Update a theme's untested-update exemption in local list state.
 	 *
-	 * @param stylesheet     Theme stylesheet.
+	 * @param stylesheet    Theme stylesheet.
 	 * @param allowUntested Saved exemption.
 	 */
 	const handleAllowUntestedChange = useCallback(
@@ -1463,6 +1520,25 @@ const ThemesMain = () => {
 		[]
 	);
 
+	/**
+	 * Replace a theme's version and clear its pending update.
+	 *
+	 * @param stylesheet Theme stylesheet.
+	 * @param version    Installed version after the update.
+	 */
+	const handleThemeUpdated = useCallback(
+		( stylesheet: string, version: string ) => {
+			setThemes( ( current ) =>
+				current.map( ( theme ) =>
+					theme.Stylesheet === stylesheet
+						? { ...theme, Version: version, Update: null }
+						: theme
+				)
+			);
+		},
+		[]
+	);
+
 	useEffect( () => {
 		let cancelled = false;
 
@@ -1489,6 +1565,7 @@ const ThemesMain = () => {
 						NoteNonce: theme.NoteNonce || '',
 						ParentName: theme.ParentName || '',
 						Screenshot: theme.Screenshot || '',
+						Update: theme.Update || null,
 					} )
 				);
 				const values: ThemesFormValues = {};
@@ -1555,6 +1632,7 @@ const ThemesMain = () => {
 				onDelayChange={ handleDelayChange }
 				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
+				onThemeUpdated={ handleThemeUpdated }
 			/>
 		</FormProvider>
 	);

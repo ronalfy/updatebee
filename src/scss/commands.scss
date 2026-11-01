@@ -1,0 +1,53 @@
+/**
+ * Command palette progress modal and snackbar.
+ *
+ * The modal is portaled to the document body, so its rules are not nested
+ * under the mount node. The snackbar stays inside that node.
+ */
+@use '@mediaron/react-spinners/spinner.css';
+
+#updatebee-command-notices {
+	.updatebee-snackbar {
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 100100;
+	}
+}
+
+.updatebee-command-progress-overlay {
+	z-index: 1000000;
+}
+
+.components-modal__frame.updatebee-command-progress-modal {
+	width: min(20rem, calc(100% - 32px));
+	min-width: 0;
+	max-width: 20rem;
+	margin-right: auto;
+	margin-left: auto;
+
+	.components-modal__header {
+		border-bottom: none;
+		padding: 16px 20px 0;
+	}
+
+	.components-modal__header-heading {
+		font-size: 14px;
+		line-height: 1.4;
+	}
+
+	.updatebee-command-progress {
+		display: flex;
+		justify-content: center;
+		padding: 12px 20px 20px;
+	}
+}
+
+@media (min-width: 600px) {
+	.components-modal__frame.updatebee-command-progress-modal.has-size-small {
+		width: 20rem;
+		min-width: 0;
+		max-width: 20rem;
+	}
+}

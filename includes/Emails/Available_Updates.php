@@ -7,6 +7,9 @@
 
 namespace UpdateBee\Emails;
 
+use UpdateBee\Functions;
+use UpdateBee\Updates\Hide_Blocked_Updates;
+
 /**
  * Available update collection for email and Slack reports.
  */
@@ -268,6 +271,141 @@ class Available_Updates {
 		}
 
 		return '';
+	}
+
+	/**
+	 * Pending plugin update for the admin screen.
+	 *
+	 * The read bypasses the blocked-update filter so a blocked plugin still shows its offer.
+	 *
+	 * @param string $file Plugin basename.
+	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string}|null
+	 */
+	public static function plugin_offer( string $file ): ?array {
+		if ( '' === $file ) {
+			return null;
+		}
+
+		$updates = Hide_Blocked_Updates::unfiltered(
+			static function () {
+				return get_site_transient( 'update_plugins' );
+			}
+		);
+
+		if ( ! is_object( $updates ) || empty( $updates->response ) || ! is_array( $updates->response ) || ! isset( $updates->response[ $file ] ) ) {
+			return null;
+		}
+
+		return self::format_offer(
+			$updates->response[ $file ],
+			Functions::get_plugin_current_version( $file ),
+			'updatebee-plugin-update-' . $file
+		);
+	}
+
+	/**
+	 * Pending theme update for the admin screen.
+	 *
+	 * The read bypasses the blocked-update filter so a blocked theme still shows its offer.
+	 *
+	 * @param string $stylesheet Theme stylesheet.
+	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string}|null
+	 */
+	public static function theme_offer( string $stylesheet ): ?array {
+		if ( '' === $stylesheet ) {
+			return null;
+		}
+
+		$updates = Hide_Blocked_Updates::unfiltered(
+			static function () {
+				return get_site_transient( 'update_themes' );
+			}
+		);
+
+		if ( ! is_object( $updates ) || empty( $updates->response ) || ! is_array( $updates->response ) || ! isset( $updates->response[ $stylesheet ] ) ) {
+			return null;
+		}
+
+		return self::format_offer(
+			$updates->response[ $stylesheet ],
+			Functions::get_theme_current_version( $stylesheet ),
+			'updatebee-theme-update-' . $stylesheet
+		);
+	}
+
+	/**
+	 * Shape one update offer for the admin screen.
+	 *
+	 * @param mixed  $item            Update metadata.
+	 * @param string $current_version Installed version.
+	 * @param string $nonce_action    Nonce action for a manual update.
+	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string}|null
+	 */
+	private static function format_offer( $item, string $current_version, string $nonce_action ): ?array {
+		$new_version = self::offer_new_version( $item );
+		if ( '' === $new_version || $current_version === $new_version ) {
+			return null;
+		}
+
+		return array(
+			'new_version'    => $new_version,
+			'upgrade_notice' => self::offer_upgrade_notice( $item ),
+			'has_package'    => self::offer_has_package( $item ),
+			'nonce'          => wp_create_nonce( $nonce_action ),
+		);
+	}
+
+	/**
+	 * Offered version from a plugin object or theme array.
+	 *
+	 * @param mixed $item Update metadata.
+	 * @return string
+	 */
+	private static function offer_new_version( $item ): string {
+		$version = '';
+		if ( is_object( $item ) && isset( $item->new_version ) ) {
+			$version = (string) $item->new_version;
+		} elseif ( is_array( $item ) && isset( $item['new_version'] ) ) {
+			$version = (string) $item['new_version'];
+		}
+
+		return sanitize_text_field( $version );
+	}
+
+	/**
+	 * Sanitized upgrade notice, or an empty string when the offer has none.
+	 *
+	 * @param mixed $item Update metadata.
+	 * @return string
+	 */
+	private static function offer_upgrade_notice( $item ): string {
+		$notice = '';
+		if ( is_object( $item ) && isset( $item->upgrade_notice ) && is_string( $item->upgrade_notice ) ) {
+			$notice = $item->upgrade_notice;
+		} elseif ( is_array( $item ) && isset( $item['upgrade_notice'] ) && is_string( $item['upgrade_notice'] ) ) {
+			$notice = $item['upgrade_notice'];
+		}
+
+		return trim( wp_kses_post( $notice ) );
+	}
+
+	/**
+	 * Whether the offer includes an installable package.
+	 *
+	 * The package URL stays on the server.
+	 *
+	 * @param mixed $item Update metadata.
+	 * @return bool
+	 */
+	private static function offer_has_package( $item ): bool {
+		$package = '';
+		if ( is_object( $item ) && isset( $item->package ) && is_string( $item->package ) ) {
+			$package = $item->package;
+		} elseif ( is_array( $item ) && isset( $item['package'] ) && is_string( $item['package'] ) ) {
+			$package = $item['package'];
+		}
+
+		return '' !== $package;
 	}
 
 	/**

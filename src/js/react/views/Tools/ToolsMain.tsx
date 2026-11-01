@@ -292,9 +292,7 @@ const ToolsMain = () => {
 	}, [ hideTarget, runToolAction ] );
 
 	const migrateCopy =
-		null === migrateTarget
-			? ''
-			: getMigrateDescriptions()[ migrateTarget ];
+		null === migrateTarget ? '' : getMigrateDescriptions()[ migrateTarget ];
 	const hideCopy =
 		null === hideTarget ? '' : getHideDescriptions()[ hideTarget ];
 
@@ -433,7 +431,9 @@ const ToolsMain = () => {
 										'updatebee'
 									) }
 									disabled={ isBusy }
-									onClick={ () => handleHideImporter( 'eum' ) }
+									onClick={ () =>
+										handleHideImporter( 'eum' )
+									}
 								>
 									{ __( 'Hide importer', 'updatebee' ) }
 								</Button>
@@ -484,7 +484,9 @@ const ToolsMain = () => {
 										'updatebee'
 									) }
 									disabled={ isBusy }
-									onClick={ () => handleHideImporter( 'cau' ) }
+									onClick={ () =>
+										handleHideImporter( 'cau' )
+									}
 								>
 									{ __( 'Hide importer', 'updatebee' ) }
 								</Button>

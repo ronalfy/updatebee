@@ -12,9 +12,7 @@ import {
 	getDeliveryBadgeLabel,
 	mapPayloadToFormValues,
 } from './email-form-utils';
-import EmailReportForm, {
-	EmailReportFormLoading,
-} from './EmailReportForm';
+import EmailReportForm, { EmailReportFormLoading } from './EmailReportForm';
 
 type EmailReportCardProps = {
 	kind: EmailReportKind;
@@ -49,17 +47,15 @@ const deliveryBadgeText = ( sendSchedule: SendSchedule ): string => {
  */
 const EmailReportCard = ( props: EmailReportCardProps ) => {
 	const { kind, title, description, onNotify } = props;
-	const config = useMemo(
-		() => getReportAjaxConfig( kind ),
-		[ kind ]
-	);
+	const config = useMemo( () => getReportAjaxConfig( kind ), [ kind ] );
 
 	const [ isLoading, setIsLoading ] = useState( true );
 	const [ previewUrl, setPreviewUrl ] = useState( '' );
 	const [ formValues, setFormValues ] = useState(
 		defaultEmailReportValues()
 	);
-	const [ sendSchedule, setSendSchedule ] = useState< SendSchedule >( 'none' );
+	const [ sendSchedule, setSendSchedule ] =
+		useState< SendSchedule >( 'none' );
 
 	const loadOptions = useCallback( async () => {
 		setIsLoading( true );

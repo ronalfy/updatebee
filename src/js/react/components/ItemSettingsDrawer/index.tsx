@@ -87,9 +87,7 @@ const ItemSettingsDrawer = ( props: ItemSettingsDrawerProps ) => {
 	const [ useSiteDefault, setUseSiteDefault ] = useState(
 		null === delayDays
 	);
-	const [ customDelayDays, setCustomDelayDays ] = useState(
-		delayDays ?? 0
-	);
+	const [ customDelayDays, setCustomDelayDays ] = useState( delayDays ?? 0 );
 	const [ useUntestedDefault, setUseUntestedDefault ] = useState(
 		! allowUntested
 	);

@@ -10,6 +10,7 @@ namespace UpdateBee;
 use UpdateBee\Abilities\Registry as Abilities_Registry;
 use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Admin\Ajax;
+use UpdateBee\Admin\Command_Palette;
 use UpdateBee\Admin\Network_Admin_Bar;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Hide_Updates_Column;
@@ -172,6 +173,13 @@ class Plugin {
 	private Admin_Bar_Menu $admin_bar_menu;
 
 	/**
+	 * Admin command palette actions.
+	 *
+	 * @var Command_Palette
+	 */
+	private Command_Palette $command_palette;
+
+	/**
 	 * White-label branding.
 	 *
 	 * @var Branding
@@ -237,6 +245,9 @@ class Plugin {
 
 		$this->admin_bar_menu = new Admin_Bar_Menu();
 		$this->admin_bar_menu->run();
+
+		$this->command_palette = new Command_Palette();
+		$this->command_palette->run();
 
 		$this->enqueue = new Enqueue();
 		$this->enqueue->run();

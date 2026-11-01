@@ -26,6 +26,9 @@ import {
 	useWatch,
 } from 'react-hook-form';
 import sendCommand from '../../../utils/SendCommand';
+import AssetUpdatePanel, {
+	type AssetUpdate,
+} from '../../components/AssetUpdatePanel';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
@@ -70,6 +73,7 @@ export type PluginItem = {
 	DelayDays: number | null;
 	AllowUntested: boolean;
 	SettingsNonce: string;
+	Update: AssetUpdate | null;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -232,6 +236,7 @@ const PluginsList = ( props: {
 	onDelayChange: ( file: string, delayDays: number | null ) => void;
 	onAllowUntestedChange: ( file: string, allowUntested: boolean ) => void;
 	onNotesChange: ( file: string, notes: string ) => void;
+	onPluginUpdated: ( file: string, version: string ) => void;
 } ) => {
 	const {
 		plugins,
@@ -241,6 +246,7 @@ const PluginsList = ( props: {
 		onDelayChange,
 		onAllowUntestedChange,
 		onNotesChange,
+		onPluginUpdated,
 	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< PluginsFormValues >();
@@ -257,6 +263,8 @@ const PluginsList = ( props: {
 		| 'blocked'
 		| 'unblocked'
 		| 'patches-only'
+		| 'update-available'
+		| 'has-notes'
 		| 'third-party'
 		| 'org-plugin'
 	>( '' );
@@ -411,6 +419,16 @@ const PluginsList = ( props: {
 					break;
 				case 'patches-only':
 					if ( ! patchesOnly ) {
+						return false;
+					}
+					break;
+				case 'update-available':
+					if ( ! plugin.Update ) {
+						return false;
+					}
+					break;
+				case 'has-notes':
+					if ( '' === ( plugin.Notes || '' ).trim() ) {
 						return false;
 					}
 					break;
@@ -784,6 +802,17 @@ const PluginsList = ( props: {
 								},
 								{
 									label: __(
+										'Update Available',
+										'updatebee'
+									),
+									value: 'update-available',
+								},
+								{
+									label: __( 'Has Notes', 'updatebee' ),
+									value: 'has-notes',
+								},
+								{
+									label: __(
 										'Third-party Plugins',
 										'updatebee'
 									),
@@ -862,13 +891,19 @@ const PluginsList = ( props: {
 									assetName={ plugin.Name }
 									assetId={ plugin.File }
 									delayDays={ plugin.DelayDays }
-									allowUntested={ Boolean( plugin.AllowUntested ) }
-									blockUntestedUpdates={ blockUntestedUpdates }
+									allowUntested={ Boolean(
+										plugin.AllowUntested
+									) }
+									blockUntestedUpdates={
+										blockUntestedUpdates
+									}
 									settingsNonce={ plugin.SettingsNonce }
 									globalDelayDays={ globalDelayDays }
 									disabled={ isBusy }
 									onDelayChange={ onDelayChange }
-									onAllowUntestedChange={ onAllowUntestedChange }
+									onAllowUntestedChange={
+										onAllowUntestedChange
+									}
 									showSnackbar={ showSnackbar }
 								/>
 								<div className="updatebee-plugin-column updatebee-plugin-column-checkbox">
@@ -1082,7 +1117,10 @@ const PluginsList = ( props: {
 										</tbody>
 									</table>
 								</div>
-								<div></div>
+								<div
+									className="updatebee-plugin-column updatebee-plugin-column-separator"
+									aria-hidden="true"
+								></div>
 								<div className="updatebee-plugin-column updatebee-plugin-column-info">
 									{ getPluginBadges( plugin ) }
 									<div className="updatebee-plugin-actions">
@@ -1352,11 +1390,28 @@ const PluginsList = ( props: {
 										showSnackbar={ showSnackbar }
 									/>
 								</div>
-
-								<div
-									className="updatebee-plugin-column updatebee-plugin-column-separator"
-									aria-hidden="true"
-								></div>
+								{ plugin.Update && (
+									<AssetUpdatePanel
+										kind="plugin"
+										assetId={ plugin.File }
+										update={ plugin.Update }
+										blocked={ isBlocked }
+										updatesFullyBlocked={
+											'blocked' === autoUpdatesStatus
+										}
+										disabled={ isBusy }
+										onUpdated={ ( version ) => {
+											onPluginUpdated(
+												plugin.File,
+												version
+											);
+										} }
+										onBusy={ ( busy ) => {
+											setPluginBusy( plugin.File, busy );
+										} }
+										showSnackbar={ showSnackbar }
+									/>
+								) }
 							</div>
 						);
 					} ) }
@@ -1412,7 +1467,7 @@ const PluginsMain = () => {
 	/**
 	 * Update a plugin's untested-update exemption in local list state.
 	 *
-	 * @param file           Plugin file.
+	 * @param file          Plugin file.
 	 * @param allowUntested Saved exemption.
 	 */
 	const handleAllowUntestedChange = useCallback(
@@ -1442,6 +1497,25 @@ const PluginsMain = () => {
 		);
 	}, [] );
 
+	/**
+	 * Replace a plugin's version and clear its pending update.
+	 *
+	 * @param file    Plugin file.
+	 * @param version Installed version after the update.
+	 */
+	const handlePluginUpdated = useCallback(
+		( file: string, version: string ) => {
+			setPlugins( ( current ) =>
+				current.map( ( plugin ) =>
+					plugin.File === file
+						? { ...plugin, Version: version, Update: null }
+						: plugin
+				)
+			);
+		},
+		[]
+	);
+
 	useEffect( () => {
 		let cancelled = false;
 
@@ -1466,6 +1540,7 @@ const PluginsMain = () => {
 						...plugin,
 						Notes: plugin.Notes || '',
 						NoteNonce: plugin.NoteNonce || '',
+						Update: plugin.Update || null,
 					} )
 				);
 				const values: PluginsFormValues = {};
@@ -1532,6 +1607,7 @@ const PluginsMain = () => {
 				onDelayChange={ handleDelayChange }
 				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
+				onPluginUpdated={ handlePluginUpdated }
 			/>
 		</FormProvider>
 	);

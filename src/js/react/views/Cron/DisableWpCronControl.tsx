@@ -27,7 +27,9 @@ type DisableWpCronControlProps = {
  *
  * @param state Incoming localized state.
  */
-const normalizeState = ( state: UpdateBeeDisableWpCronState ): DisableWpCronState => ( {
+const normalizeState = (
+	state: UpdateBeeDisableWpCronState
+): DisableWpCronState => ( {
 	enabled: Boolean( state?.enabled ),
 	constantDefined: Boolean( state?.constantDefined ),
 	constantValue:
@@ -111,10 +113,7 @@ const DisableWpCronControl = ( props: DisableWpCronControlProps ) => {
 	return (
 		<div className="updatebee-cron-disable-wp-cron">
 			<ToggleControl
-				label={ __(
-					'Disable WordPress Cron',
-					'updatebee'
-				) }
+				label={ __( 'Disable WordPress Cron', 'updatebee' ) }
 				help={ __(
 					'If disabled, you must use a cron tab to run the updates. You can find those under each schedule in the Advanced detail.',
 					'updatebee'
