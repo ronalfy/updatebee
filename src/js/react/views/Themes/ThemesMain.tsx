@@ -25,6 +25,10 @@ import {
 	useFormContext,
 	useWatch,
 } from 'react-hook-form';
+import {
+	readListFilter,
+	writeListFilter,
+} from '../../../utils/list-filter-param';
 import sendCommand from '../../../utils/SendCommand';
 import AssetUpdatePanel, {
 	type AssetUpdate,
@@ -221,6 +225,24 @@ const getBulkSuccessMessage = (
 	}
 };
 
+const THEME_LIST_FILTERS = [
+	'',
+	'all',
+	'activated',
+	'deactivated',
+	'auto-updates-enabled',
+	'auto-updates-disabled',
+	'blocked',
+	'unblocked',
+	'patches-only',
+	'update-available',
+	'has-notes',
+	'third-party',
+	'org-theme',
+] as const;
+
+type ThemeListFilter = ( typeof THEME_LIST_FILTERS )[ number ];
+
 const ThemesList = ( props: {
 	themes: ThemeItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
@@ -249,21 +271,9 @@ const ThemesList = ( props: {
 	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
 	useWatch( { control } );
 	const [ search, setSearch ] = useState( '' );
-	const [ filter, setFilter ] = useState<
-		| ''
-		| 'all'
-		| 'activated'
-		| 'deactivated'
-		| 'auto-updates-enabled'
-		| 'auto-updates-disabled'
-		| 'blocked'
-		| 'unblocked'
-		| 'patches-only'
-		| 'update-available'
-		| 'has-notes'
-		| 'third-party'
-		| 'org-theme'
-	>( '' );
+	const [ filter, setFilter ] = useState< ThemeListFilter >( () =>
+		readListFilter( THEME_LIST_FILTERS )
+	);
 	const [ busyThemes, setBusyThemes ] = useState< Record< string, boolean > >(
 		{}
 	);
@@ -846,21 +856,12 @@ const ThemesList = ( props: {
 							value={ filter }
 							options={ themeFilterOptions }
 							onChange={ ( value ) => {
-								setFilter(
-									value as
-										| 'all'
-										| 'activated'
-										| 'deactivated'
-										| 'auto-updates-enabled'
-										| 'auto-updates-disabled'
-										| 'blocked'
-										| 'unblocked'
-										| 'patches-only'
-										| 'update-available'
-										| 'has-notes'
-										| 'third-party'
-										| 'org-theme'
+								const next = readListFilter(
+									THEME_LIST_FILTERS,
+									`?filter=${ encodeURIComponent( value ) }`
 								);
+								setFilter( next );
+								writeListFilter( next );
 							} }
 						/>
 					</div>

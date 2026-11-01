@@ -25,6 +25,10 @@ import {
 	useFormContext,
 	useWatch,
 } from 'react-hook-form';
+import {
+	readListFilter,
+	writeListFilter,
+} from '../../../utils/list-filter-param';
 import sendCommand from '../../../utils/SendCommand';
 import AssetUpdatePanel, {
 	type AssetUpdate,
@@ -228,6 +232,24 @@ const getBulkSuccessMessage = (
 	}
 };
 
+const PLUGIN_LIST_FILTERS = [
+	'',
+	'all',
+	'activated',
+	'deactivated',
+	'auto-updates-enabled',
+	'auto-updates-disabled',
+	'blocked',
+	'unblocked',
+	'patches-only',
+	'update-available',
+	'has-notes',
+	'third-party',
+	'org-plugin',
+] as const;
+
+type PluginListFilter = ( typeof PLUGIN_LIST_FILTERS )[ number ];
+
 const PluginsList = ( props: {
 	plugins: PluginItem[];
 	autoUpdatesStatus: AutoUpdatesStatus;
@@ -253,21 +275,9 @@ const PluginsList = ( props: {
 	// Subscribe so filters and row copy recompute after setValue, including from the footer Slot.
 	useWatch( { control } );
 	const [ search, setSearch ] = useState( '' );
-	const [ filter, setFilter ] = useState<
-		| ''
-		| 'all'
-		| 'activated'
-		| 'deactivated'
-		| 'auto-updates-enabled'
-		| 'auto-updates-disabled'
-		| 'blocked'
-		| 'unblocked'
-		| 'patches-only'
-		| 'update-available'
-		| 'has-notes'
-		| 'third-party'
-		| 'org-plugin'
-	>( '' );
+	const [ filter, setFilter ] = useState< PluginListFilter >( () =>
+		readListFilter( PLUGIN_LIST_FILTERS )
+	);
 	const [ busyPlugins, setBusyPlugins ] = useState<
 		Record< string, boolean >
 	>( {} );
@@ -827,7 +837,12 @@ const PluginsList = ( props: {
 								},
 							] }
 							onChange={ ( value ) => {
-								setFilter( value );
+								const next = readListFilter(
+									PLUGIN_LIST_FILTERS,
+									`?filter=${ encodeURIComponent( value ) }`
+								);
+								setFilter( next );
+								writeListFilter( next );
 							} }
 						/>
 					</div>
