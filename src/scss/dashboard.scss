@@ -1,0 +1,50 @@
+/**
+ * Settings tab layout.
+ */
+
+@import '../../node_modules/@wordpress/dataviews/build-style/style.css';
+
+.updatebee-dashboard-main {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	padding-bottom: 48px;
+}
+
+.updatebee-dashboard-tabs-list {
+	margin-bottom: 8px;
+}
+
+.updatebee-upcoming-tab {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding-top: 8px;
+	padding-bottom: 96px;
+}
+
+.updatebee-upcoming-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.updatebee-upcoming-toolbar-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.updatebee-upcoming-next-run {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 12px;
+}
+
+.updatebee-upcoming-tab .dataviews-wrapper {
+	margin-top: 8px;
+	padding: var(--wpds-dimension-padding-2xl) var(--wpds-dimension-padding-xl);
+}

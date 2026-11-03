@@ -20,6 +20,8 @@ use UpdateBee\Slack\Slack_Webhook;
 use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
+use UpdateBee\Updates\Skip_Version;
+use UpdateBee\Updates\Upcoming;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
@@ -40,6 +42,9 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_get_dashboard_updates', array( $this, 'get_dashboard_updates' ) );
 		add_action( 'wp_ajax_updatebee_save_dashboard_settings', array( $this, 'save_dashboard_settings' ) );
 		add_action( 'wp_ajax_updatebee_reset_dashboard_settings', array( $this, 'reset_dashboard_settings' ) );
+		add_action( 'wp_ajax_updatebee_retrieve_upcoming_updates', array( $this, 'retrieve_upcoming_updates' ) );
+		add_action( 'wp_ajax_updatebee_skip_plugin_version', array( $this, 'skip_plugin_version' ) );
+		add_action( 'wp_ajax_updatebee_skip_theme_version', array( $this, 'skip_theme_version' ) );
 
 		// Plugin Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_plugins', array( $this, 'retrieve_plugins' ) );
@@ -94,6 +99,93 @@ class Ajax {
 
 		// Branding Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_branding_settings', array( $this, 'save_branding_settings' ) );
+	}
+
+	/**
+	 * Return pending plugin and theme updates for the Upcoming tab.
+	 */
+	public function retrieve_upcoming_updates(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		check_ajax_referer( 'updatebee-retrieve-upcoming-updates', 'nonce' );
+
+		wp_send_json_success( Upcoming::get_list() );
+	}
+
+	/**
+	 * Skip or restore one offered plugin version.
+	 */
+	public function skip_plugin_version(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-skip-' . $file, 'nonce' );
+
+		if ( ! Functions::plugin_file_exists( $file ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'The plugin version could not be skipped.', 'updatebee' ),
+				)
+			);
+		}
+
+		$saved = Skip_Version::set_skipped( 'plugin', $file, $this->get_posted_version(), $this->get_posted_enabled() );
+		if ( ! $saved ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'The plugin version could not be skipped.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => $this->get_posted_enabled()
+					? __( 'This plugin version will be skipped.', 'updatebee' )
+					: __( 'This plugin version is scheduled again.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Skip or restore one offered theme version.
+	 */
+	public function skip_theme_version(): void {
+		if ( ! Functions::can_access_options() ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-skip-' . $stylesheet, 'nonce' );
+
+		if ( ! Functions::theme_stylesheet_exists( $stylesheet ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'The theme version could not be skipped.', 'updatebee' ),
+				)
+			);
+		}
+
+		$saved = Skip_Version::set_skipped( 'theme', $stylesheet, $this->get_posted_version(), $this->get_posted_enabled() );
+		if ( ! $saved ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'The theme version could not be skipped.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'message' => $this->get_posted_enabled()
+					? __( 'This theme version will be skipped.', 'updatebee' )
+					: __( 'This theme version is scheduled again.', 'updatebee' ),
+			)
+		);
 	}
 
 	/**
@@ -2257,6 +2349,19 @@ class Ajax {
 		}
 
 		return (bool) rest_sanitize_boolean( $value );
+	}
+
+	/**
+	 * Sanitize a posted version string.
+	 *
+	 * @return string Version, or an empty string when none was posted.
+	 */
+	private function get_posted_version(): string {
+		// Callers verify a nonce before reading the version.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$version = isset( $_POST['version'] ) ? sanitize_text_field( wp_unslash( $_POST['version'] ) ) : '';
+
+		return is_string( $version ) ? $version : '';
 	}
 
 	/**

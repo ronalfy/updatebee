@@ -302,6 +302,39 @@ class Delay_Updates {
 	}
 
 	/**
+	 * Unix time when a delayed item becomes eligible, if that time is still ahead.
+	 *
+	 * @param string $type plugin or theme.
+	 * @param string $id   Plugin file or theme stylesheet.
+	 * @return int|null Eligible timestamp, or null when the item is not waiting.
+	 */
+	public function eligible_timestamp( string $type, string $id ): ?int {
+		if ( 'plugin' !== $type && 'theme' !== $type ) {
+			return null;
+		}
+
+		$delay = $this->resolve_delay_days(
+			'plugin' === $type ? Table_Plugins::get_delay_days( $id ) : Table_Themes::get_delay_days( $id )
+		);
+		if ( 0 === $delay ) {
+			return null;
+		}
+
+		$option = 'plugin' === $type ? self::PLUGIN_OPTION : self::THEME_OPTION;
+		$stamps = $this->get_stamps( $option );
+		if ( ! isset( $stamps[ $id ]['time'] ) ) {
+			return null;
+		}
+
+		$eligible = (int) $stamps[ $id ]['time'] + ( $delay * DAY_IN_SECONDS );
+		if ( time() >= $eligible ) {
+			return null;
+		}
+
+		return $eligible;
+	}
+
+	/**
 	 * Retrieve first-seen stamps for an option key.
 	 *
 	 * @param string $option_key Site option key.

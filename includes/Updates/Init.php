@@ -28,6 +28,7 @@ class Init {
 		Delay_Updates::get_instance();
 		Hide_Blocked_Updates::get_instance();
 		Upgrade_Notice_Keywords::get_instance();
+		Skip_Version::get_instance();
 		Untested_Updates::get_instance();
 
 		if ( ! self::core_emails_enabled() ) {
