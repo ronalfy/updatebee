@@ -1,0 +1,77 @@
+name: Feature request
+description: Suggest a change to how UpdateBee allows, delays, blocks, schedules, or reports updates.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the update behavior you need. UpdateBee covers WordPress core, plugins, themes, and translations, and it is managed in network admin on multisite or under Tools on a single site.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What automatic-update behavior is missing or awkward today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed behavior
+      description: What should UpdateBee do instead, including any schedule, log, email, or Slack result you expect?
+    validations:
+      required: true
+  - type: dropdown
+    id: update-type
+    attributes:
+      label: Update type
+      description: Which update type should this change affect?
+      multiple: true
+      options:
+        - WordPress core
+        - Plugins
+        - Themes
+        - Translations
+        - Not tied to one update type
+    validations:
+      required: true
+  - type: dropdown
+    id: admin-screen
+    attributes:
+      label: Admin screen
+      description: Where should this appear, if it changes the admin UI?
+      multiple: true
+      options:
+        - Settings
+        - Plugins
+        - Themes
+        - Translations
+        - Logs
+        - Schedules
+        - Emails
+        - Tools
+        - Advanced
+        - Branding
+        - No screen change
+    validations:
+      required: false
+  - type: dropdown
+    id: site-type
+    attributes:
+      label: Site type
+      description: Should this behave differently on a single site and in network admin?
+      options:
+        - Single site
+        - Multisite, network admin
+        - Both
+        - Not sure
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Note any constraint, such as blocked items, patches only, delayed updates, or an existing email or Slack report.
+    validations:
+      required: false

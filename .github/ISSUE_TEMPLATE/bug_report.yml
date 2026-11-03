@@ -1,0 +1,123 @@
+name: Bug report
+description: Report a problem with automatic updates, schedules, logs, or the UpdateBee admin screens.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        UpdateBee controls automatic updates for WordPress core, plugins, themes, and translations. On a multisite network, settings are in Network Admin under Settings. On a single site, they are under Tools.
+
+        The plugin header requires WordPress 7.0+ and PHP 8.2+. Report the versions you are actually running.
+
+        Do not include Slack webhook URLs, credentials, or license keys.
+  - type: dropdown
+    id: update-type
+    attributes:
+      label: Update type
+      description: Which automatic update is involved?
+      multiple: true
+      options:
+        - WordPress core
+        - Plugins
+        - Themes
+        - Translations
+        - Not specific to one update type
+    validations:
+      required: true
+  - type: dropdown
+    id: admin-screen
+    attributes:
+      label: Admin screen
+      description: Which UpdateBee screen shows the problem?
+      multiple: true
+      options:
+        - Settings
+        - Plugins
+        - Themes
+        - Translations
+        - Logs
+        - Schedules
+        - Emails
+        - Tools
+        - Advanced
+        - Branding
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: site-type
+    attributes:
+      label: Site type
+      description: Where were you managing UpdateBee?
+      options:
+        - Single site
+        - Multisite, network admin
+        - Multisite, individual site
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: wordpress-version
+    attributes:
+      label: WordPress version
+      placeholder: "7.0"
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: "8.2"
+    validations:
+      required: true
+  - type: input
+    id: updatebee-version
+    attributes:
+      label: UpdateBee version
+      description: Shown in the main plugin file header and on the Plugins screen.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the relevant automatic-update setting (allow, delay, or block) and whether a custom schedule is in use.
+      placeholder: |
+        1. Open UpdateBee on a single site or in network admin.
+        2. Set the plugin, theme, core, or translation control to...
+        3. Wait for the schedule or run the update check.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: notices
+    attributes:
+      label: Logs, email, and Slack
+      description: Say whether the Logs screen, an email report, or a Slack notice shows the attempt. Include the item name, previous version, new version, and status (succeeded, blocked, or failed). Leave this blank if none of those recorded it.
+      placeholder: |
+        Logs: plugin example/example.php, 1.0.0 to 1.1.0, blocked.
+        Email report: not sent.
+        Slack notice: not sent.
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mention other plugins that also control updates, a system cron or DISABLE_WP_CRON setup, and whether this happens only in network admin.
+    validations:
+      required: false
