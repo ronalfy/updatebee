@@ -315,7 +315,28 @@ class AvailableUpdatesEmailTest extends TestCase {
 		$this->assertSame( 'Security release.', $offer['upgrade_notice'] );
 		$this->assertTrue( $offer['has_package'] );
 		$this->assertSame( 'update-nonce', $offer['nonce'] );
+		$this->assertFalse( $offer['skipped'] );
+		$this->assertSame( 'update-nonce', $offer['skip_nonce'] );
 		$this->assertArrayNotHasKey( 'package', $offer );
+	}
+
+	/**
+	 * A stored skip for the offered version is reported on the plugin offer.
+	 */
+	public function test_plugin_offer_reports_skipped_version(): void {
+		$this->stub_offer_helpers( '1.0' );
+		$this->stub_options(
+			array(
+				'skipped_plugin_versions' => array(
+					'akismet/akismet.php' => '2.0',
+				),
+			)
+		);
+
+		$offer = Available_Updates::plugin_offer( 'akismet/akismet.php' );
+
+		$this->assertIsArray( $offer );
+		$this->assertTrue( $offer['skipped'] );
 	}
 
 	/**
@@ -394,6 +415,29 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_kses_post' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_create_nonce' )->justReturn( 'theme-nonce' );
+		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
+		MonkeyFunctions\when( 'wp_parse_args' )->alias(
+			static function ( $args, $defaults ) {
+				if ( ! is_array( $args ) ) {
+					$args = array();
+				}
+				if ( ! is_array( $defaults ) ) {
+					$defaults = array();
+				}
+
+				return array_merge( $defaults, $args );
+			}
+		);
+		MonkeyFunctions\when( 'get_site_option' )->alias(
+			static function ( $key, $default_value = false ) {
+				if ( 'updatebee_options' === $key ) {
+					return array();
+				}
+
+				return $default_value;
+			}
+		);
+		Options::flush_cache();
 		MonkeyFunctions\when( 'wp_get_theme' )->alias(
 			static function () {
 				return new class() {
@@ -433,6 +477,8 @@ class AvailableUpdatesEmailTest extends TestCase {
 		$this->assertSame( '1.3', $offer['new_version'] );
 		$this->assertSame( 'Fixes a security issue.', $offer['upgrade_notice'] );
 		$this->assertTrue( $offer['has_package'] );
+		$this->assertFalse( $offer['skipped'] );
+		$this->assertSame( 'theme-nonce', $offer['skip_nonce'] );
 		$this->assertArrayNotHasKey( 'package', $offer );
 	}
 
@@ -512,6 +558,29 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_kses_post' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_create_nonce' )->justReturn( 'update-nonce' );
+		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
+		MonkeyFunctions\when( 'wp_parse_args' )->alias(
+			static function ( $args, $defaults ) {
+				if ( ! is_array( $args ) ) {
+					$args = array();
+				}
+				if ( ! is_array( $defaults ) ) {
+					$defaults = array();
+				}
+
+				return array_merge( $defaults, $args );
+			}
+		);
+		MonkeyFunctions\when( 'get_site_option' )->alias(
+			static function ( $key, $default_value = false ) {
+				if ( 'updatebee_options' === $key ) {
+					return array();
+				}
+
+				return $default_value;
+			}
+		);
+		Options::flush_cache();
 		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
 			array(
 				'Version' => $installed_version,

@@ -56,9 +56,11 @@ class Options {
 			'auto_update_plugins'              => array(),
 			'auto_update_plugins_patches'      => array(), /* plugin files limited to patch auto-updates. */
 			'blocked_plugins'                  => array(),
+			'skipped_plugin_versions'          => array(),
 			'auto_update_themes'               => array(),
 			'auto_update_themes_patches'       => array(), /* theme slugs limited to patch auto-updates. */
 			'blocked_themes'                   => array(),
+			'skipped_theme_versions'           => array(),
 			'auto_update_translations'         => array(),
 			'blocked_translations'             => array(),
 			'enable_core_emails'               => true,
