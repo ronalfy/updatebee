@@ -1,7 +1,7 @@
 /**
  * Pending update row under a plugin or theme card.
  */
-import { RawHTML, useCallback, useState } from '@wordpress/element';
+import { RawHTML, useCallback, useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { Button } from '@wordpress/ui';
 import sendCommand from '../../utils/SendCommand';
@@ -11,6 +11,8 @@ export type AssetUpdate = {
 	upgrade_notice: string;
 	has_package: boolean;
 	nonce: string;
+	skipped: boolean;
+	skip_nonce: string;
 };
 
 type SnackbarType = 'success' | 'error' | 'warning' | 'info';
@@ -50,6 +52,8 @@ const AssetUpdatePanel = ( props: AssetUpdatePanelProps ) => {
 		showSnackbar,
 	} = props;
 	const [ isUpdating, setIsUpdating ] = useState( false );
+	const [ isSkipping, setIsSkipping ] = useState( false );
+	const [ skipped, setSkipped ] = useState( Boolean( update.skipped ) );
 	const updatesBlocked = blocked || updatesFullyBlocked;
 	const canUpdate =
 		update.has_package && ! updatesBlocked && ! disabled && ! isUpdating;
@@ -74,6 +78,76 @@ const AssetUpdatePanel = ( props: AssetUpdatePanelProps ) => {
 	} else if ( ! update.has_package ) {
 		reason = __( 'This update has no installable package.', 'updatebee' );
 	}
+
+	useEffect( () => {
+		setSkipped( Boolean( update.skipped ) );
+	}, [ update.skipped ] );
+
+	/**
+	 * Skip or restore this offered version.
+	 */
+	const handleSkip = useCallback( () => {
+		if (
+			disabled ||
+			isSkipping ||
+			isUpdating ||
+			'' === update.skip_nonce
+		) {
+			return;
+		}
+
+		const action =
+			'plugin' === kind
+				? 'updatebee_skip_plugin_version'
+				: 'updatebee_skip_theme_version';
+		const assetKey = 'plugin' === kind ? 'file' : 'stylesheet';
+		const nextSkipped = ! skipped;
+
+		setIsSkipping( true );
+		onBusy( true );
+
+		sendCommand< UpdatePayload >( action, {
+			nonce: update.skip_nonce,
+			[ assetKey ]: assetId,
+			version: update.new_version,
+			enabled: nextSkipped,
+		} )
+			.then( ( response ) => {
+				setSkipped( nextSkipped );
+				showSnackbar(
+					response.data?.data?.message ||
+						( nextSkipped
+							? __( 'This version will be skipped.', 'updatebee' )
+							: __(
+									'This version is scheduled again.',
+									'updatebee'
+							  ) ),
+					'success'
+				);
+			} )
+			.catch( ( error: Error ) => {
+				showSnackbar(
+					error.message ||
+						__( 'The version could not be skipped.', 'updatebee' ),
+					'error'
+				);
+			} )
+			.finally( () => {
+				setIsSkipping( false );
+				onBusy( false );
+			} );
+	}, [
+		assetId,
+		disabled,
+		isSkipping,
+		isUpdating,
+		kind,
+		onBusy,
+		showSnackbar,
+		skipped,
+		update.new_version,
+		update.skip_nonce,
+	] );
 
 	/**
 	 * Install this asset's pending update.
@@ -152,12 +226,32 @@ const AssetUpdatePanel = ( props: AssetUpdatePanelProps ) => {
 					__( 'Version %s is available.', 'updatebee' ),
 					update.new_version
 				) }
+				{ skipped && (
+					<span className="updatebee-asset-update-skipped">
+						{ __( 'This version will be skipped.', 'updatebee' ) }
+					</span>
+				) }
 			</p>
 			{ '' !== update.upgrade_notice && (
 				<div className="updatebee-asset-update-notice">
 					<RawHTML>{ update.upgrade_notice }</RawHTML>
 				</div>
 			) }
+			<Button
+				variant="outline"
+				loading={ isSkipping }
+				loadingAnnouncement={
+					skipped
+						? __( 'Scheduling this version…', 'updatebee' )
+						: __( 'Skipping this version…', 'updatebee' )
+				}
+				disabled={ disabled || isUpdating || isSkipping }
+				onClick={ handleSkip }
+			>
+				{ skipped
+					? __( 'Schedule update', 'updatebee' )
+					: __( 'Skip this version', 'updatebee' ) }
+			</Button>
 			<Button
 				variant="solid"
 				loading={ isUpdating }

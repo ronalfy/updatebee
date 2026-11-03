@@ -9,6 +9,7 @@ namespace UpdateBee\Emails;
 
 use UpdateBee\Functions;
 use UpdateBee\Updates\Hide_Blocked_Updates;
+use UpdateBee\Updates\Skip_Version;
 
 /**
  * Available update collection for email and Slack reports.
@@ -279,7 +280,7 @@ class Available_Updates {
 	 * The read bypasses the blocked-update filter so a blocked plugin still shows its offer.
 	 *
 	 * @param string $file Plugin basename.
-	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string}|null
+	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string, skipped: bool, skip_nonce: string}|null
 	 */
 	public static function plugin_offer( string $file ): ?array {
 		if ( '' === $file ) {
@@ -296,11 +297,19 @@ class Available_Updates {
 			return null;
 		}
 
-		return self::format_offer(
+		$offer = self::format_offer(
 			$updates->response[ $file ],
 			Functions::get_plugin_current_version( $file ),
 			'updatebee-plugin-update-' . $file
 		);
+		if ( null === $offer ) {
+			return null;
+		}
+
+		$offer['skipped']    = Skip_Version::is_skipped( 'plugin', $file, $offer['new_version'] );
+		$offer['skip_nonce'] = wp_create_nonce( 'updatebee-plugin-skip-' . $file );
+
+		return $offer;
 	}
 
 	/**
@@ -309,7 +318,7 @@ class Available_Updates {
 	 * The read bypasses the blocked-update filter so a blocked theme still shows its offer.
 	 *
 	 * @param string $stylesheet Theme stylesheet.
-	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string}|null
+	 * @return array{new_version: string, upgrade_notice: string, has_package: bool, nonce: string, skipped: bool, skip_nonce: string}|null
 	 */
 	public static function theme_offer( string $stylesheet ): ?array {
 		if ( '' === $stylesheet ) {
@@ -326,11 +335,19 @@ class Available_Updates {
 			return null;
 		}
 
-		return self::format_offer(
+		$offer = self::format_offer(
 			$updates->response[ $stylesheet ],
 			Functions::get_theme_current_version( $stylesheet ),
 			'updatebee-theme-update-' . $stylesheet
 		);
+		if ( null === $offer ) {
+			return null;
+		}
+
+		$offer['skipped']    = Skip_Version::is_skipped( 'theme', $stylesheet, $offer['new_version'] );
+		$offer['skip_nonce'] = wp_create_nonce( 'updatebee-theme-skip-' . $stylesheet );
+
+		return $offer;
 	}
 
 	/**
