@@ -95,6 +95,22 @@ class DelayUpdatesTest extends TestCase {
 	}
 
 	/**
+	 * Stub helpers used when an upgrade notice is matched during a delay check.
+	 */
+	private function stub_keyword_helpers(): void {
+		MonkeyFunctions\when( 'sanitize_title' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_strip_all_tags' )->alias(
+			static function ( $text ) {
+				if ( ! is_string( $text ) ) {
+					return '';
+				}
+
+				return (string) preg_replace( '/<[^>]*>/', '', $text );
+			}
+		);
+	}
+
+	/**
 	 * Set up a minimal WPDB mock for delayed log inserts.
 	 *
 	 * @return object WPDB mock.
@@ -260,7 +276,7 @@ class DelayUpdatesTest extends TestCase {
 				}
 			}
 		);
-		$item  = (object) array(
+		$item = (object) array(
 			'theme'       => 'twentytwentyfour',
 			'new_version' => '1.0.1',
 		);
@@ -275,6 +291,67 @@ class DelayUpdatesTest extends TestCase {
 		$this->assertFalse( $delay->auto_update_theme( true, $item ) );
 		$this->assertCount( 1, $wpdb->insert_calls );
 		$this->assertSame( 'delayed', $wpdb->insert_calls[0][1]['update_status'] );
+	}
+
+	/**
+	 * A matching upgrade notice skips the plugin delay and is not logged as delayed.
+	 */
+	public function test_plugin_keyword_match_skips_delay_without_log(): void {
+		$delay = $this->get_delay_updates(
+			array(
+				'delay_updates'                   => 2,
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+			)
+		);
+		$wpdb  = $this->setup_log_insert_mocks();
+		$this->stub_keyword_helpers();
+		$item = (object) array(
+			'plugin'         => 'hello.php',
+			'new_version'    => '1.0.1',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->site_options[ Delay_Updates::PLUGIN_OPTION ] = array(
+			'hello.php' => array(
+				'version' => '1.0.1',
+				'time'    => time(),
+			),
+		);
+
+		$this->assertTrue( $delay->auto_update_plugin( true, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
+		$this->assertArrayHasKey( 'hello.php', $this->site_options[ Delay_Updates::PLUGIN_OPTION ] );
+	}
+
+	/**
+	 * A matching upgrade notice skips the theme delay and is not logged as delayed.
+	 */
+	public function test_theme_keyword_match_skips_delay_without_log(): void {
+		$delay = $this->get_delay_updates(
+			array(
+				'delay_updates'                   => 2,
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+			)
+		);
+		$wpdb  = $this->setup_log_insert_mocks();
+		$this->stub_keyword_helpers();
+		$item = (object) array(
+			'theme'          => 'twentytwentyfour',
+			'new_version'    => '1.0.1',
+			'upgrade_notice' => 'Security release.',
+		);
+
+		$this->site_options[ Delay_Updates::THEME_OPTION ] = array(
+			'twentytwentyfour' => array(
+				'version' => '1.0.1',
+				'time'    => time(),
+			),
+		);
+
+		$this->assertTrue( $delay->auto_update_theme( true, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
 	}
 
 	/**

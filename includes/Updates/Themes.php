@@ -66,6 +66,10 @@ class Themes {
 			$current_version = Functions::get_theme_current_version( $theme_stylesheet );
 
 			if ( ! Functions::is_patch_update( $current_version, $new_version ) ) {
+				if ( Upgrade_Notice_Keywords::cuts_the_line( $item ) ) {
+					return true;
+				}
+
 				$reason = '';
 				if ( ! Functions::is_version_parseable( $current_version ) && ! Functions::is_version_parseable( $new_version ) ) {
 					$reason = __( 'Installed and offered versions cannot be parsed', 'updatebee' );

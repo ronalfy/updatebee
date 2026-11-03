@@ -401,7 +401,7 @@ class Registry {
 			'description' => __( 'Days to wait before an automatic update is eligible.', 'updatebee' ),
 		);
 		$properties['upgrade_notice_keywords']         = self::string_property( __( 'Newline-separated upgrade-notice keywords.', 'updatebee' ) );
-		$properties['upgrade_notice_keywords_enabled'] = self::bool_property( __( 'Whether upgrade-notice keywords force an automatic update.', 'updatebee' ) );
+		$properties['upgrade_notice_keywords_enabled'] = self::bool_property( __( 'Whether a matching upgrade notice skips the delay and the patches-only limit. Blocked items are not updated.', 'updatebee' ) );
 		$properties['fatal_error_detection']           = self::bool_property( __( 'Whether post-update fatal detection is enabled.', 'updatebee' ) );
 		$properties['enable_core_emails']              = self::bool_property( __( 'Whether WordPress core update emails are enabled.', 'updatebee' ) );
 		$properties['slack_configured']                = self::bool_property( __( 'Whether a Slack webhook URL is saved. The URL itself is not returned.', 'updatebee' ) );

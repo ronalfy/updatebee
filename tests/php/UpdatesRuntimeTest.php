@@ -666,4 +666,99 @@ class UpdatesRuntimeTest extends TestCase {
 		$this->assertCount( 1, $wpdb->insert_calls );
 		$this->assertSame( 'skipped', $wpdb->insert_calls[0][1]['update_status'] );
 	}
+
+	/**
+	 * A matching upgrade notice allows a non-patch plugin update without a skip log.
+	 */
+	public function test_plugin_keyword_match_bypasses_patches_only_without_log(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$this->stub_upgrade_notice_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'get_plugin_data' )->justReturn(
+			array(
+				'Version' => '1.2.3',
+			)
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'plugin_auto_updates'              => 'on',
+					'plugin_auto_updates_custom'       => 'off',
+					'plugin_auto_updates_patches_only' => 'on',
+					'upgrade_notice_keywords'          => 'security',
+					'upgrade_notice_keywords_enabled'  => true,
+				)
+			);
+
+		$plugins = Plugins::get_instance();
+		$item    = (object) array(
+			'plugin'         => 'hello.php',
+			'new_version'    => '1.3.0',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertTrue( $plugins->maybe_auto_update_plugin( false, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
+	}
+
+	/**
+	 * A matching upgrade notice allows a non-patch theme update without a skip log.
+	 */
+	public function test_theme_keyword_match_bypasses_patches_only_without_log(): void {
+		MonkeyFunctions\when( 'add_filter' )->justReturn( true );
+		$this->stub_option_helpers();
+		$this->stub_upgrade_notice_helpers();
+		$wpdb = $this->setup_skipped_log_mocks();
+		MonkeyFunctions\when( 'wp_get_theme' )->justReturn(
+			new class() {
+				/**
+				 * Get a theme attribute.
+				 *
+				 * @param string $key Attribute key.
+				 * @return string
+				 */
+				public function get( $key ) {
+					return 'Version' === $key ? '1.2.3' : '';
+				}
+			}
+		);
+		MonkeyFunctions\expect( 'get_site_option' )
+			->once()
+			->andReturn(
+				array(
+					'theme_auto_updates'              => 'on',
+					'theme_auto_updates_custom'       => 'off',
+					'theme_auto_updates_patches_only' => 'on',
+					'upgrade_notice_keywords'         => 'security',
+					'upgrade_notice_keywords_enabled' => true,
+				)
+			);
+
+		$themes = Themes::get_instance();
+		$item   = (object) array(
+			'theme'          => 'twentytwentyfour',
+			'new_version'    => '2.0.0',
+			'upgrade_notice' => 'Security release.',
+		);
+
+		$this->assertTrue( $themes->maybe_auto_update_theme( false, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
+	}
+
+	/**
+	 * Stub helpers used when an upgrade notice is inspected.
+	 */
+	private function stub_upgrade_notice_helpers(): void {
+		MonkeyFunctions\when( 'wp_strip_all_tags' )->alias(
+			static function ( $text ) {
+				if ( ! is_string( $text ) ) {
+					return '';
+				}
+
+				return (string) preg_replace( '/<[^>]*>/', '', $text );
+			}
+		);
+	}
 }
