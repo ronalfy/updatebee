@@ -10,6 +10,7 @@ namespace UpdateBee\Tests;
 use Brain\Monkey\Functions as MonkeyFunctions;
 use ReflectionClass;
 use UpdateBee\Options;
+use UpdateBee\Updates\Skip_Version;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 
 /**
@@ -30,7 +31,18 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	protected function tearDown(): void {
 		Options::flush_cache();
 		$this->reset_keywords_singleton();
+		$this->reset_skip_singleton();
 		parent::tearDown();
+	}
+
+	/**
+	 * Clear the Skip_Version singleton.
+	 */
+	private function reset_skip_singleton(): void {
+		$reflection = new ReflectionClass( Skip_Version::class );
+		$property   = $reflection->getProperty( 'instance' );
+		$property->setAccessible( true );
+		$property->setValue( null, null );
 	}
 
 	/**
@@ -176,13 +188,35 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	}
 
 	/**
-	 * A matching plugin upgrade notice forces an automatic update.
+	 * A matching notice does not turn automatic updates on.
 	 */
-	public function test_plugin_keyword_match_forces_update(): void {
+	public function test_plugin_keyword_match_does_not_force_when_auto_updates_are_off(): void {
 		$keywords = $this->get_keywords(
 			array(
 				'upgrade_notice_keywords'         => "security\nCSRF",
 				'upgrade_notice_keywords_enabled' => true,
+				'plugin_auto_updates'             => 'off',
+			)
+		);
+		$item     = (object) array(
+			'plugin'         => 'akismet/akismet.php',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertTrue( Upgrade_Notice_Keywords::cuts_the_line( $item ) );
+		$this->assertFalse( $keywords->auto_update_plugin( false, $item ) );
+	}
+
+	/**
+	 * A matching plugin notice allows an update that an earlier rule rejected.
+	 */
+	public function test_plugin_keyword_match_allows_update_when_auto_updates_are_on(): void {
+		$keywords = $this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => "security\nCSRF",
+				'upgrade_notice_keywords_enabled' => true,
+				'plugin_auto_updates'             => 'on',
+				'plugin_auto_updates_custom'      => 'off',
 			)
 		);
 		$item     = (object) array(
@@ -194,13 +228,15 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	}
 
 	/**
-	 * A matching theme upgrade notice forces an automatic update.
+	 * A matching theme notice allows an update that an earlier rule rejected.
 	 */
-	public function test_theme_keyword_match_forces_update(): void {
+	public function test_theme_keyword_match_allows_update_when_auto_updates_are_on(): void {
 		$keywords = $this->get_keywords(
 			array(
 				'upgrade_notice_keywords'         => 'CSRF',
 				'upgrade_notice_keywords_enabled' => true,
+				'theme_auto_updates'              => 'on',
+				'theme_auto_updates_custom'       => 'off',
 			)
 		);
 		$item     = (object) array(
@@ -212,6 +248,25 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 	}
 
 	/**
+	 * A matching theme notice does not turn automatic updates on.
+	 */
+	public function test_theme_keyword_match_does_not_force_when_auto_updates_are_off(): void {
+		$keywords = $this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => 'CSRF',
+				'upgrade_notice_keywords_enabled' => true,
+				'theme_auto_updates'              => 'off',
+			)
+		);
+		$item     = (object) array(
+			'theme'          => 'twentytwentyfour',
+			'upgrade_notice' => 'Fixes a CSRF issue.',
+		);
+
+		$this->assertFalse( $keywords->auto_update_theme( false, $item ) );
+	}
+
+	/**
 	 * Keyword matching is case-insensitive.
 	 */
 	public function test_keyword_match_is_case_insensitive(): void {
@@ -219,6 +274,8 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 			array(
 				'upgrade_notice_keywords'         => 'xss',
 				'upgrade_notice_keywords_enabled' => true,
+				'plugin_auto_updates'             => 'on',
+				'plugin_auto_updates_custom'      => 'off',
 			)
 		);
 		$item     = (object) array(
@@ -299,5 +356,83 @@ class UpgradeNoticeKeywordsTest extends TestCase {
 		);
 
 		$this->assertFalse( $keywords->auto_update_plugin( false, $item ) );
+		$this->assertFalse( Upgrade_Notice_Keywords::cuts_the_line( $item ) );
+	}
+
+	/**
+	 * Site Health fakes never cut the line.
+	 */
+	public function test_site_health_fake_does_not_cut_the_line(): void {
+		$this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+			)
+		);
+		$item = (object) array(
+			'plugin'         => 'a-fake-plugin/a-fake-plugin.php',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertFalse( Upgrade_Notice_Keywords::cuts_the_line( $item ) );
+	}
+
+	/**
+	 * An untested-update veto still wins after a keyword match.
+	 */
+	public function test_untested_veto_wins_after_keyword_match(): void {
+		$keywords = $this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+				'plugin_auto_updates'             => 'on',
+				'plugin_auto_updates_custom'      => 'off',
+				'block_untested_updates'          => 'on',
+			)
+		);
+		MonkeyFunctions\when( 'get_bloginfo' )->alias(
+			static function ( $show ) {
+				return 'version' === $show ? '6.8.1' : '';
+			}
+		);
+		$item = (object) array(
+			'plugin'         => 'hello.php',
+			'new_version'    => '1.2.4',
+			'tested'         => '6.0',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertTrue( $keywords->auto_update_plugin( false, $item ) );
+
+		$checker = new UntestedUpdatesHarness();
+		$this->assertFalse( $checker->auto_update_plugin( true, $item ) );
+		$this->assertSame( 1, $checker->logs );
+	}
+
+	/**
+	 * Skipping one version still wins after a keyword match.
+	 */
+	public function test_skip_version_veto_wins_after_keyword_match(): void {
+		$keywords = $this->get_keywords(
+			array(
+				'upgrade_notice_keywords'         => 'security',
+				'upgrade_notice_keywords_enabled' => true,
+				'plugin_auto_updates'             => 'on',
+				'plugin_auto_updates_custom'      => 'off',
+				'skipped_plugin_versions'         => array(
+					'akismet/akismet.php' => '5.3.2',
+				),
+			)
+		);
+		$item     = (object) array(
+			'plugin'         => 'akismet/akismet.php',
+			'new_version'    => '5.3.2',
+			'upgrade_notice' => 'This is a security release.',
+		);
+
+		$this->assertTrue( $keywords->auto_update_plugin( false, $item ) );
+
+		$skip = Skip_Version::get_instance();
+		$this->assertFalse( $skip->auto_update_plugin( true, $item ) );
 	}
 }

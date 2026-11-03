@@ -137,6 +137,10 @@ class Delay_Updates {
 		}
 
 		if ( time() < (int) $plugin_updates[ $plugin_file ]['time'] + ( $delay * DAY_IN_SECONDS ) ) {
+			if ( Upgrade_Notice_Keywords::cuts_the_line( $item ) ) {
+				return $update;
+			}
+
 			if ( ! self::is_site_health_item( $item ) ) {
 				$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
 				$current_version = Functions::get_plugin_current_version( $plugin_file );
@@ -177,6 +181,10 @@ class Delay_Updates {
 		}
 
 		if ( time() < (int) $theme_updates[ $theme_slug ]['time'] + ( $delay * DAY_IN_SECONDS ) ) {
+			if ( Upgrade_Notice_Keywords::cuts_the_line( $item ) ) {
+				return $update;
+			}
+
 			if ( ! self::is_site_health_item( $item ) ) {
 				$new_version     = isset( $item->new_version ) ? (string) $item->new_version : '';
 				$current_version = Functions::get_theme_current_version( $theme_slug );

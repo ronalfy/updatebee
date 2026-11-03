@@ -225,7 +225,7 @@ const UpgradeNoticeKeywordsDrawer = (
 				<Card.Content className="updatebee-advanced-card-content">
 					<p className="updatebee-advanced-card-description">
 						{ __(
-							'If a plugin or theme upgrade notice contains one of these keywords, that item is updated automatically. Matching is case-insensitive.',
+							'If a plugin or theme upgrade notice contains one of these keywords, that update skips the delay and the patches-only limit. Blocked items are not updated. Matching is case-insensitive.',
 							'updatebee'
 						) }
 					</p>
@@ -254,7 +254,7 @@ const UpgradeNoticeKeywordsDrawer = (
 				<Drawer.Content>
 					<Drawer.Description>
 						{ __(
-							'Enter one keyword per line. If an upgrade notice contains a keyword, that plugin or theme is updated automatically. Matching is case-insensitive.',
+							'Enter one keyword per line. If an upgrade notice contains a keyword, that update skips the delay and the patches-only limit. Blocked items are not updated. Matching is case-insensitive.',
 							'updatebee'
 						) }
 					</Drawer.Description>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Force automatic updates when an upgrade notice matches configured keywords.
+ * Let a matching upgrade notice skip the delay and the patches-only limit.
  *
  * @package updatebee
  */
@@ -46,30 +46,24 @@ class Upgrade_Notice_Keywords {
 	}
 
 	/**
-	 * Force a plugin auto-update when the upgrade notice matches a keyword.
+	 * Allow a plugin update when its upgrade notice cuts the line.
+	 *
+	 * A match does not turn automatic updates on. Blocked plugins keep the incoming decision.
 	 *
 	 * @param bool   $update Whether to update.
 	 * @param object $item   Plugin update item.
-	 * @return bool True when a keyword matches and the plugin is not blocked.
+	 * @return bool True when the notice matches and automatic updates are already enabled.
 	 */
 	public function auto_update_plugin( $update, $item ) {
 		if ( ! is_object( $item ) || ! isset( $item->plugin ) ) {
 			return $update;
 		}
 
-		if ( ! self::is_enabled() ) {
+		if ( ! self::cuts_the_line( $item ) ) {
 			return $update;
 		}
 
-		if ( Delay_Updates::is_site_health_item( $item ) ) {
-			return $update;
-		}
-
-		if ( ! self::matches( $item ) ) {
-			return $update;
-		}
-
-		if ( Functions::auto_updates_blocked( (string) $item->plugin, 'plugin' ) ) {
+		if ( ! Functions::auto_updates_enabled( (string) $item->plugin, 'plugin' ) ) {
 			return $update;
 		}
 
@@ -77,34 +71,56 @@ class Upgrade_Notice_Keywords {
 	}
 
 	/**
-	 * Force a theme auto-update when the upgrade notice matches a keyword.
+	 * Allow a theme update when its upgrade notice cuts the line.
+	 *
+	 * A match does not turn automatic updates on. Blocked themes keep the incoming decision.
 	 *
 	 * @param bool   $update Whether to update.
 	 * @param object $item   Theme update item.
-	 * @return bool True when a keyword matches and the theme is not blocked.
+	 * @return bool True when the notice matches and automatic updates are already enabled.
 	 */
 	public function auto_update_theme( $update, $item ) {
 		if ( ! is_object( $item ) || ! isset( $item->theme ) ) {
 			return $update;
 		}
 
-		if ( ! self::is_enabled() ) {
+		if ( ! self::cuts_the_line( $item ) ) {
 			return $update;
 		}
 
-		if ( Delay_Updates::is_site_health_item( $item ) ) {
-			return $update;
-		}
-
-		if ( ! self::matches( $item ) ) {
-			return $update;
-		}
-
-		if ( Functions::auto_updates_blocked( (string) $item->theme, 'theme' ) ) {
+		if ( ! Functions::auto_updates_enabled( (string) $item->theme, 'theme' ) ) {
 			return $update;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Whether a matching upgrade notice skips the delay and the patches-only limit.
+	 *
+	 * Blocked items and Site Health fakes do not cut the line.
+	 *
+	 * @param mixed $item Plugin or theme update item.
+	 * @return bool True when the notice bypasses those restrictions.
+	 */
+	public static function cuts_the_line( $item ): bool {
+		if ( ! is_object( $item ) || Delay_Updates::is_site_health_item( $item ) ) {
+			return false;
+		}
+
+		if ( ! self::is_enabled() || ! self::matches( $item ) ) {
+			return false;
+		}
+
+		if ( isset( $item->plugin ) ) {
+			return ! Functions::auto_updates_blocked( (string) $item->plugin, 'plugin' );
+		}
+
+		if ( isset( $item->theme ) ) {
+			return ! Functions::auto_updates_blocked( (string) $item->theme, 'theme' );
+		}
+
+		return false;
 	}
 
 	/**
