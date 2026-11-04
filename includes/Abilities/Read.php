@@ -16,6 +16,7 @@ use UpdateBee\Tables\Table_Themes;
 use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
+use UpdateBee\Updates\Version_Controlled;
 
 /**
  * Payloads returned by read abilities.
@@ -79,19 +80,23 @@ class Read {
 				$plugin = array();
 			}
 
-			$settings  = isset( $delays[ $file ] ) && is_array( $delays[ $file ] ) ? $delays[ $file ] : array();
-			$plugins[] = array(
-				'file'             => $file,
-				'name'             => isset( $plugin['Name'] ) ? (string) $plugin['Name'] : $file,
-				'version'          => isset( $plugin['Version'] ) ? (string) $plugin['Version'] : '',
-				'active'           => in_array( $file, $active, true ),
-				'update_available' => isset( $pending[ $file ] ),
-				'auto_update'      => isset( $auto[ $file ] ),
-				'blocked'          => Functions::auto_updates_blocked( $file, 'plugin' ),
-				'patches_only'     => Functions::auto_updates_patches_only( $file, 'plugin' ),
-				'delay_days'       => self::delay_days_from_settings( $settings ),
-				'allow_untested'   => ! empty( $settings['allow_untested'] ),
-				'notes'            => isset( $notes[ $file ] ) ? (string) $notes[ $file ] : '',
+			$settings           = isset( $delays[ $file ] ) && is_array( $delays[ $file ] ) ? $delays[ $file ] : array();
+			$version_control    = Version_Controlled::plugin_reason( $file );
+			$version_controlled = null !== $version_control;
+			$plugins[]          = array(
+				'file'               => $file,
+				'name'               => isset( $plugin['Name'] ) ? (string) $plugin['Name'] : $file,
+				'version'            => isset( $plugin['Version'] ) ? (string) $plugin['Version'] : '',
+				'active'             => in_array( $file, $active, true ),
+				'update_available'   => isset( $pending[ $file ] ),
+				'auto_update'        => ! $version_controlled && isset( $auto[ $file ] ),
+				'blocked'            => Functions::auto_updates_blocked( $file, 'plugin' ),
+				'patches_only'       => ! $version_controlled && Functions::auto_updates_patches_only( $file, 'plugin' ),
+				'version_controlled' => $version_controlled,
+				'version_control'    => $version_controlled ? $version_control : '',
+				'delay_days'         => self::delay_days_from_settings( $settings ),
+				'allow_untested'     => ! empty( $settings['allow_untested'] ),
+				'notes'              => isset( $notes[ $file ] ) ? (string) $notes[ $file ] : '',
 			);
 		}
 
@@ -145,19 +150,23 @@ class Read {
 				continue;
 			}
 
-			$settings = isset( $delays[ $stylesheet ] ) && is_array( $delays[ $stylesheet ] ) ? $delays[ $stylesheet ] : array();
-			$themes[] = array(
-				'stylesheet'       => $stylesheet,
-				'name'             => (string) $theme->get( 'Name' ),
-				'version'          => (string) $theme->get( 'Version' ),
-				'active'           => $stylesheet === $current,
-				'update_available' => isset( $pending[ $stylesheet ] ),
-				'auto_update'      => isset( $auto[ $stylesheet ] ),
-				'blocked'          => Functions::auto_updates_blocked( $stylesheet, 'theme' ),
-				'patches_only'     => Functions::auto_updates_patches_only( $stylesheet, 'theme' ),
-				'delay_days'       => self::delay_days_from_settings( $settings ),
-				'allow_untested'   => ! empty( $settings['allow_untested'] ),
-				'notes'            => isset( $notes[ $stylesheet ] ) ? (string) $notes[ $stylesheet ] : '',
+			$settings           = isset( $delays[ $stylesheet ] ) && is_array( $delays[ $stylesheet ] ) ? $delays[ $stylesheet ] : array();
+			$version_control    = Version_Controlled::theme_reason( $stylesheet );
+			$version_controlled = null !== $version_control;
+			$themes[]           = array(
+				'stylesheet'         => $stylesheet,
+				'name'               => (string) $theme->get( 'Name' ),
+				'version'            => (string) $theme->get( 'Version' ),
+				'active'             => $stylesheet === $current,
+				'update_available'   => isset( $pending[ $stylesheet ] ),
+				'auto_update'        => ! $version_controlled && isset( $auto[ $stylesheet ] ),
+				'blocked'            => Functions::auto_updates_blocked( $stylesheet, 'theme' ),
+				'patches_only'       => ! $version_controlled && Functions::auto_updates_patches_only( $stylesheet, 'theme' ),
+				'version_controlled' => $version_controlled,
+				'version_control'    => $version_controlled ? $version_control : '',
+				'delay_days'         => self::delay_days_from_settings( $settings ),
+				'allow_untested'     => ! empty( $settings['allow_untested'] ),
+				'notes'              => isset( $notes[ $stylesheet ] ) ? (string) $notes[ $stylesheet ] : '',
 			);
 		}
 

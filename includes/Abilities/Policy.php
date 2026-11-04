@@ -11,6 +11,7 @@ use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Tables\Table_Plugins;
 use UpdateBee\Tables\Table_Themes;
+use UpdateBee\Updates\Version_Controlled;
 
 /**
  * Settings changes that do not install or delete software.
@@ -148,6 +149,10 @@ class Policy {
 				return $valid;
 			}
 
+			if ( $input['auto_update'] && Version_Controlled::is_plugin( $file ) ) {
+				return self::version_controlled_error( 'plugin' );
+			}
+
 			$saved = Functions::set_plugin_auto_update( $file, $input['auto_update'] );
 			if ( null === $saved ) {
 				return self::save_failed();
@@ -170,6 +175,10 @@ class Policy {
 			$valid = self::assert_bool( $input['patches_only'], 'patches_only' );
 			if ( is_wp_error( $valid ) ) {
 				return $valid;
+			}
+
+			if ( $input['patches_only'] && Version_Controlled::is_plugin( $file ) ) {
+				return self::version_controlled_error( 'plugin' );
 			}
 
 			$saved = Functions::set_plugin_patches_only( $file, $input['patches_only'] );
@@ -263,6 +272,10 @@ class Policy {
 				return $valid;
 			}
 
+			if ( $input['auto_update'] && Version_Controlled::is_theme( $stylesheet ) ) {
+				return self::version_controlled_error( 'theme' );
+			}
+
 			$saved = Functions::set_theme_auto_update( $stylesheet, $input['auto_update'] );
 			if ( null === $saved ) {
 				return self::save_failed();
@@ -285,6 +298,10 @@ class Policy {
 			$valid = self::assert_bool( $input['patches_only'], 'patches_only' );
 			if ( is_wp_error( $valid ) ) {
 				return $valid;
+			}
+
+			if ( $input['patches_only'] && Version_Controlled::is_theme( $stylesheet ) ) {
+				return self::version_controlled_error( 'theme' );
 			}
 
 			$saved = Functions::set_theme_patches_only( $stylesheet, $input['patches_only'] );
@@ -510,5 +527,25 @@ class Policy {
 	 */
 	private static function save_failed(): \WP_Error {
 		return new \WP_Error( 'updatebee_policy_save_failed', __( 'Update policy could not be saved.', 'updatebee' ) );
+	}
+
+	/**
+	 * Error used when a version-controlled item cannot be enabled.
+	 *
+	 * @param string $type plugin or theme.
+	 * @return \WP_Error Version-control error.
+	 */
+	private static function version_controlled_error( string $type ): \WP_Error {
+		if ( 'theme' === $type ) {
+			return new \WP_Error(
+				'updatebee_version_controlled',
+				__( 'This theme is version controlled. Automatic updates stay off.', 'updatebee' )
+			);
+		}
+
+		return new \WP_Error(
+			'updatebee_version_controlled',
+			__( 'This plugin is version controlled. Automatic updates stay off.', 'updatebee' )
+		);
 	}
 }

@@ -18,6 +18,7 @@ use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Slack\Slack_Webhook;
 use UpdateBee\Updates\Fatal_Detection;
+use UpdateBee\Updates\Version_Controlled;
 use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
 use UpdateBee\Updates\Skip_Version;
@@ -334,20 +335,24 @@ class Ajax {
 				$plugin = array();
 			}
 
-			$plugin['File']          = $file;
-			$plugin['Slug']          = dirname( $file );
-			$plugin['EnableNonce']   = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
-			$plugin['BlockNonce']    = wp_create_nonce( 'updatebee-plugin-block-' . $file );
-			$plugin['PatchNonce']    = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
-			$plugin['NoteNonce']     = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
-			$plugin['Notes']         = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
-			$plugin['SettingsNonce'] = wp_create_nonce( 'updatebee-plugin-settings-' . $file );
-			$plugin['DelayDays']     = isset( $plugin_delays[ $file ]['delay_days'] ) ? $plugin_delays[ $file ]['delay_days'] : null;
-			$plugin['AllowUntested'] = ! empty( $plugin_delays[ $file ]['allow_untested'] );
-			$plugin['Active']        = in_array( $file, $active_plugin_slugs, true );
-			$plugin['Autoupdates']   = isset( $auto_updated_plugins[ $file ] );
-			$plugin['Blocked']       = Functions::auto_updates_blocked( $file, 'plugin' );
-			$plugin['PatchesOnly']   = Functions::auto_updates_patches_only( $file, 'plugin' );
+			$plugin['File']              = $file;
+			$plugin['Slug']              = dirname( $file );
+			$plugin['EnableNonce']       = wp_create_nonce( 'updatebee-plugin-enable-' . $file );
+			$plugin['BlockNonce']        = wp_create_nonce( 'updatebee-plugin-block-' . $file );
+			$plugin['PatchNonce']        = wp_create_nonce( 'updatebee-plugin-patches-' . $file );
+			$plugin['NoteNonce']         = wp_create_nonce( 'updatebee-plugin-notes-' . $file );
+			$plugin['Notes']             = isset( $plugin_notes[ $file ] ) ? (string) $plugin_notes[ $file ] : '';
+			$plugin['SettingsNonce']     = wp_create_nonce( 'updatebee-plugin-settings-' . $file );
+			$plugin['DelayDays']         = isset( $plugin_delays[ $file ]['delay_days'] ) ? $plugin_delays[ $file ]['delay_days'] : null;
+			$plugin['AllowUntested']     = ! empty( $plugin_delays[ $file ]['allow_untested'] );
+			$version_control             = Version_Controlled::plugin_reason( $file );
+			$version_controlled          = null !== $version_control;
+			$plugin['Active']            = in_array( $file, $active_plugin_slugs, true );
+			$plugin['Autoupdates']       = ! $version_controlled && isset( $auto_updated_plugins[ $file ] );
+			$plugin['Blocked']           = Functions::auto_updates_blocked( $file, 'plugin' );
+			$plugin['PatchesOnly']       = ! $version_controlled && Functions::auto_updates_patches_only( $file, 'plugin' );
+			$plugin['VersionControlled'] = $version_controlled;
+			$plugin['VersionControl']    = $version_controlled ? $version_control : '';
 
 			$plugin_file_path = WP_PLUGIN_DIR . '/' . $file;
 			$mtime            = file_exists( $plugin_file_path ) ? filemtime( $plugin_file_path ) : false;
@@ -531,6 +536,10 @@ class Ajax {
 
 		$files = $this->get_posted_plugin_files();
 		foreach ( $files as $file ) {
+			if ( in_array( $bulk_action, array( 'enable', 'patches' ), true ) && Version_Controlled::is_plugin( $file ) ) {
+				continue;
+			}
+
 			switch ( $bulk_action ) {
 				case 'enable':
 					Functions::set_plugin_auto_update( $file, true );
@@ -661,11 +670,13 @@ class Ajax {
 				continue;
 			}
 
-			$stylesheet = $theme->get_stylesheet();
-			$parent     = $theme->parent();
-			$screenshot = $theme->get_screenshot();
-			$style_css  = $theme->get_stylesheet_directory() . '/style.css';
-			$mtime      = file_exists( $style_css ) ? filemtime( $style_css ) : false;
+			$stylesheet         = $theme->get_stylesheet();
+			$version_control    = Version_Controlled::theme_reason( $stylesheet );
+			$version_controlled = null !== $version_control;
+			$parent             = $theme->parent();
+			$screenshot         = $theme->get_screenshot();
+			$style_css          = $theme->get_stylesheet_directory() . '/style.css';
+			$mtime              = file_exists( $style_css ) ? filemtime( $style_css ) : false;
 			if ( false !== $mtime ) {
 				$date_format  = (string) get_option( 'date_format' );
 				$time_format  = (string) get_option( 'time_format' );
@@ -675,31 +686,33 @@ class Ajax {
 			}
 
 			$all_themes[ $stylesheet ] = array(
-				'Stylesheet'     => $stylesheet,
-				'Template'       => $theme->get_template(),
-				'Slug'           => $stylesheet,
-				'Name'           => (string) $theme->get( 'Name' ),
-				'Description'    => (string) $theme->get( 'Description' ),
-				'Version'        => (string) $theme->get( 'Version' ),
-				'AuthorName'     => (string) $theme->display( 'Author', false ),
-				'AuthorURI'      => (string) $theme->get( 'AuthorURI' ),
-				'ThemeURI'       => (string) $theme->get( 'ThemeURI' ),
-				'Screenshot'     => is_string( $screenshot ) ? $screenshot : '',
-				'ParentName'     => $parent instanceof \WP_Theme ? (string) $parent->get( 'Name' ) : '',
-				'EnableNonce'    => wp_create_nonce( 'updatebee-theme-enable-' . $stylesheet ),
-				'BlockNonce'     => wp_create_nonce( 'updatebee-theme-block-' . $stylesheet ),
-				'PatchNonce'     => wp_create_nonce( 'updatebee-theme-patches-' . $stylesheet ),
-				'NoteNonce'      => wp_create_nonce( 'updatebee-theme-notes-' . $stylesheet ),
-				'Notes'          => isset( $theme_notes[ $stylesheet ] ) ? (string) $theme_notes[ $stylesheet ] : '',
-				'SettingsNonce'  => wp_create_nonce( 'updatebee-theme-settings-' . $stylesheet ),
-				'DelayDays'      => isset( $theme_delays[ $stylesheet ]['delay_days'] ) ? $theme_delays[ $stylesheet ]['delay_days'] : null,
-				'AllowUntested'  => ! empty( $theme_delays[ $stylesheet ]['allow_untested'] ),
-				'Active'         => $stylesheet === $current_stylesheet,
-				'NetworkEnabled' => Functions::is_multisite() ? (bool) $theme->is_allowed( 'network' ) : false,
-				'Autoupdates'    => isset( $auto_updated_themes[ $stylesheet ] ),
-				'Blocked'        => Functions::auto_updates_blocked( $stylesheet, 'theme' ),
-				'PatchesOnly'    => Functions::auto_updates_patches_only( $stylesheet, 'theme' ),
-				'LastUpdated'    => $last_updated,
+				'Stylesheet'        => $stylesheet,
+				'Template'          => $theme->get_template(),
+				'Slug'              => $stylesheet,
+				'Name'              => (string) $theme->get( 'Name' ),
+				'Description'       => (string) $theme->get( 'Description' ),
+				'Version'           => (string) $theme->get( 'Version' ),
+				'AuthorName'        => (string) $theme->display( 'Author', false ),
+				'AuthorURI'         => (string) $theme->get( 'AuthorURI' ),
+				'ThemeURI'          => (string) $theme->get( 'ThemeURI' ),
+				'Screenshot'        => is_string( $screenshot ) ? $screenshot : '',
+				'ParentName'        => $parent instanceof \WP_Theme ? (string) $parent->get( 'Name' ) : '',
+				'EnableNonce'       => wp_create_nonce( 'updatebee-theme-enable-' . $stylesheet ),
+				'BlockNonce'        => wp_create_nonce( 'updatebee-theme-block-' . $stylesheet ),
+				'PatchNonce'        => wp_create_nonce( 'updatebee-theme-patches-' . $stylesheet ),
+				'NoteNonce'         => wp_create_nonce( 'updatebee-theme-notes-' . $stylesheet ),
+				'Notes'             => isset( $theme_notes[ $stylesheet ] ) ? (string) $theme_notes[ $stylesheet ] : '',
+				'SettingsNonce'     => wp_create_nonce( 'updatebee-theme-settings-' . $stylesheet ),
+				'DelayDays'         => isset( $theme_delays[ $stylesheet ]['delay_days'] ) ? $theme_delays[ $stylesheet ]['delay_days'] : null,
+				'AllowUntested'     => ! empty( $theme_delays[ $stylesheet ]['allow_untested'] ),
+				'Active'            => $stylesheet === $current_stylesheet,
+				'NetworkEnabled'    => Functions::is_multisite() ? (bool) $theme->is_allowed( 'network' ) : false,
+				'Autoupdates'       => ! $version_controlled && isset( $auto_updated_themes[ $stylesheet ] ),
+				'Blocked'           => Functions::auto_updates_blocked( $stylesheet, 'theme' ),
+				'PatchesOnly'       => ! $version_controlled && Functions::auto_updates_patches_only( $stylesheet, 'theme' ),
+				'VersionControlled' => $version_controlled,
+				'VersionControl'    => $version_controlled ? $version_control : '',
+				'LastUpdated'       => $last_updated,
 			);
 		}
 
@@ -853,6 +866,10 @@ class Ajax {
 
 		$stylesheets = $this->get_posted_theme_stylesheets();
 		foreach ( $stylesheets as $stylesheet ) {
+			if ( in_array( $bulk_action, array( 'enable', 'patches' ), true ) && Version_Controlled::is_theme( $stylesheet ) ) {
+				continue;
+			}
+
 			switch ( $bulk_action ) {
 				case 'enable':
 					Functions::set_theme_auto_update( $stylesheet, true );

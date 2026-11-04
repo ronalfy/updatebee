@@ -65,6 +65,8 @@ export type ThemeItem = {
 	Autoupdates: boolean;
 	Blocked: boolean;
 	PatchesOnly: boolean;
+	VersionControlled: boolean;
+	VersionControl: string;
 	LastUpdated: string;
 	EnableNonce: string;
 	BlockNonce: string;
@@ -225,6 +227,31 @@ const getBulkSuccessMessage = (
 	}
 };
 
+const themeVersionControlHelp = ( reason: string | undefined ): string => {
+	switch ( reason ) {
+		case 'composer':
+			return __(
+				'Composer manages this theme. Automatic updates stay off.',
+				'updatebee'
+			);
+		case 'svn':
+			return __(
+				'This theme is a Subversion checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+		case 'hg':
+			return __(
+				'This theme is a Mercurial checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+		default:
+			return __(
+				'This theme is a Git checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+	}
+};
+
 const THEME_LIST_FILTERS = [
 	'',
 	'all',
@@ -235,6 +262,7 @@ const THEME_LIST_FILTERS = [
 	'blocked',
 	'unblocked',
 	'patches-only',
+	'version-controlled',
 	'update-available',
 	'has-notes',
 	'third-party',
@@ -436,6 +464,11 @@ const ThemesList = ( props: {
 						return false;
 					}
 					break;
+				case 'version-controlled':
+					if ( ! theme.VersionControlled ) {
+						return false;
+					}
+					break;
 				case 'update-available':
 					if ( ! theme.Update ) {
 						return false;
@@ -551,6 +584,7 @@ const ThemesList = ( props: {
 
 		const canEnable = ( theme: ThemeItem ): boolean =>
 			autoUpdatesAvailable &&
+			! theme.VersionControlled &&
 			! isBlocked( theme ) &&
 			! hasAutoUpdates( theme );
 		const canDisable = ( theme: ThemeItem ): boolean =>
@@ -563,6 +597,7 @@ const ThemesList = ( props: {
 			blockActionsAvailable && isBlocked( theme );
 		const canEnablePatches = ( theme: ThemeItem ): boolean =>
 			autoUpdatesAvailable &&
+			! theme.VersionControlled &&
 			! isBlocked( theme ) &&
 			! hasPatchesOnly( theme );
 
@@ -726,6 +761,11 @@ const ThemesList = ( props: {
 	const getThemeBadges = ( theme: ThemeItem ): React.ReactNode => {
 		const hasNotes = '' !== ( theme.Notes || '' ).trim();
 		const isChild = '' !== ( theme.ParentName || '' ).trim();
+		const versionBadge = theme.VersionControlled ? (
+			<Badge intent="informational">
+				{ __( 'Version controlled', 'updatebee' ) }
+			</Badge>
+		) : null;
 		let activationBadge: React.ReactNode = null;
 
 		let intent: React.ComponentProps< typeof Badge >[ 'intent' ] = 'stable';
@@ -759,7 +799,8 @@ const ThemesList = ( props: {
 			! activationBadge &&
 			! hasNotes &&
 			! networkEnabledBadge &&
-			! childBadge
+			! childBadge &&
+			! versionBadge
 		) {
 			return null;
 		}
@@ -769,6 +810,7 @@ const ThemesList = ( props: {
 				{ activationBadge }
 				{ networkEnabledBadge }
 				{ childBadge }
+				{ versionBadge }
 				{ hasNotes && (
 					<Badge intent="low">{ __( 'Note', 'updatebee' ) }</Badge>
 				) }
@@ -817,6 +859,10 @@ const ThemesList = ( props: {
 			{
 				label: __( 'Patches Only', 'updatebee' ),
 				value: 'patches-only',
+			},
+			{
+				label: __( 'Version controlled', 'updatebee' ),
+				value: 'version-controlled',
 			},
 			{
 				label: __( 'Update Available', 'updatebee' ),
@@ -1051,27 +1097,36 @@ const ThemesList = ( props: {
 													) }
 												</th>
 												<td>
-													{ autoEnabled &&
+													{ theme.VersionControlled &&
+														__(
+															'Version controlled',
+															'updatebee'
+														) }
+													{ ! theme.VersionControlled &&
+														autoEnabled &&
 														patchesOnly &&
 														! isBlocked &&
 														__(
 															'Patches only',
 															'updatebee'
 														) }
-													{ autoEnabled &&
+													{ ! theme.VersionControlled &&
+														autoEnabled &&
 														! patchesOnly &&
 														! isBlocked &&
 														__(
 															'Automatic',
 															'updatebee'
 														) }
-													{ ! autoEnabled &&
+													{ ! theme.VersionControlled &&
+														! autoEnabled &&
 														! isBlocked &&
 														__(
 															'Manual',
 															'updatebee'
 														) }
-													{ isBlocked &&
+													{ ! theme.VersionControlled &&
+														isBlocked &&
 														__(
 															'Blocked',
 															'updatebee'
@@ -1209,11 +1264,18 @@ const ThemesList = ( props: {
 																);
 															} );
 													} }
-													help={ __(
-														'Enable automatic updates for this theme.',
-														'updatebee'
-													) }
+													help={
+														theme.VersionControlled
+															? themeVersionControlHelp(
+																	theme.VersionControl
+															  )
+															: __(
+																	'Enable automatic updates for this theme.',
+																	'updatebee'
+															  )
+													}
 													disabled={
+														theme.VersionControlled ||
 														isBlocked ||
 														! autoUpdatesAvailable ||
 														isBusy
@@ -1293,11 +1355,18 @@ const ThemesList = ( props: {
 																);
 															} );
 													} }
-													help={ __(
-														'Limit automatic updates for this theme to patch releases.',
-														'updatebee'
-													) }
+													help={
+														theme.VersionControlled
+															? themeVersionControlHelp(
+																	theme.VersionControl
+															  )
+															: __(
+																	'Limit automatic updates for this theme to patch releases.',
+																	'updatebee'
+															  )
+													}
 													disabled={
+														theme.VersionControlled ||
 														isBlocked ||
 														! autoUpdatesAvailable ||
 														isBusy

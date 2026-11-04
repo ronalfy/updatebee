@@ -31,6 +31,9 @@ class Init {
 		Skip_Version::get_instance();
 		Untested_Updates::get_instance();
 
+		add_filter( 'auto_update_plugin', array( Version_Controlled::class, 'veto_plugin' ), PHP_INT_MAX, 2 );
+		add_filter( 'auto_update_theme', array( Version_Controlled::class, 'veto_theme' ), PHP_INT_MAX, 2 );
+
 		if ( ! self::core_emails_enabled() ) {
 			$priority = Functions::get_highest_priority( 10 );
 			add_filter( 'auto_core_update_send_email', '__return_false', $priority );
