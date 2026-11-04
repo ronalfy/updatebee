@@ -59,7 +59,7 @@ class Registry {
 		self::register(
 			'list-plugins',
 			__( 'List Plugins', 'updatebee' ),
-			__( 'Lists installed plugins. Each row includes the plugin basename in file, name, version, whether it is active, whether an update is available, and the effective auto-update, blocked, and patches-only state, plus delay days, the untested-update exemption, and notes. auto_update is whether that plugin would auto-update under the current site policy.', 'updatebee' ),
+			__( 'Lists installed plugins. Each row includes the plugin basename in file, name, version, whether it is active, whether an update is available, and the effective auto-update, blocked, and patches-only state, plus delay days, the untested-update exemption, and notes. auto_update is whether that plugin would auto-update under the current site policy. version_controlled is true when Composer or a Git, Subversion, or Mercurial checkout owns the plugin, and auto_update is then false. version_control is composer, git, svn, hg, or an empty string.', 'updatebee' ),
 			array( Read::class, 'list_plugins' ),
 			self::annotations( true, false, true ),
 			self::object_schema(
@@ -77,7 +77,7 @@ class Registry {
 		self::register(
 			'list-themes',
 			__( 'List Themes', 'updatebee' ),
-			__( 'Lists installed themes. Each row includes stylesheet, name, version, whether it is the active theme, whether an update is available, and the effective auto-update, blocked, and patches-only state, plus delay days, the untested-update exemption, and notes.', 'updatebee' ),
+			__( 'Lists installed themes. Each row includes stylesheet, name, version, whether it is the active theme, whether an update is available, and the effective auto-update, blocked, and patches-only state, plus delay days, the untested-update exemption, and notes. version_controlled is true when Composer or a Git, Subversion, or Mercurial checkout owns the theme, and auto_update is then false. version_control is composer, git, svn, hg, or an empty string.', 'updatebee' ),
 			array( Read::class, 'list_themes' ),
 			self::annotations( true, false, true ),
 			self::object_schema(
@@ -196,7 +196,7 @@ class Registry {
 		self::register(
 			'set-plugin-policy',
 			__( 'Set Plugin Policy', 'updatebee' ),
-			__( 'Changes auto-update, block, patches-only, delay, untested-update, or note settings for one installed plugin. file is the plugin basename, for example akismet/akismet.php. Only fields you send are changed. delay_days and allow_untested accept null to inherit the site setting. The returned auto_update flag is whether that plugin would auto-update under the current site policy. This does not install, update, or delete the plugin.', 'updatebee' ),
+			__( 'Changes auto-update, block, patches-only, delay, untested-update, or note settings for one installed plugin. file is the plugin basename, for example akismet/akismet.php. Only fields you send are changed. delay_days and allow_untested accept null to inherit the site setting. Enabling auto_update or patches_only fails with updatebee_version_controlled when the plugin is version controlled. The returned auto_update flag is whether that plugin would auto-update under the current site policy. This does not install, update, or delete the plugin.', 'updatebee' ),
 			array( Policy::class, 'set_plugin_policy' ),
 			self::annotations( false, false, true ),
 			self::plugin_schema(),
@@ -209,7 +209,7 @@ class Registry {
 		self::register(
 			'set-theme-policy',
 			__( 'Set Theme Policy', 'updatebee' ),
-			__( 'Changes auto-update, block, patches-only, delay, untested-update, or note settings for one installed theme. stylesheet is the theme directory name. Only fields you send are changed. delay_days and allow_untested accept null to inherit the site setting. This does not install, update, or delete the theme.', 'updatebee' ),
+			__( 'Changes auto-update, block, patches-only, delay, untested-update, or note settings for one installed theme. stylesheet is the theme directory name. Only fields you send are changed. delay_days and allow_untested accept null to inherit the site setting. Enabling auto_update or patches_only fails with updatebee_version_controlled when the theme is version controlled. This does not install, update, or delete the theme.', 'updatebee' ),
 			array( Policy::class, 'set_theme_policy' ),
 			self::annotations( false, false, true ),
 			self::theme_schema(),
@@ -444,22 +444,24 @@ class Registry {
 	private static function plugin_schema(): array {
 		return self::object_schema(
 			array(
-				'file'             => self::string_property( __( 'Plugin basename, for example akismet/akismet.php.', 'updatebee' ) ),
-				'name'             => self::string_property( __( 'Plugin name.', 'updatebee' ) ),
-				'version'          => self::string_property( __( 'Installed version.', 'updatebee' ) ),
-				'active'           => self::bool_property( __( 'Whether the plugin is active.', 'updatebee' ) ),
-				'update_available' => self::bool_property( __( 'Whether WordPress offers an update.', 'updatebee' ) ),
-				'auto_update'      => self::bool_property( __( 'Whether the plugin would auto-update under the current site policy.', 'updatebee' ) ),
-				'blocked'          => self::bool_property( __( 'Whether updates for the plugin are blocked.', 'updatebee' ) ),
-				'patches_only'     => self::bool_property( __( 'Whether automatic updates are limited to patches.', 'updatebee' ) ),
-				'delay_days'       => array(
+				'file'               => self::string_property( __( 'Plugin basename, for example akismet/akismet.php.', 'updatebee' ) ),
+				'name'               => self::string_property( __( 'Plugin name.', 'updatebee' ) ),
+				'version'            => self::string_property( __( 'Installed version.', 'updatebee' ) ),
+				'active'             => self::bool_property( __( 'Whether the plugin is active.', 'updatebee' ) ),
+				'update_available'   => self::bool_property( __( 'Whether WordPress offers an update.', 'updatebee' ) ),
+				'auto_update'        => self::bool_property( __( 'Whether the plugin would auto-update under the current site policy.', 'updatebee' ) ),
+				'blocked'            => self::bool_property( __( 'Whether updates for the plugin are blocked.', 'updatebee' ) ),
+				'patches_only'       => self::bool_property( __( 'Whether automatic updates are limited to patches.', 'updatebee' ) ),
+				'version_controlled' => self::bool_property( __( 'Whether Composer or a checkout owns the plugin. Automatic updates stay off.', 'updatebee' ) ),
+				'version_control'    => self::string_property( __( 'composer, git, svn, hg, or an empty string.', 'updatebee' ) ),
+				'delay_days'         => array(
 					'type'        => array( 'integer', 'null' ),
 					'description' => __( 'Per-plugin delay in days, or null to inherit the site delay.', 'updatebee' ),
 				),
-				'allow_untested'   => self::bool_property( __( 'Whether the plugin may update when it is untested with this WordPress version.', 'updatebee' ) ),
-				'notes'            => self::string_property( __( 'Operator notes.', 'updatebee' ) ),
+				'allow_untested'     => self::bool_property( __( 'Whether the plugin may update when it is untested with this WordPress version.', 'updatebee' ) ),
+				'notes'              => self::string_property( __( 'Operator notes.', 'updatebee' ) ),
 			),
-			array( 'file', 'name', 'version', 'active', 'update_available', 'auto_update', 'blocked', 'patches_only', 'delay_days', 'allow_untested', 'notes' )
+			array( 'file', 'name', 'version', 'active', 'update_available', 'auto_update', 'blocked', 'patches_only', 'version_controlled', 'version_control', 'delay_days', 'allow_untested', 'notes' )
 		);
 	}
 
@@ -471,22 +473,24 @@ class Registry {
 	private static function theme_schema(): array {
 		return self::object_schema(
 			array(
-				'stylesheet'       => self::string_property( __( 'Theme stylesheet directory.', 'updatebee' ) ),
-				'name'             => self::string_property( __( 'Theme name.', 'updatebee' ) ),
-				'version'          => self::string_property( __( 'Installed version.', 'updatebee' ) ),
-				'active'           => self::bool_property( __( 'Whether this is the active theme.', 'updatebee' ) ),
-				'update_available' => self::bool_property( __( 'Whether WordPress offers an update.', 'updatebee' ) ),
-				'auto_update'      => self::bool_property( __( 'Whether the theme would auto-update under the current site policy.', 'updatebee' ) ),
-				'blocked'          => self::bool_property( __( 'Whether updates for the theme are blocked.', 'updatebee' ) ),
-				'patches_only'     => self::bool_property( __( 'Whether automatic updates are limited to patches.', 'updatebee' ) ),
-				'delay_days'       => array(
+				'stylesheet'         => self::string_property( __( 'Theme stylesheet directory.', 'updatebee' ) ),
+				'name'               => self::string_property( __( 'Theme name.', 'updatebee' ) ),
+				'version'            => self::string_property( __( 'Installed version.', 'updatebee' ) ),
+				'active'             => self::bool_property( __( 'Whether this is the active theme.', 'updatebee' ) ),
+				'update_available'   => self::bool_property( __( 'Whether WordPress offers an update.', 'updatebee' ) ),
+				'auto_update'        => self::bool_property( __( 'Whether the theme would auto-update under the current site policy.', 'updatebee' ) ),
+				'blocked'            => self::bool_property( __( 'Whether updates for the theme are blocked.', 'updatebee' ) ),
+				'patches_only'       => self::bool_property( __( 'Whether automatic updates are limited to patches.', 'updatebee' ) ),
+				'version_controlled' => self::bool_property( __( 'Whether Composer or a checkout owns the theme. Automatic updates stay off.', 'updatebee' ) ),
+				'version_control'    => self::string_property( __( 'composer, git, svn, hg, or an empty string.', 'updatebee' ) ),
+				'delay_days'         => array(
 					'type'        => array( 'integer', 'null' ),
 					'description' => __( 'Per-theme delay in days, or null to inherit the site delay.', 'updatebee' ),
 				),
-				'allow_untested'   => self::bool_property( __( 'Whether the theme may update when it is untested with this WordPress version.', 'updatebee' ) ),
-				'notes'            => self::string_property( __( 'Operator notes.', 'updatebee' ) ),
+				'allow_untested'     => self::bool_property( __( 'Whether the theme may update when it is untested with this WordPress version.', 'updatebee' ) ),
+				'notes'              => self::string_property( __( 'Operator notes.', 'updatebee' ) ),
 			),
-			array( 'stylesheet', 'name', 'version', 'active', 'update_available', 'auto_update', 'blocked', 'patches_only', 'delay_days', 'allow_untested', 'notes' )
+			array( 'stylesheet', 'name', 'version', 'active', 'update_available', 'auto_update', 'blocked', 'patches_only', 'version_controlled', 'version_control', 'delay_days', 'allow_untested', 'notes' )
 		);
 	}
 

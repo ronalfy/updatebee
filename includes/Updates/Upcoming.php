@@ -204,6 +204,25 @@ class Upcoming {
 	}
 
 	/**
+	 * Whether Composer or a checkout owns this item.
+	 *
+	 * @param string $type plugin or theme.
+	 * @param string $id   Plugin file or theme stylesheet.
+	 * @return bool True when automatic installs stay off.
+	 */
+	private static function is_version_controlled( string $type, string $id ): bool {
+		if ( 'plugin' === $type ) {
+			return Version_Controlled::is_plugin( $id );
+		}
+
+		if ( 'theme' === $type ) {
+			return Version_Controlled::is_theme( $id );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Schedule column label.
 	 *
 	 * @param string   $type     plugin or theme.
@@ -220,6 +239,10 @@ class Upcoming {
 
 		if ( $skipped ) {
 			return __( 'Skipped', 'updatebee' );
+		}
+
+		if ( self::is_version_controlled( $type, $id ) ) {
+			return __( 'Version controlled', 'updatebee' );
 		}
 
 		$run      = $next_run;

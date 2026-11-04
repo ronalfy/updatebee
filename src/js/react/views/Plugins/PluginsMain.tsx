@@ -68,6 +68,8 @@ export type PluginItem = {
 	Autoupdates: boolean;
 	Blocked: boolean;
 	PatchesOnly: boolean;
+	VersionControlled: boolean;
+	VersionControl: string;
 	LastUpdated: string;
 	EnableNonce: string;
 	BlockNonce: string;
@@ -232,6 +234,31 @@ const getBulkSuccessMessage = (
 	}
 };
 
+const pluginVersionControlHelp = ( reason: string | undefined ): string => {
+	switch ( reason ) {
+		case 'composer':
+			return __(
+				'Composer manages this plugin. Automatic updates stay off.',
+				'updatebee'
+			);
+		case 'svn':
+			return __(
+				'This plugin is a Subversion checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+		case 'hg':
+			return __(
+				'This plugin is a Mercurial checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+		default:
+			return __(
+				'This plugin is a Git checkout. Automatic updates stay off.',
+				'updatebee'
+			);
+	}
+};
+
 const PLUGIN_LIST_FILTERS = [
 	'',
 	'all',
@@ -242,6 +269,7 @@ const PLUGIN_LIST_FILTERS = [
 	'blocked',
 	'unblocked',
 	'patches-only',
+	'version-controlled',
 	'update-available',
 	'has-notes',
 	'third-party',
@@ -432,6 +460,11 @@ const PluginsList = ( props: {
 						return false;
 					}
 					break;
+				case 'version-controlled':
+					if ( ! plugin.VersionControlled ) {
+						return false;
+					}
+					break;
 				case 'update-available':
 					if ( ! plugin.Update ) {
 						return false;
@@ -547,6 +580,7 @@ const PluginsList = ( props: {
 
 		const canEnable = ( plugin: PluginItem ): boolean =>
 			autoUpdatesAvailable &&
+			! plugin.VersionControlled &&
 			! isBlocked( plugin ) &&
 			! hasAutoUpdates( plugin );
 		const canDisable = ( plugin: PluginItem ): boolean =>
@@ -559,6 +593,7 @@ const PluginsList = ( props: {
 			blockActionsAvailable && isBlocked( plugin );
 		const canEnablePatches = ( plugin: PluginItem ): boolean =>
 			autoUpdatesAvailable &&
+			! plugin.VersionControlled &&
 			! isBlocked( plugin ) &&
 			! hasPatchesOnly( plugin );
 
@@ -721,6 +756,11 @@ const PluginsList = ( props: {
 	 */
 	const getPluginBadges = ( plugin: PluginItem ): React.ReactNode => {
 		const hasNotes = '' !== ( plugin.Notes || '' ).trim();
+		const versionBadge = plugin.VersionControlled ? (
+			<Badge intent="informational">
+				{ __( 'Version controlled', 'updatebee' ) }
+			</Badge>
+		) : null;
 		let activationBadge: React.ReactNode = null;
 
 		if ( ! updatebeePlugins.isNetworkAdmin || plugin.Active ) {
@@ -737,13 +777,14 @@ const PluginsList = ( props: {
 			activationBadge = <Badge intent={ intent }>{ label }</Badge>;
 		}
 
-		if ( ! activationBadge && ! hasNotes ) {
+		if ( ! activationBadge && ! hasNotes && ! versionBadge ) {
 			return null;
 		}
 
 		return (
 			<div className="updatebee-plugin-badge">
 				{ activationBadge }
+				{ versionBadge }
 				{ hasNotes && (
 					<Badge intent="low">{ __( 'Note', 'updatebee' ) }</Badge>
 				) }
@@ -809,6 +850,13 @@ const PluginsList = ( props: {
 								{
 									label: __( 'Patches Only', 'updatebee' ),
 									value: 'patches-only',
+								},
+								{
+									label: __(
+										'Version controlled',
+										'updatebee'
+									),
+									value: 'version-controlled',
 								},
 								{
 									label: __(
@@ -1066,27 +1114,36 @@ const PluginsList = ( props: {
 													) }
 												</th>
 												<td>
-													{ autoEnabled &&
+													{ plugin.VersionControlled &&
+														__(
+															'Version controlled',
+															'updatebee'
+														) }
+													{ ! plugin.VersionControlled &&
+														autoEnabled &&
 														patchesOnly &&
 														! isBlocked &&
 														__(
 															'Patches only',
 															'updatebee'
 														) }
-													{ autoEnabled &&
+													{ ! plugin.VersionControlled &&
+														autoEnabled &&
 														! patchesOnly &&
 														! isBlocked &&
 														__(
 															'Automatic',
 															'updatebee'
 														) }
-													{ ! autoEnabled &&
+													{ ! plugin.VersionControlled &&
+														! autoEnabled &&
 														! isBlocked &&
 														__(
 															'Manual',
 															'updatebee'
 														) }
-													{ isBlocked &&
+													{ ! plugin.VersionControlled &&
+														isBlocked &&
 														__(
 															'Blocked',
 															'updatebee'
@@ -1210,11 +1267,18 @@ const PluginsList = ( props: {
 																);
 															} );
 													} }
-													help={ __(
-														'Enable automatic updates for this plugin.',
-														'updatebee'
-													) }
+													help={
+														plugin.VersionControlled
+															? pluginVersionControlHelp(
+																	plugin.VersionControl
+															  )
+															: __(
+																	'Enable automatic updates for this plugin.',
+																	'updatebee'
+															  )
+													}
 													disabled={
+														plugin.VersionControlled ||
 														isBlocked ||
 														! autoUpdatesAvailable ||
 														isBusy
@@ -1293,11 +1357,18 @@ const PluginsList = ( props: {
 																);
 															} );
 													} }
-													help={ __(
-														'Limit automatic updates for this plugin to patch releases.',
-														'updatebee'
-													) }
+													help={
+														plugin.VersionControlled
+															? pluginVersionControlHelp(
+																	plugin.VersionControl
+															  )
+															: __(
+																	'Limit automatic updates for this plugin to patch releases.',
+																	'updatebee'
+															  )
+													}
 													disabled={
+														plugin.VersionControlled ||
 														isBlocked ||
 														! autoUpdatesAvailable ||
 														isBusy

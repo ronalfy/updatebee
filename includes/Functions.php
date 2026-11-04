@@ -8,6 +8,7 @@
 namespace UpdateBee;
 
 use UpdateBee\Tables\Table_Logs;
+use UpdateBee\Updates\Version_Controlled;
 
 /**
  * Class Functions.
@@ -797,6 +798,10 @@ class Functions {
 
 		switch ( $type ) {
 			case 'plugin':
+				if ( Version_Controlled::is_plugin( $path ) ) {
+					return false;
+				}
+
 				$plugin_auto_updates_enabled = isset( $options['plugin_auto_updates'] ) ? $options['plugin_auto_updates'] : 'off';
 				$plugin_auto_updates_custom  = isset( $options['plugin_auto_updates_custom'] ) ? $options['plugin_auto_updates_custom'] : 'off';
 				$is_active_update            = in_array( $path, $options['auto_update_plugins'], true );
@@ -825,6 +830,10 @@ class Functions {
 				return $is_active_update;
 				break; // phpcs:ignore
 			case 'theme':
+				if ( Version_Controlled::is_theme( $path ) ) {
+					return false;
+				}
+
 				$theme_auto_updates_enabled = isset( $options['theme_auto_updates'] ) ? $options['theme_auto_updates'] : 'off';
 				$theme_auto_updates_custom  = isset( $options['theme_auto_updates_custom'] ) ? $options['theme_auto_updates_custom'] : 'off';
 				$auto_update_themes         = isset( $options['auto_update_themes'] ) && is_array( $options['auto_update_themes'] ) ? $options['auto_update_themes'] : array();
@@ -1285,6 +1294,10 @@ class Functions {
 	 * @return array<int, mixed>|null Updated auto-update list or null on failure.
 	 */
 	public static function set_plugin_auto_update( string $file, bool $enabled ) {
+		if ( $enabled && Version_Controlled::is_plugin( $file ) ) {
+			return null;
+		}
+
 		$result = self::update_option_list( 'auto_update_plugins', $file, $enabled );
 		if ( ! $enabled ) {
 			self::update_option_list( 'auto_update_plugins_patches', $file, false );
@@ -1301,6 +1314,10 @@ class Functions {
 	 * @return array<int, mixed>|null Updated patches list or null on failure.
 	 */
 	public static function set_plugin_patches_only( string $file, bool $enabled ) {
+		if ( $enabled && Version_Controlled::is_plugin( $file ) ) {
+			return null;
+		}
+
 		if ( $enabled ) {
 			self::update_option_list( 'auto_update_plugins', $file, true );
 		}
@@ -1388,6 +1405,10 @@ class Functions {
 	 * @return array<int, mixed>|null Updated auto-update list or null on failure.
 	 */
 	public static function set_theme_auto_update( string $stylesheet, bool $enabled ) {
+		if ( $enabled && Version_Controlled::is_theme( $stylesheet ) ) {
+			return null;
+		}
+
 		$result = self::update_option_list( 'auto_update_themes', $stylesheet, $enabled );
 		if ( ! $enabled ) {
 			self::update_option_list( 'auto_update_themes_patches', $stylesheet, false );
@@ -1404,6 +1425,10 @@ class Functions {
 	 * @return array<int, mixed>|null Updated patches list or null on failure.
 	 */
 	public static function set_theme_patches_only( string $stylesheet, bool $enabled ) {
+		if ( $enabled && Version_Controlled::is_theme( $stylesheet ) ) {
+			return null;
+		}
+
 		if ( $enabled ) {
 			self::update_option_list( 'auto_update_themes', $stylesheet, true );
 		}
