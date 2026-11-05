@@ -2,6 +2,7 @@
  * Themes screen: load and populate theme auto-update rows.
  */
 import {
+	Button,
 	CheckboxControl,
 	Notice,
 	SelectControl,
@@ -33,6 +34,7 @@ import sendCommand from '../../../utils/SendCommand';
 import AssetUpdatePanel, {
 	type AssetUpdate,
 } from '../../components/AssetUpdatePanel';
+import RollbackModal from '../../components/RollbackModal';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
@@ -77,6 +79,8 @@ export type ThemeItem = {
 	AllowUntested: boolean;
 	SettingsNonce: string;
 	Update: AssetUpdate | null;
+	CanRollback?: boolean;
+	RollbackNonce?: string;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -283,6 +287,11 @@ const ThemesList = ( props: {
 	) => void;
 	onNotesChange: ( stylesheet: string, notes: string ) => void;
 	onThemeUpdated: ( stylesheet: string, version: string ) => void;
+	onThemeRolledBack: (
+		stylesheet: string,
+		version: string,
+		update: AssetUpdate | null
+	) => void;
 } ) => {
 	const {
 		themes,
@@ -293,6 +302,7 @@ const ThemesList = ( props: {
 		onAllowUntestedChange,
 		onNotesChange,
 		onThemeUpdated,
+		onThemeRolledBack,
 	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< ThemesFormValues >();
@@ -311,6 +321,9 @@ const ThemesList = ( props: {
 		message: '',
 		type: 'success',
 	} );
+	const [ rollbackTheme, setRollbackTheme ] = useState< ThemeItem | null >(
+		null
+	);
 	const notice = getStatusNotice( autoUpdatesStatus );
 	const autoUpdatesAvailable =
 		'disabled' !== autoUpdatesStatus && 'blocked' !== autoUpdatesStatus;
@@ -1167,7 +1180,32 @@ const ThemesList = ( props: {
 														'updatebee'
 													) }
 												</th>
-												<td>{ theme.Version }</td>
+												<td>
+													<span className="updatebee-version-rollback">
+														<span>
+															{ theme.Version }
+														</span>
+														{ theme.CanRollback &&
+															theme.RollbackNonce && (
+																<Button
+																	variant="link"
+																	disabled={
+																		isBusy
+																	}
+																	onClick={ () => {
+																		setRollbackTheme(
+																			theme
+																		);
+																	} }
+																>
+																	{ __(
+																		'Rollback',
+																		'updatebee'
+																	) }
+																</Button>
+															) }
+													</span>
+												</td>
 											</tr>
 											{ theme.ParentName && (
 												<tr>
@@ -1505,6 +1543,37 @@ const ThemesList = ( props: {
 					} ) }
 				</div>
 			</div>
+			<RollbackModal
+				target={
+					rollbackTheme
+						? {
+								kind: 'theme',
+								id: rollbackTheme.Stylesheet,
+								name: rollbackTheme.Name,
+								nonce: rollbackTheme.RollbackNonce || '',
+						  }
+						: null
+				}
+				onClose={ () => {
+					setRollbackTheme( null );
+				} }
+				onBusy={ ( busy ) => {
+					if ( rollbackTheme ) {
+						setThemeBusy( rollbackTheme.Stylesheet, busy );
+					}
+				} }
+				onRolledBack={ ( version, update, message ) => {
+					if ( rollbackTheme ) {
+						onThemeRolledBack(
+							rollbackTheme.Stylesheet,
+							version,
+							update
+						);
+					}
+					showSnackbar( message, 'success' );
+					setRollbackTheme( null );
+				} }
+			/>
 			<ThemesFooter
 				themes={ visibleThemes }
 				actions={ actions }
@@ -1609,6 +1678,26 @@ const ThemesMain = () => {
 		[]
 	);
 
+	/**
+	 * Replace a theme's version and pending update after a rollback.
+	 *
+	 * @param stylesheet Theme stylesheet.
+	 * @param version    Installed version after the rollback.
+	 * @param update     Pending directory update, when one exists.
+	 */
+	const handleThemeRolledBack = useCallback(
+		( stylesheet: string, version: string, update: AssetUpdate | null ) => {
+			setThemes( ( current ) =>
+				current.map( ( theme ) =>
+					theme.Stylesheet === stylesheet
+						? { ...theme, Version: version, Update: update }
+						: theme
+				)
+			);
+		},
+		[]
+	);
+
 	useEffect( () => {
 		let cancelled = false;
 
@@ -1703,6 +1792,7 @@ const ThemesMain = () => {
 				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
 				onThemeUpdated={ handleThemeUpdated }
+				onThemeRolledBack={ handleThemeRolledBack }
 			/>
 		</FormProvider>
 	);

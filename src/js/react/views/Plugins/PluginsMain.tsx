@@ -2,6 +2,7 @@
  * Plugins screen: load and populate plugin auto-update rows.
  */
 import {
+	Button,
 	CheckboxControl,
 	Notice,
 	SelectControl,
@@ -33,6 +34,7 @@ import sendCommand from '../../../utils/SendCommand';
 import AssetUpdatePanel, {
 	type AssetUpdate,
 } from '../../components/AssetUpdatePanel';
+import RollbackModal from '../../components/RollbackModal';
 import { ErrorFallback } from '../../components/ErrorBoundary';
 import ItemSettingsDrawer from '../../components/ItemSettingsDrawer';
 import Loader from '../../components/Loader';
@@ -80,6 +82,8 @@ export type PluginItem = {
 	AllowUntested: boolean;
 	SettingsNonce: string;
 	Update: AssetUpdate | null;
+	CanRollback?: boolean;
+	RollbackNonce?: string;
 };
 
 type AutoUpdatesStatus = 'enabled' | 'custom' | 'disabled' | 'blocked';
@@ -287,6 +291,11 @@ const PluginsList = ( props: {
 	onAllowUntestedChange: ( file: string, allowUntested: boolean ) => void;
 	onNotesChange: ( file: string, notes: string ) => void;
 	onPluginUpdated: ( file: string, version: string ) => void;
+	onPluginRolledBack: (
+		file: string,
+		version: string,
+		update: AssetUpdate | null
+	) => void;
 } ) => {
 	const {
 		plugins,
@@ -297,6 +306,7 @@ const PluginsList = ( props: {
 		onAllowUntestedChange,
 		onNotesChange,
 		onPluginUpdated,
+		onPluginRolledBack,
 	} = props;
 	const { control, getValues, setValue } =
 		useFormContext< PluginsFormValues >();
@@ -315,6 +325,9 @@ const PluginsList = ( props: {
 		message: '',
 		type: 'success',
 	} );
+	const [ rollbackPlugin, setRollbackPlugin ] = useState< PluginItem | null >(
+		null
+	);
 	const notice = getStatusNotice( autoUpdatesStatus );
 	const autoUpdatesAvailable =
 		'disabled' !== autoUpdatesStatus && 'blocked' !== autoUpdatesStatus;
@@ -1184,7 +1197,32 @@ const PluginsList = ( props: {
 														'updatebee'
 													) }
 												</th>
-												<td>{ plugin.Version }</td>
+												<td>
+													<span className="updatebee-version-rollback">
+														<span>
+															{ plugin.Version }
+														</span>
+														{ plugin.CanRollback &&
+															plugin.RollbackNonce && (
+																<Button
+																	variant="link"
+																	disabled={
+																		isBusy
+																	}
+																	onClick={ () => {
+																		setRollbackPlugin(
+																			plugin
+																		);
+																	} }
+																>
+																	{ __(
+																		'Rollback',
+																		'updatebee'
+																	) }
+																</Button>
+															) }
+													</span>
+												</td>
 											</tr>
 										</tbody>
 									</table>
@@ -1503,6 +1541,37 @@ const PluginsList = ( props: {
 					} ) }
 				</div>
 			</div>
+			<RollbackModal
+				target={
+					rollbackPlugin
+						? {
+								kind: 'plugin',
+								id: rollbackPlugin.File,
+								name: rollbackPlugin.Name,
+								nonce: rollbackPlugin.RollbackNonce || '',
+						  }
+						: null
+				}
+				onClose={ () => {
+					setRollbackPlugin( null );
+				} }
+				onBusy={ ( busy ) => {
+					if ( rollbackPlugin ) {
+						setPluginBusy( rollbackPlugin.File, busy );
+					}
+				} }
+				onRolledBack={ ( version, update, message ) => {
+					if ( rollbackPlugin ) {
+						onPluginRolledBack(
+							rollbackPlugin.File,
+							version,
+							update
+						);
+					}
+					showSnackbar( message, 'success' );
+					setRollbackPlugin( null );
+				} }
+			/>
 			<PluginsFooter
 				plugins={ visiblePlugins }
 				actions={ actions }
@@ -1602,6 +1671,26 @@ const PluginsMain = () => {
 		[]
 	);
 
+	/**
+	 * Replace a plugin's version and pending update after a rollback.
+	 *
+	 * @param file    Plugin file.
+	 * @param version Installed version after the rollback.
+	 * @param update  Pending directory update, when one exists.
+	 */
+	const handlePluginRolledBack = useCallback(
+		( file: string, version: string, update: AssetUpdate | null ) => {
+			setPlugins( ( current ) =>
+				current.map( ( plugin ) =>
+					plugin.File === file
+						? { ...plugin, Version: version, Update: update }
+						: plugin
+				)
+			);
+		},
+		[]
+	);
+
 	useEffect( () => {
 		let cancelled = false;
 
@@ -1694,6 +1783,7 @@ const PluginsMain = () => {
 				onAllowUntestedChange={ handleAllowUntestedChange }
 				onNotesChange={ handleNotesChange }
 				onPluginUpdated={ handlePluginUpdated }
+				onPluginRolledBack={ handlePluginRolledBack }
 			/>
 		</FormProvider>
 	);

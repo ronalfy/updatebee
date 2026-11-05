@@ -21,6 +21,7 @@ use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Version_Controlled;
 use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Init as Updates_Init;
+use UpdateBee\Updates\Rollback;
 use UpdateBee\Updates\Skip_Version;
 use UpdateBee\Updates\Upcoming;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
@@ -56,6 +57,8 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_save_plugin_note', array( $this, 'save_plugin_note' ) );
 		add_action( 'wp_ajax_updatebee_save_plugin_settings', array( $this, 'save_plugin_settings' ) );
 		add_action( 'wp_ajax_updatebee_update_plugin', array( $this, 'update_plugin' ) );
+		add_action( 'wp_ajax_updatebee_plugin_rollback_versions', array( $this, 'plugin_rollback_versions' ) );
+		add_action( 'wp_ajax_updatebee_rollback_plugin', array( $this, 'rollback_plugin' ) );
 
 		// Theme Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_themes', array( $this, 'retrieve_themes' ) );
@@ -66,6 +69,8 @@ class Ajax {
 		add_action( 'wp_ajax_updatebee_save_theme_note', array( $this, 'save_theme_note' ) );
 		add_action( 'wp_ajax_updatebee_save_theme_settings', array( $this, 'save_theme_settings' ) );
 		add_action( 'wp_ajax_updatebee_update_theme', array( $this, 'update_theme' ) );
+		add_action( 'wp_ajax_updatebee_theme_rollback_versions', array( $this, 'theme_rollback_versions' ) );
+		add_action( 'wp_ajax_updatebee_rollback_theme', array( $this, 'rollback_theme' ) );
 
 		// Translation Ajax actions.
 		add_action( 'wp_ajax_updatebee_retrieve_translations', array( $this, 'retrieve_translations' ) );
@@ -389,8 +394,18 @@ class Ajax {
 				}
 			}
 
-			$plugin_data           = $this->copy_update_display_fields( $plugin_data, $extra );
-			$plugin_data['Update'] = Available_Updates::plugin_offer( $plugin_file );
+			$plugin_data                  = $this->copy_update_display_fields( $plugin_data, $extra );
+			$plugin_data['Update']        = Available_Updates::plugin_offer( $plugin_file );
+			$plugin_slug                  = isset( $plugin_data['slug'] ) && is_string( $plugin_data['slug'] ) ? $plugin_data['slug'] : '';
+			$plugin_directory_id          = isset( $plugin_data['id'] ) && is_string( $plugin_data['id'] ) ? $plugin_data['id'] : '';
+			$can_rollback                 = current_user_can( 'update_plugins' ) && Rollback::plugin_is_eligible(
+				$plugin_file,
+				! empty( $plugin_data['VersionControlled'] ),
+				$plugin_slug,
+				$plugin_directory_id
+			);
+			$plugin_data['CanRollback']   = $can_rollback;
+			$plugin_data['RollbackNonce'] = $can_rollback ? wp_create_nonce( 'updatebee-plugin-rollback-' . $plugin_file ) : '';
 
 			$slug = $plugin_data['slug'] ?? '';
 			if ( is_string( $slug ) && '' !== $slug ) {
@@ -738,9 +753,19 @@ class Ajax {
 				}
 			}
 
-			$theme_data                = $this->copy_update_display_fields( $theme_data, $extra );
-			$theme_data['Update']      = Available_Updates::theme_offer( $stylesheet );
-			$all_themes[ $stylesheet ] = $theme_data;
+			$theme_data                  = $this->copy_update_display_fields( $theme_data, $extra );
+			$theme_data['Update']        = Available_Updates::theme_offer( $stylesheet );
+			$theme_directory_id          = isset( $theme_data['id'] ) && is_string( $theme_data['id'] ) ? $theme_data['id'] : '';
+			$theme_directory_url         = isset( $theme_data['url'] ) && is_string( $theme_data['url'] ) ? $theme_data['url'] : '';
+			$can_rollback                = current_user_can( 'update_themes' ) && Rollback::theme_is_eligible(
+				$stylesheet,
+				! empty( $theme_data['VersionControlled'] ),
+				$theme_directory_id,
+				$theme_directory_url
+			);
+			$theme_data['CanRollback']   = $can_rollback;
+			$theme_data['RollbackNonce'] = $can_rollback ? wp_create_nonce( 'updatebee-theme-rollback-' . $stylesheet ) : '';
+			$all_themes[ $stylesheet ]   = $theme_data;
 		}
 
 		$options = Options::get_options();
@@ -1566,6 +1591,36 @@ class Ajax {
 	}
 
 	/**
+	 * Sanitize a posted rollback version.
+	 *
+	 * @return string Version string.
+	 */
+	private function get_posted_rollback_version(): string {
+		// Version is read after the per-item rollback nonce is verified.
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$version = isset( $_POST['version'] ) ? sanitize_text_field( wp_unslash( $_POST['version'] ) ) : '';
+
+		return sanitize_text_field( $version );
+	}
+
+	/**
+	 * Directory package for a version older than the one that is installed.
+	 *
+	 * @param array<string, string> $versions Version to package URL map.
+	 * @param string                $version  Requested version.
+	 * @param string                $current  Installed version.
+	 * @return string|null
+	 */
+	private function rollback_package( array $versions, string $version, string $current ): ?string {
+		$older = Rollback::previous_versions( $versions, $current );
+		if ( ! in_array( $version, $older, true ) ) {
+			return null;
+		}
+
+		return Rollback::package_for_version( $versions, $version );
+	}
+
+	/**
 	 * Sanitize posted theme stylesheets for a bulk action.
 	 *
 	 * @return array<int, string> Installed theme stylesheets.
@@ -1768,24 +1823,253 @@ class Ajax {
 	}
 
 	/**
+	 * Older WordPress.org releases for one plugin.
+	 */
+	public function plugin_rollback_versions(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_plugins' ) ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-rollback-' . $file, 'nonce' );
+
+		$context = Rollback::plugin_context( $file );
+		if ( null === $context ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Rollback is not available for this plugin.', 'updatebee' ),
+				)
+			);
+		}
+
+		$map = Rollback::plugin_version_map( $context['slug'] );
+		if ( null === $map ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'WordPress.org could not be reached.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'versions' => Rollback::previous_versions( $map, Functions::get_plugin_current_version( $file ) ),
+			)
+		);
+	}
+
+	/**
+	 * Install an older WordPress.org release of one plugin.
+	 */
+	public function rollback_plugin(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_plugins' ) ) {
+			wp_send_json_error();
+		}
+
+		$file = $this->get_posted_plugin_file();
+		check_ajax_referer( 'updatebee-plugin-rollback-' . $file, 'nonce' );
+
+		$context = Rollback::plugin_context( $file );
+		if ( null === $context ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Rollback is not available for this plugin.', 'updatebee' ),
+				)
+			);
+		}
+
+		$version = $this->get_posted_rollback_version();
+		$map     = Rollback::plugin_version_map( $context['slug'] );
+		if ( null === $map ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'WordPress.org could not be reached.', 'updatebee' ),
+				)
+			);
+		}
+
+		$package = $this->rollback_package( $map, $version, Functions::get_plugin_current_version( $file ) );
+		if ( null === $package ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'That version is not available.', 'updatebee' ),
+				)
+			);
+		}
+
+		$updated = $this->run_plugin_upgrade(
+			$file,
+			array(
+				'slug'    => $context['slug'],
+				'version' => $version,
+				'package' => $package,
+			)
+		);
+		if ( ! $this->manual_update_succeeded( $updated['result'], $file ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $this->manual_update_failure_message(
+						$updated['result'],
+						$file,
+						$updated['skin'],
+						__( 'Plugin could not be rolled back.', 'updatebee' )
+					),
+				)
+			);
+		}
+
+		wp_update_plugins();
+
+		wp_send_json_success(
+			array(
+				'version' => Functions::get_plugin_current_version( $file ),
+				'update'  => Available_Updates::plugin_offer( $file ),
+				'message' => __( 'Plugin rolled back.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
+	 * Older WordPress.org releases for one theme.
+	 */
+	public function theme_rollback_versions(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_themes' ) ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-rollback-' . $stylesheet, 'nonce' );
+
+		$context = Rollback::theme_context( $stylesheet );
+		if ( null === $context ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Rollback is not available for this theme.', 'updatebee' ),
+				)
+			);
+		}
+
+		$map = Rollback::theme_version_map( $context['slug'] );
+		if ( null === $map ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'WordPress.org could not be reached.', 'updatebee' ),
+				)
+			);
+		}
+
+		wp_send_json_success(
+			array(
+				'versions' => Rollback::previous_versions( $map, Functions::get_theme_current_version( $stylesheet ) ),
+			)
+		);
+	}
+
+	/**
+	 * Install an older WordPress.org release of one theme.
+	 */
+	public function rollback_theme(): void {
+		if ( ! Functions::can_access_options() || ! current_user_can( 'update_themes' ) ) {
+			wp_send_json_error();
+		}
+
+		$stylesheet = $this->get_posted_theme_stylesheet();
+		check_ajax_referer( 'updatebee-theme-rollback-' . $stylesheet, 'nonce' );
+
+		$context = Rollback::theme_context( $stylesheet );
+		if ( null === $context ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Rollback is not available for this theme.', 'updatebee' ),
+				)
+			);
+		}
+
+		$version = $this->get_posted_rollback_version();
+		$map     = Rollback::theme_version_map( $context['slug'] );
+		if ( null === $map ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'WordPress.org could not be reached.', 'updatebee' ),
+				)
+			);
+		}
+
+		$package = $this->rollback_package( $map, $version, Functions::get_theme_current_version( $stylesheet ) );
+		if ( null === $package ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'That version is not available.', 'updatebee' ),
+				)
+			);
+		}
+
+		$updated = $this->run_theme_upgrade(
+			$stylesheet,
+			array(
+				'slug'    => $context['slug'],
+				'version' => $version,
+				'package' => $package,
+			)
+		);
+		if ( ! $this->manual_update_succeeded( $updated['result'], $stylesheet ) ) {
+			wp_send_json_error(
+				array(
+					'message' => $this->manual_update_failure_message(
+						$updated['result'],
+						$stylesheet,
+						$updated['skin'],
+						__( 'Theme could not be rolled back.', 'updatebee' )
+					),
+				)
+			);
+		}
+
+		wp_update_themes();
+
+		wp_send_json_success(
+			array(
+				'version' => Functions::get_theme_current_version( $stylesheet ),
+				'update'  => Available_Updates::theme_offer( $stylesheet ),
+				'message' => __( 'Theme rolled back.', 'updatebee' ),
+			)
+		);
+	}
+
+	/**
 	 * Run a single plugin upgrade with blocked offers still visible to the upgrader.
 	 *
-	 * @param string $file Plugin basename.
+	 * @param string                     $file     Plugin basename.
+	 * @param array<string, string>|null $rollback Directory package to install instead of the current offer.
 	 * @return array{result: mixed, skin: \WP_Ajax_Upgrader_Skin}
 	 */
-	private function run_plugin_upgrade( string $file ): array {
+	private function run_plugin_upgrade( string $file, ?array $rollback = null ): array {
 		return Hide_Blocked_Updates::unfiltered(
-			static function () use ( $file ) {
+			static function () use ( $file, $rollback ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 				require_once ABSPATH . 'wp-admin/includes/plugin.php';
 				wp_update_plugins();
 
-				$skin     = new \WP_Ajax_Upgrader_Skin();
-				$upgrader = new \Plugin_Upgrader( $skin );
+				$upgrade = static function () use ( $file ) {
+					$skin     = new \WP_Ajax_Upgrader_Skin();
+					$upgrader = new \Plugin_Upgrader( $skin );
 
-				return array(
-					'result' => $upgrader->bulk_upgrade( array( $file ) ),
-					'skin'   => $skin,
+					return array(
+						'result' => $upgrader->bulk_upgrade( array( $file ) ),
+						'skin'   => $skin,
+					);
+				};
+
+				if ( ! is_array( $rollback ) || ! isset( $rollback['slug'], $rollback['version'], $rollback['package'] ) ) {
+					return $upgrade();
+				}
+
+				return Rollback::with_plugin_offer(
+					$file,
+					$rollback['slug'],
+					$rollback['version'],
+					$rollback['package'],
+					$upgrade
 				);
 			}
 		);
@@ -1794,22 +2078,37 @@ class Ajax {
 	/**
 	 * Run a single theme upgrade with blocked offers still visible to the upgrader.
 	 *
-	 * @param string $stylesheet Theme stylesheet.
+	 * @param string                     $stylesheet Theme stylesheet.
+	 * @param array<string, string>|null $rollback   Directory package to install instead of the current offer.
 	 * @return array{result: mixed, skin: \WP_Ajax_Upgrader_Skin}
 	 */
-	private function run_theme_upgrade( string $stylesheet ): array {
+	private function run_theme_upgrade( string $stylesheet, ?array $rollback = null ): array {
 		return Hide_Blocked_Updates::unfiltered(
-			static function () use ( $stylesheet ) {
+			static function () use ( $stylesheet, $rollback ) {
 				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 				require_once ABSPATH . 'wp-admin/includes/theme.php';
 				wp_update_themes();
 
-				$skin     = new \WP_Ajax_Upgrader_Skin();
-				$upgrader = new \Theme_Upgrader( $skin );
+				$upgrade = static function () use ( $stylesheet ) {
+					$skin     = new \WP_Ajax_Upgrader_Skin();
+					$upgrader = new \Theme_Upgrader( $skin );
 
-				return array(
-					'result' => $upgrader->bulk_upgrade( array( $stylesheet ) ),
-					'skin'   => $skin,
+					return array(
+						'result' => $upgrader->bulk_upgrade( array( $stylesheet ) ),
+						'skin'   => $skin,
+					);
+				};
+
+				if ( ! is_array( $rollback ) || ! isset( $rollback['slug'], $rollback['version'], $rollback['package'] ) ) {
+					return $upgrade();
+				}
+
+				return Rollback::with_theme_offer(
+					$stylesheet,
+					$rollback['slug'],
+					$rollback['version'],
+					$rollback['package'],
+					$upgrade
 				);
 			}
 		);
