@@ -25,6 +25,5 @@ class Init {
 		new Cron();
 		new Tools();
 		new Advanced();
-		new Branding();
 	}
 }

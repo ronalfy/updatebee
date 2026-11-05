@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Admin\Admin_Bar_Menu;
+use UpdateBee\Branding;
 use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
@@ -79,6 +80,8 @@ class Advanced {
 			array( 'updatebee-admin' ),
 			is_string( $deps['version'] ) ? $deps['version'] : Functions::get_plugin_version()
 		);
+		$branding_defaults = Branding::get_header_defaults();
+
 		wp_localize_script(
 			'updatebee-advanced',
 			'updatebeeAdvanced',
@@ -94,6 +97,17 @@ class Advanced {
 				'adminBarEnabled'              => (bool) Options::get_options( Admin_Bar_Menu::OPTION_ENABLED ),
 				'adminBarShowAdmin'            => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_ADMIN ),
 				'adminBarShowFrontend'         => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_FRONTEND ),
+				'brandingSaveNonce'            => wp_create_nonce( 'updatebee-save-branding-settings' ),
+				'brandingName'                 => Branding::get_saved_name(),
+				'brandingDescription'          => Branding::get_saved_description(),
+				'brandingAuthor'               => Branding::get_saved_author(),
+				'brandingUrl'                  => Branding::get_saved_url(),
+				'brandingDefaults'             => array(
+					'name'        => $branding_defaults['name'],
+					'description' => $branding_defaults['description'],
+					'author'      => $branding_defaults['author'],
+					'url'         => $branding_defaults['url'],
+				),
 			)
 		);
 
