@@ -1,0 +1,34 @@
+/**
+ * Rollback modal shared by the Plugins and Themes screens.
+ */
+
+.updatebee-version-rollback {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: 8px;
+}
+
+.updatebee-rollback-modal {
+
+	.components-modal__content {
+		min-width: min(480px, 90vw);
+	}
+}
+
+.updatebee-rollback-versions {
+	max-height: 280px;
+	overflow: auto;
+	margin: 12px 0;
+}
+
+.updatebee-rollback-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.updatebee-rollback-loading {
+	margin: 0;
+}
