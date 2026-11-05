@@ -25,6 +25,8 @@ class Register_Options_Page {
 			add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 		}
 
+		add_action( 'admin_init', array( Settings_Page::class, 'maybe_redirect_branding_tab' ) );
+
 		$tab_init = new Init();
 		$tab_init->run();
 	}

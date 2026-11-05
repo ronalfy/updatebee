@@ -12,6 +12,7 @@ import AdvancedFooter, {
 	type SnackbarType,
 } from './AdvancedFooter';
 import AdvancedReset, { type ResetItem } from './AdvancedReset';
+import BrandingDrawer from './BrandingDrawer';
 import UpgradeNoticeKeywordsDrawer from './UpgradeNoticeKeywordsDrawer';
 
 type AdvancedMessagePayload = {
@@ -52,6 +53,7 @@ const AdvancedMain = () => {
 	const [ isSavingUntested, setIsSavingUntested ] = useState( false );
 	const [ isSavingKeywords, setIsSavingKeywords ] = useState( false );
 	const [ isSavingAdminBar, setIsSavingAdminBar ] = useState( false );
+	const [ isSavingBranding, setIsSavingBranding ] = useState( false );
 	const [ isSavingSlack, setIsSavingSlack ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
@@ -70,6 +72,7 @@ const AdvancedMain = () => {
 		isSavingUntested ||
 		isSavingKeywords ||
 		isSavingAdminBar ||
+		isSavingBranding ||
 		isSavingSlack ||
 		isResetting;
 
@@ -428,6 +431,7 @@ const AdvancedMain = () => {
 						isSavingUntested ||
 						isSavingSlack ||
 						isSavingAdminBar ||
+						isSavingBranding ||
 						isResetting
 					}
 					onSavingChange={ setIsSavingKeywords }
@@ -440,9 +444,23 @@ const AdvancedMain = () => {
 						isSavingUntested ||
 						isSavingKeywords ||
 						isSavingSlack ||
+						isSavingBranding ||
 						isResetting
 					}
 					onSavingChange={ setIsSavingAdminBar }
+					onSnackbar={ showSnackbar }
+				/>
+
+				<BrandingDrawer
+					disabled={
+						isSaving ||
+						isSavingUntested ||
+						isSavingKeywords ||
+						isSavingAdminBar ||
+						isSavingSlack ||
+						isResetting
+					}
+					onSavingChange={ setIsSavingBranding }
 					onSnackbar={ showSnackbar }
 				/>
 

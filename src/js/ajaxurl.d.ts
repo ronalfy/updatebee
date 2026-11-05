@@ -123,6 +123,12 @@ interface UpdateBeeAdvanced {
 	adminBarShowAdmin: boolean;
 	adminBarShowFrontend: boolean;
 	pluginName: string;
+	brandingSaveNonce: string;
+	brandingName: string;
+	brandingDescription: string;
+	brandingAuthor: string;
+	brandingUrl: string;
+	brandingDefaults: UpdateBeeBrandingDefaults;
 }
 
 interface UpdateBeeBrandingDefaults {
@@ -131,16 +137,5 @@ interface UpdateBeeBrandingDefaults {
 	author: string;
 	url: string;
 }
-
-interface UpdateBeeBranding {
-	saveNonce: string;
-	name: string;
-	description: string;
-	author: string;
-	url: string;
-	defaults: UpdateBeeBrandingDefaults;
-}
-
-declare const updatebeeBranding: UpdateBeeBranding;
 
 declare const updatebeeAdvanced: UpdateBeeAdvanced;
