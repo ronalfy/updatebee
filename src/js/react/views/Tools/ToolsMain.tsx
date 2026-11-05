@@ -1,10 +1,14 @@
 /**
  * Tools maintenance actions (force updates, trigger cron, refresh updates).
  */
-import { useCallback, useState } from '@wordpress/element';
+import { useCallback, useRef, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
-import sendCommand from '../../../utils/SendCommand';
+import axios from 'axios';
+import type { ChangeEvent } from 'react';
+import sendCommand, {
+	getWpAjaxErrorMessage,
+} from '../../../utils/SendCommand';
 import ToolsFooter, {
 	type SnackbarState,
 	type SnackbarType,
@@ -19,7 +23,8 @@ type ToolsAction =
 	| 'migrateEum'
 	| 'hideEum'
 	| 'migrateCau'
-	| 'hideCau';
+	| 'hideCau'
+	| 'importSettings';
 
 type ImporterKey = 'eum' | 'cau';
 
@@ -65,6 +70,8 @@ const getHideDescriptions = (): Record< ImporterKey, string > => ( {
 	),
 } );
 
+const MAX_SETTINGS_FILE_BYTES = 1048576;
+
 const ToolsMain = () => {
 	useEnableWpCompatOverlaySlot();
 	const [ activeAction, setActiveAction ] = useState< ToolsAction | null >(
@@ -87,6 +94,8 @@ const ToolsMain = () => {
 	const [ showCauImporter, setShowCauImporter ] = useState(
 		updatebeeTools.cauDetected
 	);
+	const [ importFile, setImportFile ] = useState< File | null >( null );
+	const fileInputRef = useRef< HTMLInputElement >( null );
 
 	const isBusy = null !== activeAction;
 	const isMigrating =
@@ -296,6 +305,146 @@ const ToolsMain = () => {
 	const hideCopy =
 		null === hideTarget ? '' : getHideDescriptions()[ hideTarget ];
 
+	/**
+	 * Download the settings JSON file.
+	 */
+	const handleExportSettings = () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		const params = new URLSearchParams( {
+			action: 'updatebee_export_settings',
+			nonce: updatebeeTools.exportSettingsNonce,
+		} );
+		window.location.assign( `${ ajaxurl }?${ params.toString() }` );
+	};
+
+	/**
+	 * Open the settings file picker.
+	 */
+	const handleChooseImportFile = () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		fileInputRef.current?.click();
+	};
+
+	/**
+	 * Hold a selected file until the user confirms the import.
+	 *
+	 * @param event File input change event.
+	 */
+	const handleImportFileSelected = (
+		event: ChangeEvent< HTMLInputElement >
+	) => {
+		const file = event.target.files?.[ 0 ] ?? null;
+		event.target.value = '';
+		if ( ! file || isBusy ) {
+			return;
+		}
+
+		if ( file.size < 1 || file.size > MAX_SETTINGS_FILE_BYTES ) {
+			showSnackbar(
+				__( 'Settings file was rejected.', 'updatebee' ),
+				'error'
+			);
+			return;
+		}
+
+		setImportFile( file );
+	};
+
+	/**
+	 * Close the import confirmation without uploading.
+	 */
+	const handleCloseImport = useCallback( () => {
+		if ( 'importSettings' === activeAction ) {
+			return;
+		}
+
+		setImportFile( null );
+	}, [ activeAction ] );
+
+	/**
+	 * Upload the selected settings file.
+	 *
+	 * @return True when the import succeeds.
+	 */
+	const handleConfirmImport = useCallback( (): Promise< boolean > => {
+		if ( ! importFile || isBusy ) {
+			return Promise.resolve( false );
+		}
+
+		setActiveAction( 'importSettings' );
+		const body = new FormData();
+		body.append( 'action', 'updatebee_import_settings' );
+		body.append( 'nonce', updatebeeTools.importSettingsNonce );
+		body.append( 'settings_file', importFile );
+
+		return axios
+			.post( ajaxurl, body )
+			.then( ( response ) => {
+				const payload: unknown = response.data;
+				if (
+					! payload ||
+					'object' !== typeof payload ||
+					! ( 'success' in payload ) ||
+					true !== payload.success
+				) {
+					const data =
+						payload &&
+						'object' === typeof payload &&
+						'data' in payload
+							? payload.data
+							: undefined;
+					showSnackbar(
+						getWpAjaxErrorMessage( data ) ||
+							__( 'Settings file was rejected.', 'updatebee' ),
+						'error'
+					);
+					return false;
+				}
+
+				const message =
+					'data' in payload
+						? getWpAjaxErrorMessage( payload.data )
+						: undefined;
+				showSnackbar(
+					message ||
+						__(
+							"Settings have been imported. The Slack webhook was left unchanged.",
+							'updatebee'
+						),
+					'success'
+				);
+				return true;
+			} )
+			.catch( () => {
+				showSnackbar(
+					__( 'Settings file was rejected.', 'updatebee' ),
+					'error'
+				);
+				return false;
+			} )
+			.finally( () => {
+				setActiveAction( null );
+			} );
+	}, [ importFile, isBusy, showSnackbar ] );
+
+	const importCopy = importFile
+		? sprintf(
+				/* translators: 1: Plugin name. 2: File name. */
+				__(
+					"This replaces %1$s settings with the settings in %2$s. This site's Slack webhook URL is left unchanged.",
+					'updatebee'
+				),
+				updatebeeTools.pluginName,
+				importFile.name
+		  )
+		: '';
+
 	return (
 		<div className="updatebee-tools-main">
 			<div className="updatebee-tools-bento">
@@ -384,6 +533,45 @@ const ToolsMain = () => {
 								onClick={ handleRefreshUpdates }
 							>
 								{ __( 'Refresh Updates', 'updatebee' ) }
+							</Button>
+						</p>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root className="updatebee-tools-card">
+					<Card.Header>
+						<Card.Title>
+							{ __( 'Import and Export Settings', 'updatebee' ) }
+						</Card.Title>
+					</Card.Header>
+					<Card.Content className="updatebee-tools-card-content">
+						<p className="updatebee-tools-card-description">
+							{ __(
+								'Download these settings as a JSON file, or import a file from another site. The Slack webhook URL is not included and is not changed on import.',
+								'updatebee'
+							) }
+						</p>
+						<input
+							ref={ fileInputRef }
+							className="updatebee-tools-file-input"
+							type="file"
+							accept=".json,application/json"
+							onChange={ handleImportFileSelected }
+						/>
+						<p className="updatebee-tools-card-actions">
+							<Button
+								variant="solid"
+								disabled={ isBusy }
+								onClick={ handleExportSettings }
+							>
+								{ __( 'Export settings', 'updatebee' ) }
+							</Button>
+							<Button
+								variant="outline"
+								disabled={ isBusy }
+								onClick={ handleChooseImportFile }
+							>
+								{ __( 'Import settings', 'updatebee' ) }
 							</Button>
 						</p>
 					</Card.Content>
@@ -514,6 +702,15 @@ const ToolsMain = () => {
 				description={ hideCopy }
 				onClose={ handleCloseHideImporterModal }
 				onHide={ handleConfirmHideImporter }
+			/>
+			<ToolsMigrateModal
+				isOpen={ null !== importFile }
+				isMigrating={ 'importSettings' === activeAction }
+				title={ __( 'Import settings', 'updatebee' ) }
+				description={ importCopy }
+				confirmLabel={ __( 'Import settings', 'updatebee' ) }
+				onClose={ handleCloseImport }
+				onMigrate={ handleConfirmImport }
 			/>
 		</div>
 	);
