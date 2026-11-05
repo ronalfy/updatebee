@@ -59,6 +59,8 @@ interface UpdateBeeTools {
 	cauDetected: boolean;
 	migrateCauNonce: string;
 	hideCauNonce: string;
+	exportSettingsNonce: string;
+	importSettingsNonce: string;
 	pluginName: string;
 }
 

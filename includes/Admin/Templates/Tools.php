@@ -9,6 +9,7 @@ namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
+use UpdateBee\Admin\Settings_Transfer;
 use UpdateBee\Functions;
 
 /**
@@ -107,6 +108,8 @@ class Tools {
 			'cauDetected'         => CompanionAutoUpdate::should_show_importer(),
 			'migrateCauNonce'     => wp_create_nonce( 'updatebee-migrate-cau' ),
 			'hideCauNonce'        => wp_create_nonce( 'updatebee-hide-cau-importer' ),
+			'exportSettingsNonce' => wp_create_nonce( Settings_Transfer::EXPORT_NONCE_ACTION ),
+			'importSettingsNonce' => wp_create_nonce( Settings_Transfer::IMPORT_NONCE_ACTION ),
 		);
 	}
 }

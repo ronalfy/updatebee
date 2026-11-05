@@ -15,6 +15,7 @@ use UpdateBee\Admin\Network_Admin_Bar;
 use UpdateBee\Admin\Plugin_Settings_Links;
 use UpdateBee\Admin\Hide_Updates_Column;
 use UpdateBee\Admin\Register_Options_Page;
+use UpdateBee\Admin\Settings_Transfer;
 use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
 use UpdateBee\Cron\Disable_Wp_Cron;
 use UpdateBee\Cron\Schedules as Cron_Schedules;
@@ -73,6 +74,13 @@ class Plugin {
 	 * @var Ajax
 	 */
 	private Ajax $ajax;
+
+	/**
+	 * Settings import and export.
+	 *
+	 * @var Settings_Transfer
+	 */
+	private Settings_Transfer $settings_transfer;
 
 	/**
 	 * Update runtime hooks (core, plugins, themes, translations).
@@ -254,6 +262,9 @@ class Plugin {
 
 		$this->ajax = new Ajax();
 		$this->ajax->run();
+
+		$this->settings_transfer = new Settings_Transfer();
+		$this->settings_transfer->run();
 
 		$this->updates_init = new Updates_Init();
 		$this->updates_init->run();

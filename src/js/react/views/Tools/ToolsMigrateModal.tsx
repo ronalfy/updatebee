@@ -9,6 +9,7 @@ type ToolsMigrateModalProps = {
 	isMigrating: boolean;
 	title: string;
 	description: string;
+	confirmLabel?: string;
 	onClose: () => void;
 	onMigrate: () => Promise< boolean >;
 };
@@ -19,8 +20,15 @@ type ToolsMigrateModalProps = {
  * @param props Modal state and migrate handler.
  */
 const ToolsMigrateModal = ( props: ToolsMigrateModalProps ) => {
-	const { isOpen, isMigrating, title, description, onClose, onMigrate } =
-		props;
+	const {
+		isOpen,
+		isMigrating,
+		title,
+		description,
+		confirmLabel = __( 'Run Migration', 'updatebee' ),
+		onClose,
+		onMigrate,
+	} = props;
 
 	if ( ! isOpen ) {
 		return null;
@@ -67,7 +75,7 @@ const ToolsMigrateModal = ( props: ToolsMigrateModalProps ) => {
 					disabled={ isMigrating }
 					onClick={ handleConfirm }
 				>
-					{ __( 'Run Migration', 'updatebee' ) }
+					{ confirmLabel }
 				</Button>
 			</div>
 		</Modal>
