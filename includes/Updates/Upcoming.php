@@ -64,17 +64,27 @@ class Upcoming {
 	/**
 	 * Pending plugin rows.
 	 *
+	 * Blocked plugins are omitted. They cannot be installed, so listing them
+	 * looks like an update is available.
+	 *
 	 * @param int|null $next_run Next automatic install timestamp.
 	 * @return array<int, array<string, mixed>> Rows.
 	 */
 	private static function plugin_rows( ?int $next_run ): array {
+		if ( Functions::plugin_updates_fully_blocked() ) {
+			return array();
+		}
+
 		$installed = Functions::get_installed_plugin_files();
 		$rows      = array();
-		$fully     = Functions::plugin_updates_fully_blocked();
 		$user_can  = current_user_can( 'update_plugins' );
 
 		foreach ( $installed as $file => $plugin ) {
 			if ( ! is_string( $file ) || ! is_array( $plugin ) ) {
+				continue;
+			}
+
+			if ( Functions::auto_updates_blocked( $file, 'plugin' ) ) {
 				continue;
 			}
 
@@ -92,8 +102,8 @@ class Upcoming {
 				__( 'Plugin', 'updatebee' ),
 				$from,
 				$offer,
-				Functions::auto_updates_blocked( $file, 'plugin' ) || $fully,
-				$fully,
+				false,
+				false,
 				$user_can,
 				$next_run,
 				'updatebee-plugin-skip-' . $file,
