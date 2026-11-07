@@ -20,6 +20,20 @@
 	z-index: 1000000;
 }
 
+.updatebee-force-updates-modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.updatebee-force-updates-modal {
+
+	.components-notice {
+		margin: 0 0 16px;
+	}
+}
+
 .components-modal__frame.updatebee-command-progress-modal {
 	width: min(20rem, calc(100% - 32px));
 	min-width: 0;

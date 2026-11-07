@@ -55,6 +55,10 @@ class DelayUpdatesTest extends TestCase {
 		$property   = $reflection->getProperty( 'instance' );
 		$property->setAccessible( true );
 		$property->setValue( null, null );
+
+		$skip = $reflection->getProperty( 'skip_delay' );
+		$skip->setAccessible( true );
+		$skip->setValue( null, false );
 	}
 
 	/**
@@ -291,6 +295,70 @@ class DelayUpdatesTest extends TestCase {
 		$this->assertFalse( $delay->auto_update_theme( true, $item ) );
 		$this->assertCount( 1, $wpdb->insert_calls );
 		$this->assertSame( 'delayed', $wpdb->insert_calls[0][1]['update_status'] );
+	}
+
+	/**
+	 * A force-update skip lets a plugin inside the delay window update without a delayed log.
+	 */
+	public function test_skip_for_request_updates_plugin_within_window_without_log(): void {
+		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+		$wpdb  = $this->setup_log_insert_mocks();
+		Delay_Updates::skip_for_request();
+		$item = (object) array(
+			'plugin'      => 'hello.php',
+			'new_version' => '1.0.1',
+		);
+
+		$this->site_options[ Delay_Updates::PLUGIN_OPTION ] = array(
+			'hello.php' => array(
+				'version' => '1.0.1',
+				'time'    => time(),
+			),
+		);
+
+		$this->assertTrue( $delay->auto_update_plugin( true, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
+
+		$this->reset_delay_singleton();
+
+		$this->assertFalse( $delay->auto_update_plugin( true, $item ) );
+		$this->assertCount( 1, $wpdb->insert_calls );
+	}
+
+	/**
+	 * A force-update skip lets a theme inside the delay window update without a delayed log.
+	 */
+	public function test_skip_for_request_updates_theme_within_window_without_log(): void {
+		$delay = $this->get_delay_updates( array( 'delay_updates' => 2 ) );
+		$wpdb  = $this->setup_log_insert_mocks();
+		Delay_Updates::skip_for_request();
+		MonkeyFunctions\when( 'wp_get_theme' )->justReturn(
+			new class() {
+				/**
+				 * Get a theme attribute.
+				 *
+				 * @param string $key Attribute key.
+				 * @return string
+				 */
+				public function get( $key ) {
+					return 'Version' === $key ? '1.0.0' : 'Twenty Twenty-Four';
+				}
+			}
+		);
+		$item = (object) array(
+			'theme'       => 'twentytwentyfour',
+			'new_version' => '1.0.1',
+		);
+
+		$this->site_options[ Delay_Updates::THEME_OPTION ] = array(
+			'twentytwentyfour' => array(
+				'version' => '1.0.1',
+				'time'    => time(),
+			),
+		);
+
+		$this->assertTrue( $delay->auto_update_theme( true, $item ) );
+		$this->assertCount( 0, $wpdb->insert_calls );
 	}
 
 	/**

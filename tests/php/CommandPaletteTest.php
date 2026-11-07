@@ -10,6 +10,7 @@ namespace UpdateBee\Tests;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Functions as MonkeyFunctions;
 use UpdateBee\Admin\Command_Palette;
+use UpdateBee\Options;
 
 /**
  * Command palette enqueue and capability tests.
@@ -67,6 +68,7 @@ class CommandPaletteTest extends TestCase {
 	 */
 	public function test_enqueue_localizes_nonce_for_manage_options(): void {
 		$this->stub_access( false, true );
+		$this->stub_delay_option();
 		$captured = array(
 			'scripts'   => array(),
 			'localized' => array(),
@@ -88,6 +90,7 @@ class CommandPaletteTest extends TestCase {
 			array(
 				'forceUpdatesNonce'   => 'nonce-updatebee-force-updates',
 				'refreshUpdatesNonce' => 'nonce-updatebee-refresh-updates',
+				'delayEnabled'        => false,
 			),
 			$captured['localized'][0][2]
 		);
@@ -98,6 +101,7 @@ class CommandPaletteTest extends TestCase {
 	 */
 	public function test_enqueue_localizes_nonce_for_manage_network(): void {
 		$this->stub_access( true, true );
+		$this->stub_delay_option();
 		$captured = array(
 			'scripts'   => array(),
 			'localized' => array(),
@@ -115,6 +119,32 @@ class CommandPaletteTest extends TestCase {
 		$this->assertSame(
 			'nonce-updatebee-refresh-updates',
 			$captured['localized'][0][2]['refreshUpdatesNonce']
+		);
+		$this->assertFalse( $captured['localized'][0][2]['delayEnabled'] );
+	}
+
+	/**
+	 * Stub the option read used to localize whether the update delay is on.
+	 */
+	private function stub_delay_option(): void {
+		Options::flush_cache();
+		MonkeyFunctions\when( 'get_site_option' )->justReturn( array() );
+		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
+		MonkeyFunctions\when( 'wp_parse_args' )->alias(
+			static function ( $args, $defaults ) {
+				if ( ! is_array( $args ) ) {
+					$args = array();
+				}
+				if ( ! is_array( $defaults ) ) {
+					$defaults = array();
+				}
+				return array_merge( $defaults, $args );
+			}
+		);
+		MonkeyFunctions\when( 'absint' )->alias(
+			static function ( $value ) {
+				return abs( (int) $value );
+			}
 		);
 	}
 

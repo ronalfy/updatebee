@@ -2124,7 +2124,13 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-force-updates', 'nonce' );
 
-		Updates_Init::run_auto_updates();
+		$skip_delay = false;
+		if ( isset( $_POST['skip_delay'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Boolean is sanitized below.
+			$skip_delay = (bool) rest_sanitize_boolean( wp_unslash( $_POST['skip_delay'] ) );
+		}
+
+		Updates_Init::run_auto_updates( $skip_delay );
 
 		wp_send_json_success(
 			array(
