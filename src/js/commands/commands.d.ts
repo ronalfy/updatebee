@@ -15,6 +15,7 @@ declare module '@wordpress/commands' {
 		keywords?: string[];
 		disabled?: boolean;
 		callback: CommandCallback;
+		icon?: React.ReactNode;
 	}
 
 	export function useCommand( command: CommandConfig ): void;

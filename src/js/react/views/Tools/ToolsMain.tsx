@@ -6,8 +6,10 @@ import { __, sprintf } from '@wordpress/i18n';
 import { Button, Card, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
 import axios from 'axios';
 import type { ChangeEvent } from 'react';
+import ForceUpdatesModal from '../../components/ForceUpdatesModal';
 import sendCommand, {
 	getWpAjaxErrorMessage,
+	type SendCommandData,
 } from '../../../utils/SendCommand';
 import ToolsFooter, {
 	type SnackbarState,
@@ -95,6 +97,7 @@ const ToolsMain = () => {
 		updatebeeTools.cauDetected
 	);
 	const [ importFile, setImportFile ] = useState< File | null >( null );
+	const [ forceUpdatesOpen, setForceUpdatesOpen ] = useState( false );
 	const fileInputRef = useRef< HTMLInputElement >( null );
 
 	const isBusy = null !== activeAction;
@@ -140,7 +143,8 @@ const ToolsMain = () => {
 			action: string,
 			nonce: string,
 			actionKey: ToolsAction,
-			errorMessage: string
+			errorMessage: string,
+			data: SendCommandData = {}
 		): Promise< boolean > => {
 			if ( isBusy ) {
 				return Promise.resolve( false );
@@ -148,7 +152,10 @@ const ToolsMain = () => {
 
 			setActiveAction( actionKey );
 
-			return sendCommand< ToolsMessagePayload >( action, { nonce } )
+			return sendCommand< ToolsMessagePayload >( action, {
+				nonce,
+				...data,
+			} )
 				.then( ( response ) => {
 					const message =
 						response.data.data?.message ||
@@ -189,12 +196,37 @@ const ToolsMain = () => {
 		setHideTarget( null );
 	}, [ isHiding ] );
 
-	const handleForceUpdates = () => {
+	/**
+	 * Open the force-updates confirmation modal.
+	 */
+	const handleOpenForceUpdates = () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setForceUpdatesOpen( true );
+	};
+
+	/**
+	 * Close the force-updates confirmation modal.
+	 */
+	const handleCloseForceUpdates = useCallback( () => {
+		setForceUpdatesOpen( false );
+	}, [] );
+
+	/**
+	 * Run force updates after confirmation.
+	 *
+	 * @param skipDelay Whether this run should ignore the update delay.
+	 */
+	const handleConfirmForceUpdates = ( skipDelay: boolean ) => {
+		setForceUpdatesOpen( false );
 		runToolAction(
 			'updatebee_force_updates',
 			updatebeeTools.forceUpdatesNonce,
 			'forceUpdates',
-			__( 'Force updates could not be completed.', 'updatebee' )
+			__( 'Force updates could not be completed.', 'updatebee' ),
+			skipDelay ? { skip_delay: true } : {}
 		);
 	};
 
@@ -470,7 +502,7 @@ const ToolsMain = () => {
 									'updatebee'
 								) }
 								disabled={ isBusy }
-								onClick={ handleForceUpdates }
+								onClick={ handleOpenForceUpdates }
 							>
 								{ __( 'Force Updates', 'updatebee' ) }
 							</Button>
@@ -687,6 +719,12 @@ const ToolsMain = () => {
 			<ToolsFooter
 				snackbar={ snackbar }
 				onSnackbarClose={ handleSnackbarClose }
+			/>
+			<ForceUpdatesModal
+				isOpen={ forceUpdatesOpen }
+				delayEnabled={ updatebeeTools.delayEnabled }
+				onClose={ handleCloseForceUpdates }
+				onConfirm={ handleConfirmForceUpdates }
 			/>
 			<ToolsMigrateModal
 				isOpen={ null !== migrateTarget }

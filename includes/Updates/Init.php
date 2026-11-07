@@ -165,8 +165,14 @@ class Init {
 	 *
 	 * Shared by the tools screen and the updatebee/run-auto-updates ability.
 	 * This can change the site by updating core, plugins, themes, and translations.
+	 *
+	 * @param bool $skip_delay Whether to ignore the plugin and theme update delay.
 	 */
-	public static function run_auto_updates(): void {
+	public static function run_auto_updates( bool $skip_delay = false ): void {
+		if ( $skip_delay ) {
+			Delay_Updates::skip_for_request();
+		}
+
 		if ( ! defined( 'UPDATEBEE_DOING_FORCE_UPDATES' ) ) {
 			define( 'UPDATEBEE_DOING_FORCE_UPDATES', true );
 		}

@@ -8,6 +8,7 @@
 namespace UpdateBee\Admin;
 
 use UpdateBee\Functions;
+use UpdateBee\Updates\Delay_Updates;
 
 /**
  * Register UpdateBee commands for the wp-admin command palette.
@@ -81,6 +82,7 @@ class Command_Palette {
 			array(
 				'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
 				'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
+				'delayEnabled'        => Delay_Updates::is_enabled(),
 			)
 		);
 

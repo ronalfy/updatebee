@@ -39,6 +39,13 @@ class Delay_Updates {
 	private static $instance = null;
 
 	/**
+	 * Skip plugin and theme delays for the current request.
+	 *
+	 * @var bool
+	 */
+	private static $skip_delay = false;
+
+	/**
 	 * Return a class instance.
 	 *
 	 * @return Delay_Updates
@@ -89,6 +96,22 @@ class Delay_Updates {
 	}
 
 	/**
+	 * Whether the site-wide update delay is turned on.
+	 *
+	 * @return bool True when delay_updates is greater than zero.
+	 */
+	public static function is_enabled(): bool {
+		return 0 < absint( Options::get_options( 'delay_updates' ) );
+	}
+
+	/**
+	 * Ignore plugin and theme delays for the rest of this request.
+	 */
+	public static function skip_for_request(): void {
+		self::$skip_delay = true;
+	}
+
+	/**
 	 * Configured delay in whole days.
 	 *
 	 * @return int Days to wait before auto-updating. Zero means no delay.
@@ -121,6 +144,10 @@ class Delay_Updates {
 	 * @return bool False while delayed, otherwise the incoming decision.
 	 */
 	public function auto_update_plugin( $update, $item ) {
+		if ( self::$skip_delay ) {
+			return $update;
+		}
+
 		if ( ! $update || ! is_object( $item ) || ! isset( $item->plugin ) ) {
 			return $update;
 		}
@@ -165,6 +192,10 @@ class Delay_Updates {
 	 * @return bool False while delayed, otherwise the incoming decision.
 	 */
 	public function auto_update_theme( $update, $item ) {
+		if ( self::$skip_delay ) {
+			return $update;
+		}
+
 		if ( ! $update || ! is_object( $item ) || ! isset( $item->theme ) ) {
 			return $update;
 		}

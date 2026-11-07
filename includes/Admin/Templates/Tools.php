@@ -11,6 +11,7 @@ use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Admin\Settings_Transfer;
 use UpdateBee\Functions;
+use UpdateBee\Updates\Delay_Updates;
 
 /**
  * Output the tools tab and content.
@@ -100,6 +101,7 @@ class Tools {
 		return array(
 			'pluginName'          => Functions::get_plugin_name(),
 			'forceUpdatesNonce'   => wp_create_nonce( 'updatebee-force-updates' ),
+			'delayEnabled'        => Delay_Updates::is_enabled(),
 			'triggerCronNonce'    => wp_create_nonce( 'updatebee-trigger-update-cron' ),
 			'refreshUpdatesNonce' => wp_create_nonce( 'updatebee-refresh-updates' ),
 			'eumDetected'         => EasyUpdatesManager::should_show_importer(),
