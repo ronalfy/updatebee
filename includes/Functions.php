@@ -380,7 +380,7 @@ class Functions {
 	}
 
 	/**
-	 * Get auto-update stats for plugins, themes, or translations.
+	 * Get auto-update stats for plugins or themes.
 	 *
 	 * @param string $type Type of asset to retrieve stats for.
 	 *
@@ -413,17 +413,6 @@ class Functions {
 					}
 				}
 				$blocked = count( Options::get_options( 'blocked_themes' ) );
-				break;
-			case 'translations':
-				$translations = self::get_all_translations( true );
-				foreach ( $translations as $slug => $translation_data ) {
-					if ( self::auto_updates_enabled( $slug, 'translation' ) ) {
-						++$enabled;
-					} else {
-						++$disabled;
-					}
-				}
-				$blocked = count( Options::get_options( 'blocked_translations' ) );
 				break;
 		}
 		return array(
@@ -460,143 +449,6 @@ class Functions {
 			return $auto_updated_plugins;
 		}
 		return $auto_updated_plugins_disabled;
-	}
-
-	/**
-	 * Retrieve all the translations for the site.
-	 *
-	 * @param bool $force Retrieve without caching.
-	 *
-	 * Dev note by Ronald Huereca <ronald@mediaron.com>: This method is unused, but is left in for demonstration purposes
-	 * on how to retrieve per asset the translations. It is not advisable to limit
-	 * translations to a per-plugin/per-theme/core as if a language pack is removed
-	 * the blocked|disabled status is still stored and it will
-	 * be impossible to get the translations back without having to reset all the
-	 * translation data. An alternate approach was taken instead to get all the
-	 * translations WordPress uses and then allowing the disabling/blocking of those.
-	 * The overall conclusion is that translations for individual plugins/themes/core is infeasible.
-	 */
-	public static function get_all_translations( $force = false ) {
-		// Get translated items formatted array.
-		$translations_flat = wp_cache_get( 'uau_translations' );
-
-		// Retrieve fresh items if cache is expired or force is true.
-		if ( ! $translations_flat || $force ) {
-
-			$translations_flat = array();
-
-			// Retrieve all the translations.
-			$core_translations   = wp_get_installed_translations( 'core' );
-			$plugin_translations = wp_get_installed_translations( 'plugins' );
-			$theme_translations  = wp_get_installed_translations( 'themes' );
-
-			/**
-			 * Loop through the core translations.
-			 * If translations exist, loop through those and get translation data.
-			 * Create slug based on group and locale.
-			 * Store merged data in flat array.
-			 * Rince/repeat for themes and plugins.
-			 */
-			foreach ( $core_translations as $group => $translations ) {
-				if ( is_array( $translations ) && ! empty( $translations ) ) {
-					foreach ( $translations as $locale => $translation_data ) {
-
-						$translation_slug                       = sanitize_title( $group . '-' . $locale ); // admin-da_DK.
-						$translations_flat[ $translation_slug ] = array_merge(
-							$translation_data,
-							array(
-								'locale' => $locale,
-								'group'  => $group,
-								'type'   => 'core',
-							)
-						);
-					}
-				}
-			}
-			foreach ( $plugin_translations as $group => $translations ) {
-				if ( is_array( $translations ) && ! empty( $translations ) ) {
-					foreach ( $translations as $locale => $translation_data ) {
-						$translation_slug = sanitize_title( $group . '-' . $locale ); // admin-da_DK.
-
-						$plugin_updates = get_site_transient( 'update_plugins' );
-						$plugins        = self::get_installed_plugin_files();
-						$plugin_data    = array();
-						if ( isset( $plugin_updates->response ) ) {
-							foreach ( $plugin_updates->response as $plugin_path => $update_info ) {
-								$path = dirname( $plugin_path ); // Get the plugin slug.
-								if ( $group === $path ) {
-									$plugin_data = $update_info;
-									break;
-								}
-							}
-						}
-						if ( isset( $plugin_updates->no_update ) ) {
-							foreach ( $plugin_updates->no_update as $plugin_path => $update_info ) {
-								$path = dirname( $plugin_path ); // Get the plugin slug.
-								if ( $group === $path ) {
-									$plugin_data = $update_info;
-									break;
-								}
-							}
-						}
-
-						$translations_flat[ $translation_slug ] = array_merge(
-							$translation_data,
-							array(
-								'locale' => $locale,
-								'group'  => $group,
-								'type'   => 'plugin',
-								'data'   => $plugin_data,
-							)
-						);
-					}
-				}
-			}
-			foreach ( $theme_translations as $group => $translations ) {
-				if ( is_array( $translations ) && ! empty( $translations ) ) {
-					foreach ( $translations as $locale => $translation_data ) {
-						$translation_slug = sanitize_title( $group . '-' . $locale ); // admin-da_DK.
-
-						$theme                                  = wp_get_theme( $group );
-						$translations_flat[ $translation_slug ] = array_merge(
-							$translation_data,
-							array(
-								'locale'     => $locale,
-								'group'      => $group,
-								'type'       => 'theme',
-								'screenshot' => $theme->get_screenshot(),
-							)
-						);
-					}
-				}
-			}
-			// Phew, that was expensive. Let's cache.
-			wp_cache_set( 'uau_translations', $translations_flat );
-		}
-
-		// Structure:
-		//
-		// [admin-da_dk] => Array
-		// (
-		// [POT-Creation-Date] =>
-		// [PO-Revision-Date] => 2021-05-05 10:02:38+0000
-		// [Project-Id-Version] => WordPress - 5.7.x - Development - Administration
-		// [X-Generator] => GlotPress/3.0.0-alpha.2
-		// [locale] => da_DK
-		// [group] => admin
-		// [type] => core
-		// )
-		// [admin-es_es] => Array
-		// (
-		// [POT-Creation-Date] =>
-		// [PO-Revision-Date] => 2021-03-05 12:23:26+0000
-		// [Project-Id-Version] => WordPress - 5.7.x - Development - Administration
-		// [X-Generator] => GlotPress/3.0.0-alpha.2
-		// [locale] => es_ES
-		// [group] => admin
-		// [type] => core
-		// ).
-		return $translations_flat;
 	}
 
 	/**

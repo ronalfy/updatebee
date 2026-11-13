@@ -102,8 +102,8 @@ class BrandingTest extends TestCase {
 				'Description' => 'Take complete control over your automatic updates.',
 				'Author'      => 'MediaRon LLC',
 				'AuthorName'  => 'MediaRon LLC',
-				'PluginURI'   => 'https://mediaron.com/updatebee/',
-				'AuthorURI'   => 'https://mediaron.com',
+				'PluginURI'   => 'https://updatebee.com',
+				'AuthorURI'   => 'https://updatebee.com',
 			),
 		);
 
@@ -112,7 +112,7 @@ class BrandingTest extends TestCase {
 
 		$this->assertSame( 'UpdateBee', $filtered['updatebee/updatebee.php']['Name'] );
 		$this->assertSame( 'MediaRon LLC', $filtered['updatebee/updatebee.php']['Author'] );
-		$this->assertSame( 'https://mediaron.com/updatebee/', $filtered['updatebee/updatebee.php']['PluginURI'] );
+		$this->assertSame( 'https://updatebee.com', $filtered['updatebee/updatebee.php']['PluginURI'] );
 	}
 
 	/**
@@ -136,8 +136,8 @@ class BrandingTest extends TestCase {
 				'Description' => 'Take complete control over your automatic updates.',
 				'Author'      => 'MediaRon LLC',
 				'AuthorName'  => 'MediaRon LLC',
-				'PluginURI'   => 'https://mediaron.com/updatebee/',
-				'AuthorURI'   => 'https://mediaron.com',
+				'PluginURI'   => 'https://updatebee.com',
+				'AuthorURI'   => 'https://updatebee.com',
 			),
 			'akismet/akismet.php'     => array(
 				'Name' => 'Akismet',
@@ -214,8 +214,8 @@ class BrandingTest extends TestCase {
 			array(
 				'Name'        => 'UpdateBee',
 				'Description' => 'Take complete control over your automatic updates.',
-				'Author'      => '<a href="https://mediaron.com">MediaRon LLC</a>',
-				'PluginURI'   => 'https://mediaron.com/updatebee/',
+				'Author'      => '<a href="https://updatebee.com">MediaRon LLC</a>',
+				'PluginURI'   => 'https://updatebee.com',
 			)
 		);
 		MonkeyFunctions\when( 'wp_strip_all_tags' )->alias(
@@ -229,7 +229,7 @@ class BrandingTest extends TestCase {
 		$this->assertSame( 'UpdateBee', $defaults['name'] );
 		$this->assertSame( 'Take complete control over your automatic updates.', $defaults['description'] );
 		$this->assertSame( 'MediaRon LLC', $defaults['author'] );
-		$this->assertSame( 'https://mediaron.com/updatebee/', $defaults['url'] );
+		$this->assertSame( 'https://updatebee.com', $defaults['url'] );
 		$this->assertArrayNotHasKey( 'logo_url', $defaults );
 	}
 }

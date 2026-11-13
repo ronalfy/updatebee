@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:       UpdateBee
- * Plugin URI:        https://mediaron.com/updatebee/
+ * Plugin URI:        https://updatebee.com
  * Description:       Take complete control over your automatic updates.
  * Version:           1.0.0
  * Requires at least: 7.0
  * Requires PHP:      8.2
  * Author:            MediaRon LLC
- * Author URI:        https://mediaron.com
+ * Author URI:        https://updatebee.com
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       updatebee

@@ -2,6 +2,9 @@
 
 Take complete control over your automatic WordPress updates.
 
+- Website: https://updatebee.com
+- Source: https://github.com/ronalfy/updatebee/
+
 ## Requirements
 
 - PHP 8.0+

@@ -8,7 +8,7 @@
 namespace UpdateBee\Cron;
 
 /**
- * Cron schedule utilities (forked from Easy Updates Manager / UAU patterns).
+ * Cron schedule utilities (forked from Easy Updates Manager).
  */
 class Schedules {
 
