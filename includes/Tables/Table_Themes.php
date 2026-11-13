@@ -47,7 +47,7 @@ class Table_Themes extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_name = 'ub_themes';
+	protected static $table_name = 'updatebee_themes';
 
 	/**
 	 * Table Version.

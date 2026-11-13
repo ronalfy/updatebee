@@ -47,7 +47,7 @@ class Table_Plugins extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_name = 'ub_plugins';
+	protected static $table_name = 'updatebee_plugins';
 
 	/**
 	 * Table Version.

@@ -138,9 +138,9 @@ abstract class Tables {
 	 * @return bool|\WP_Error True if the table was created, false otherwise.
 	 */
 	protected static function create_table() {
-		$table_name     = static::get_table_name( false );
-		$version_option = $table_name . '_version';
-		$schema_option  = $table_name . '_schema';
+		$slug           = static::get_storage_slug();
+		$version_option = 'updatebee_' . $slug . '_version';
+		$schema_option  = 'updatebee_' . $slug . '_schema';
 
 		$schema      = static::get_table_schema();
 		$schema_hash = md5( $schema );
@@ -191,19 +191,37 @@ abstract class Tables {
 	}
 
 	/**
+	 * Slug that follows the updatebee_ prefix on this table.
+	 *
+	 * @return string Storage slug such as plugins, themes, or logs.
+	 */
+	protected static function get_storage_slug() {
+		$prefix = 'updatebee_';
+		$name   = (string) static::$table_name;
+
+		if ( str_starts_with( $name, $prefix ) ) {
+			return substr( $name, strlen( $prefix ) );
+		}
+
+		return $name;
+	}
+
+	/**
 	 * Check if table needs update.
 	 *
 	 * @return boolean
 	 */
 	public static function needs_update() {
-		$table_name      = static::get_table_name( false );
-		$current_version = get_option( $table_name . '_version', 0 );
+		$slug            = static::get_storage_slug();
+		$version_option  = 'updatebee_' . $slug . '_version';
+		$schema_option   = 'updatebee_' . $slug . '_schema';
+		$current_version = get_option( $version_option, 0 );
 
 		if ( version_compare( (string) $current_version, (string) static::$table_version, '<' ) ) {
 			return true;
 		}
 
-		return get_option( $table_name . '_schema', '' ) !== md5( static::get_table_schema() );
+		return get_option( $schema_option, '' ) !== md5( static::get_table_schema() );
 	}
 
 	/**
@@ -231,8 +249,9 @@ abstract class Tables {
 		$result = $wpdb->query( "DROP TABLE IF EXISTS `{$table_name}`" );
 
 		// Remove the version and schema fingerprint options.
-		delete_option( static::get_table_name( false ) . '_version' );
-		delete_option( static::get_table_name( false ) . '_schema' );
+		$slug = static::get_storage_slug();
+		delete_option( 'updatebee_' . $slug . '_version' );
+		delete_option( 'updatebee_' . $slug . '_schema' );
 		return $result;
 	}
 
