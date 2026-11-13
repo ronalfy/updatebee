@@ -84,24 +84,6 @@ class Updates_Cron {
 	}
 
 	/**
-	 * Legacy UAU option key for migration.
-	 *
-	 * @param string $context plugins|themes|core.
-	 */
-	private static function get_uau_option_key( string $context ): string {
-		switch ( $context ) {
-			case self::CONTEXT_PLUGINS:
-				return 'uau_plugin_cron_schedule';
-			case self::CONTEXT_THEMES:
-				return 'uau_theme_cron_schedule';
-			case self::CONTEXT_CORE:
-				return 'uau_core_cron_schedule';
-			default:
-				return '';
-		}
-	}
-
-	/**
 	 * WordPress cron hook for a context.
 	 *
 	 * @param string $context plugins|themes|core.
@@ -166,7 +148,7 @@ class Updates_Cron {
 	}
 
 	/**
-	 * Retrieve saved cron options for a context (with lazy UAU migration).
+	 * Retrieve saved cron options for a context.
 	 *
 	 * @param string $context plugins|themes|core.
 	 * @return array<string, mixed>
@@ -177,16 +159,6 @@ class Updates_Cron {
 
 		if ( ! is_array( $options ) ) {
 			$options = array();
-		}
-
-		if ( empty( $options ) ) {
-			$uau_key = self::get_uau_option_key( $context );
-			$legacy  = get_site_option( $uau_key, array() );
-			if ( is_array( $legacy ) && ! empty( $legacy ) ) {
-				$options = $legacy;
-				update_site_option( $key, $options );
-				self::set_cron_events( $context );
-			}
 		}
 
 		$options  = wp_parse_args( $options, self::get_cron_defaults() );
