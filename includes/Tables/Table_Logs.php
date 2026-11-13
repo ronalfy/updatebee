@@ -47,7 +47,7 @@ class Table_Logs extends Tables {
 	 *
 	 * @var string
 	 */
-	protected static $table_name = 'ub_logs';
+	protected static $table_name = 'updatebee_logs';
 
 	/**
 	 * Table Version.
