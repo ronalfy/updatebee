@@ -75,8 +75,8 @@ class Logs {
 			return;
 		}
 
-		include ABSPATH . WPINC . '/version.php';
-		update_site_option( self::CORE_VERSION_OPTION, sanitize_text_field( $wp_version ) );
+		$version = function_exists( 'wp_get_wp_version' ) ? \wp_get_wp_version() : get_bloginfo( 'version' );
+		update_site_option( self::CORE_VERSION_OPTION, sanitize_text_field( (string) $version ) );
 	}
 
 	/**
@@ -96,7 +96,6 @@ class Logs {
 
 			switch ( $type ) {
 				case 'core':
-					include ABSPATH . WPINC . '/version.php';
 					$core = $results[0] ?? null;
 					if ( ! is_object( $core ) ) {
 						break;
@@ -105,8 +104,9 @@ class Logs {
 					$slug            = 'core';
 					$status          = 'success';
 					$update_type     = 'core';
-					$prev_version    = get_site_option( self::CORE_VERSION_OPTION );
-					$current_version = sanitize_text_field( $wp_version );
+					$stored_version  = get_site_option( self::CORE_VERSION_OPTION );
+					$prev_version    = is_string( $stored_version ) ? sanitize_text_field( $stored_version ) : '';
+					$current_version = $this->core_update_destination_version( $core, $prev_version );
 					$user_id         = 0;
 					$raw             = '';
 					$stacktrace      = '';
@@ -205,6 +205,37 @@ class Logs {
 		 * @param array<int, array<string, mixed>> $update_results Array containing update results for core|plugin|translation|theme.
 		 */
 		do_action( 'updatebee_automatic_updates_complete', self::$current_updates );
+	}
+
+	/**
+	 * Version installed after an automatic core update.
+	 *
+	 * A successful update_core() call returns the new version string. Failures
+	 * keep the version stored before the attempt. When that is missing, the
+	 * offered version is used instead.
+	 *
+	 * @param object $core         Core update result from automatic_updates_complete.
+	 * @param string $prev_version Version stored before the update.
+	 * @return string Destination version for the log row.
+	 */
+	private function core_update_destination_version( $core, string $prev_version ): string {
+		if ( isset( $core->result ) && is_string( $core->result ) && '' !== $core->result ) {
+			return sanitize_text_field( $core->result );
+		}
+
+		if ( '' !== $prev_version ) {
+			return $prev_version;
+		}
+
+		if ( isset( $core->item->version ) && is_string( $core->item->version ) && '' !== $core->item->version ) {
+			return sanitize_text_field( $core->item->version );
+		}
+
+		if ( isset( $core->item->current ) && is_string( $core->item->current ) && '' !== $core->item->current ) {
+			return sanitize_text_field( $core->item->current );
+		}
+
+		return '';
 	}
 
 	/**

@@ -919,4 +919,200 @@ class LogsTest extends TestCase {
 		$this->assertStringContainsString( "'failure'", $wpdb->query_ran );
 		$this->assertStringContainsString( "'fatal'", $wpdb->query_ran );
 	}
+
+	/**
+	 * Test the pre-update core version comes from WordPress, not version.php.
+	 */
+	public function test_pre_auto_update_stores_loaded_core_version(): void {
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
+		MonkeyFunctions\when( 'wp_get_wp_version' )->justReturn( '6.7.1' );
+
+		$stored = null;
+		MonkeyFunctions\when( 'update_site_option' )->alias(
+			static function ( $option, $value ) use ( &$stored ) {
+				$stored = array( $option, $value );
+				return true;
+			}
+		);
+
+		$logs = new Logs();
+		$logs->pre_auto_update_version_store( 'plugin', (object) array(), '' );
+		$this->assertNull( $stored );
+
+		$logs->pre_auto_update_version_store( 'core', (object) array(), '' );
+
+		$this->assertSame( array( Logs::CORE_VERSION_OPTION, '6.7.1' ), $stored );
+	}
+
+	/**
+	 * Test a successful automatic core update logs the version core returned.
+	 */
+	public function test_automatic_core_update_logs_returned_version(): void {
+		$this->stub_core_update_log();
+		MonkeyFunctions\when( 'get_site_option' )->justReturn( '6.7.0' );
+
+		$wpdb = $this->create_version_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'core' => array(
+					(object) array(
+						'name'     => 'WordPress 6.7.1',
+						'messages' => array(),
+						'result'   => '6.7.1',
+						'item'     => (object) array(
+							'version' => '6.7.1',
+							'current' => '6.7.1',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'success', $wpdb->inserted_status );
+		$this->assertSame( '6.7.0', $wpdb->from_version );
+		$this->assertSame( '6.7.1', $wpdb->to_version );
+	}
+
+	/**
+	 * Test a failed automatic core update keeps the version stored beforehand.
+	 */
+	public function test_automatic_core_update_failure_logs_stored_version(): void {
+		$this->stub_core_update_log();
+		MonkeyFunctions\when( 'get_site_option' )->justReturn( '6.7.0' );
+
+		$wpdb = $this->create_version_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'core' => array(
+					(object) array(
+						'name'     => 'WordPress 6.7.1',
+						'messages' => array(),
+						'result'   => new \WP_Error( 'copy_failed', 'Could not copy files.' ),
+						'item'     => (object) array(
+							'version' => '6.7.1',
+							'current' => '6.7.1',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( 'failure', $wpdb->inserted_status );
+		$this->assertSame( '6.7.0', $wpdb->from_version );
+		$this->assertSame( '6.7.0', $wpdb->to_version );
+	}
+
+	/**
+	 * Test a failed core update with no stored version uses the offered version.
+	 */
+	public function test_automatic_core_update_failure_falls_back_to_offered_version(): void {
+		$this->stub_core_update_log();
+		MonkeyFunctions\when( 'get_site_option' )->justReturn( false );
+
+		$wpdb = $this->create_version_wpdb_mock();
+		$this->set_mock_wpdb( $wpdb );
+
+		$logs = new Logs();
+		$logs->automatic_updates(
+			array(
+				'core' => array(
+					(object) array(
+						'name'     => 'WordPress 6.8.0',
+						'messages' => array(),
+						'result'   => new \WP_Error( 'copy_failed', 'Could not copy files.' ),
+						'item'     => (object) array(
+							'version' => '6.8.0',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( '', $wpdb->from_version );
+		$this->assertSame( '6.8.0', $wpdb->to_version );
+
+		$logs->automatic_updates(
+			array(
+				'core' => array(
+					(object) array(
+						'name'     => 'WordPress 6.8.1',
+						'messages' => array(),
+						'result'   => new \WP_Error( 'copy_failed', 'Could not copy files.' ),
+						'item'     => (object) array(
+							'current' => '6.8.1',
+						),
+					),
+				),
+			)
+		);
+
+		$this->assertSame( '6.8.1', $wpdb->to_version );
+	}
+
+	/**
+	 * Stub helpers used while logging an automatic core update.
+	 */
+	private function stub_core_update_log(): void {
+		$this->stub_log_helpers();
+		Fatal_Detection::reset();
+		MonkeyFunctions\when( 'delete_site_option' )->justReturn( true );
+	}
+
+	/**
+	 * Build a wpdb mock that records inserted versions.
+	 *
+	 * @return object
+	 */
+	private function create_version_wpdb_mock(): object {
+		return new class() {
+			/**
+			 * Table prefix.
+			 *
+			 * @var string
+			 */
+			public $base_prefix = 'wp_';
+
+			/**
+			 * Last inserted update status.
+			 *
+			 * @var string|null
+			 */
+			public $inserted_status = null;
+
+			/**
+			 * Last inserted from version.
+			 *
+			 * @var string|null
+			 */
+			public $from_version = null;
+
+			/**
+			 * Last inserted to version.
+			 *
+			 * @var string|null
+			 */
+			public $to_version = null;
+
+			/**
+			 * Mock wpdb insert.
+			 *
+			 * @param string               $table Table name.
+			 * @param array<string, mixed> $data  Row data.
+			 * @return bool
+			 */
+			public function insert( $table, $data ) {
+				unset( $table );
+				$this->inserted_status = $data['update_status'] ?? null;
+				$this->from_version    = $data['from_version'] ?? null;
+				$this->to_version      = $data['to_version'] ?? null;
+				return true;
+			}
+		};
+	}
 }

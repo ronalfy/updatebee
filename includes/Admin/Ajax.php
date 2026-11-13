@@ -305,10 +305,6 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-retrieve-plugins', 'nonce' );
 
-		if ( ! function_exists( 'get_plugins' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
 		$all_plugins = Functions::get_installed_plugin_files();
 
 		$active_plugin_slugs = Functions::get_active_plugins();
@@ -2046,8 +2042,9 @@ class Ajax {
 	private function run_plugin_upgrade( string $file, ?array $rollback = null ): array {
 		return Hide_Blocked_Updates::unfiltered(
 			static function () use ( $file, $rollback ) {
-				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+				if ( ! class_exists( '\Plugin_Upgrader' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+				}
 				wp_update_plugins();
 
 				$upgrade = static function () use ( $file ) {
@@ -2085,8 +2082,9 @@ class Ajax {
 	private function run_theme_upgrade( string $stylesheet, ?array $rollback = null ): array {
 		return Hide_Blocked_Updates::unfiltered(
 			static function () use ( $stylesheet, $rollback ) {
-				require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-				require_once ABSPATH . 'wp-admin/includes/theme.php';
+				if ( ! class_exists( '\Theme_Upgrader' ) ) {
+					require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+				}
 				wp_update_themes();
 
 				$upgrade = static function () use ( $stylesheet ) {
