@@ -24,19 +24,19 @@ class Functions {
 	 * @return bool True if network-active on multisite, false if not.
 	 */
 	public static function is_multisite( bool $network_admin = false ): bool {
-		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
 		if ( $network_admin && ! is_network_admin() ) {
 			return false;
 		}
 
-		if ( is_multisite() && is_plugin_active_for_network( self::get_plugin_file() ) ) {
-			return true;
+		if ( ! is_multisite() ) {
+			return false;
 		}
 
-		return false;
+		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		return is_plugin_active_for_network( self::get_plugin_file() );
 	}
 
 	/**

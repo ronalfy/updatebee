@@ -438,13 +438,13 @@ class Available_Updates {
 			return null;
 		}
 
-		if ( ! function_exists( 'get_plugin_data' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
-		}
-
 		$plugin_path = WP_PLUGIN_DIR . '/' . $plugin_file;
 		if ( ! file_exists( $plugin_path ) ) {
 			return null;
+		}
+
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		}
 
 		$plugin_meta = get_plugin_data( $plugin_path, false, true );
