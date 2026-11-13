@@ -18,7 +18,7 @@ The plugin records each update attempt, including the previous version, the new 
 
 UpdateBee is a multisite-capable plugin. Settings are managed from the network admin or under the Tools menu on single-site.
 
-Source code can be <a href="https://github.com/ronalfy/updatebee">found on GitHub</a>.
+Visit <a href="https://updatebee.com">https://updatebee.com</a> for more information. Source code can be <a href="https://github.com/ronalfy/updatebee/">found on GitHub</a>.
 
 Credits: UpdateBee is a fork of <a href="https://wordpress.org/plugins/stops-core-theme-and-plugin-updates/">Easy Updates Manager</a>.
 
