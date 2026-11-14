@@ -1,5 +1,5 @@
 /**
- * Advanced settings (delayed automatic updates and reset options).
+ * Advanced settings (delayed automatic updates, reset, and deactivate).
  */
 import { TextControl, Notice, ToggleControl } from '@wordpress/components';
 import { useCallback, useState } from '@wordpress/element';
@@ -11,12 +11,14 @@ import AdvancedFooter, {
 	type SnackbarState,
 	type SnackbarType,
 } from './AdvancedFooter';
+import AdvancedDeactivate from './AdvancedDeactivate';
 import AdvancedReset, { type ResetItem } from './AdvancedReset';
 import BrandingDrawer from './BrandingDrawer';
 import UpgradeNoticeKeywordsDrawer from './UpgradeNoticeKeywordsDrawer';
 
 type AdvancedMessagePayload = {
 	message?: string;
+	redirect?: string;
 	delay_updates?: number;
 	block_untested_updates?: boolean;
 	upgrade_notice_keywords?: string;
@@ -56,6 +58,7 @@ const AdvancedMain = () => {
 	const [ isSavingBranding, setIsSavingBranding ] = useState( false );
 	const [ isSavingSlack, setIsSavingSlack ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
+	const [ isDeactivating, setIsDeactivating ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
 		isVisible: false,
 		message: '',
@@ -74,7 +77,8 @@ const AdvancedMain = () => {
 		isSavingAdminBar ||
 		isSavingBranding ||
 		isSavingSlack ||
-		isResetting;
+		isResetting ||
+		isDeactivating;
 
 	const handleSnackbarClose = useCallback( () => {
 		setSnackbar( ( current ) => ( {
@@ -272,6 +276,60 @@ const AdvancedMain = () => {
 		[ isBusy, showSnackbar ]
 	);
 
+	/**
+	 * Deactivate the plugin, clearing its data when requested.
+	 *
+	 * @param clearData Whether to delete plugin data first.
+	 */
+	const handleDeactivate = useCallback(
+		( clearData: boolean ) => {
+			if ( isBusy ) {
+				return Promise.resolve( false );
+			}
+
+			setIsDeactivating( true );
+
+			return sendCommand< AdvancedMessagePayload >(
+				'updatebee_deactivate_plugin',
+				{
+					nonce: updatebeeAdvanced.deactivateNonce,
+					clear_data: clearData ? '1' : '0',
+				}
+			)
+				.then( ( response ) => {
+					const redirect = response.data.data?.redirect;
+					if ( 'string' === typeof redirect && '' !== redirect ) {
+						window.location.assign( redirect );
+						return true;
+					}
+
+					showSnackbar(
+						__(
+							'The plugin could not be deactivated.',
+							'updatebee'
+						),
+						'error'
+					);
+					setIsDeactivating( false );
+					return false;
+				} )
+				.catch( ( error: unknown ) => {
+					const message = error instanceof Error ? error.message : '';
+					showSnackbar(
+						message ||
+							__(
+								'The plugin could not be deactivated.',
+								'updatebee'
+							),
+						'error'
+					);
+					setIsDeactivating( false );
+					return false;
+				} );
+		},
+		[ isBusy, showSnackbar ]
+	);
+
 	return (
 		<div className="updatebee-advanced-main">
 			<div className="updatebee-advanced-bento">
@@ -432,7 +490,8 @@ const AdvancedMain = () => {
 						isSavingSlack ||
 						isSavingAdminBar ||
 						isSavingBranding ||
-						isResetting
+						isResetting ||
+						isDeactivating
 					}
 					onSavingChange={ setIsSavingKeywords }
 					onSnackbar={ showSnackbar }
@@ -445,7 +504,8 @@ const AdvancedMain = () => {
 						isSavingKeywords ||
 						isSavingSlack ||
 						isSavingBranding ||
-						isResetting
+						isResetting ||
+						isDeactivating
 					}
 					onSavingChange={ setIsSavingAdminBar }
 					onSnackbar={ showSnackbar }
@@ -458,7 +518,8 @@ const AdvancedMain = () => {
 						isSavingKeywords ||
 						isSavingAdminBar ||
 						isSavingSlack ||
-						isResetting
+						isResetting ||
+						isDeactivating
 					}
 					onSavingChange={ setIsSavingBranding }
 					onSnackbar={ showSnackbar }
@@ -468,6 +529,12 @@ const AdvancedMain = () => {
 					disabled={ isBusy }
 					isResetting={ isResetting }
 					onReset={ handleReset }
+				/>
+
+				<AdvancedDeactivate
+					disabled={ isBusy }
+					isDeactivating={ isDeactivating }
+					onDeactivate={ handleDeactivate }
 				/>
 			</div>
 

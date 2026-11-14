@@ -6,6 +6,7 @@ parameters:
 	treatPhpDocTypesAsCertain: false
 	paths:
 		- updatebee.php
+		- uninstall.php
 		- includes
 	bootstrapFiles:
 		- tests/php/phpstan-bootstrap.php

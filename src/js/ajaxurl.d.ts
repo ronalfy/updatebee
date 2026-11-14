@@ -123,6 +123,8 @@ declare const updatebeeCron: UpdateBeeCron;
 interface UpdateBeeAdvanced {
 	saveNonce: string;
 	resetNonce: string;
+	canDeactivate: boolean;
+	deactivateNonce: string;
 	delayUpdates: number;
 	blockUntestedUpdates: boolean;
 	upgradeNoticeKeywords: string;

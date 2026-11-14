@@ -17,6 +17,7 @@ use UpdateBee\Functions;
 use UpdateBee\Logs;
 use UpdateBee\Options;
 use UpdateBee\Slack\Slack_Webhook;
+use UpdateBee\Uninstall;
 use UpdateBee\Updates\Fatal_Detection;
 use UpdateBee\Updates\Version_Controlled;
 use UpdateBee\Updates\Hide_Blocked_Updates;
@@ -102,6 +103,7 @@ class Ajax {
 		// Advanced Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_advanced_settings', array( $this, 'save_advanced_settings' ) );
 		add_action( 'wp_ajax_updatebee_reset_options', array( $this, 'reset_options' ) );
+		add_action( 'wp_ajax_updatebee_deactivate_plugin', array( $this, 'deactivate_plugin' ) );
 
 		// Branding Ajax actions.
 		add_action( 'wp_ajax_updatebee_save_branding_settings', array( $this, 'save_branding_settings' ) );
@@ -2356,6 +2358,39 @@ class Ajax {
 		wp_send_json_success(
 			array(
 				'message' => $message,
+			)
+		);
+	}
+
+	/**
+	 * Deactivate the plugin, optionally after deleting its data.
+	 *
+	 * The plugin files stay installed. The user deletes those from the Plugins screen.
+	 */
+	public function deactivate_plugin(): void {
+		if ( ! Uninstall::user_can_deactivate() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You cannot deactivate this plugin.', 'updatebee' ),
+				)
+			);
+		}
+
+		check_ajax_referer( 'updatebee-deactivate-plugin', 'nonce' );
+
+		$clear_data = isset( $_POST['clear_data'] ) && '1' === sanitize_text_field( wp_unslash( $_POST['clear_data'] ) );
+		// Resolve while the plugin is still network-active. Deactivation clears that flag.
+		$redirect = Uninstall::plugins_screen_url();
+
+		if ( $clear_data ) {
+			Uninstall::clear_data();
+		}
+
+		Uninstall::deactivate();
+
+		wp_send_json_success(
+			array(
+				'redirect' => esc_url_raw( $redirect ),
 			)
 		);
 	}
