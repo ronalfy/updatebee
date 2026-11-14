@@ -44,7 +44,7 @@ class Hide_Blocked_Updates {
 	/**
 	 * Run a callback without hiding blocked updates.
 	 *
-	 * UpdateBee's own screens and abilities use this so they can still report that a blocked offer exists.
+	 * UpdateBee's own screens use this so they can still report that a blocked offer exists.
 	 *
 	 * @param callable $callback Callback that reads update transients.
 	 * @return mixed Callback result.
