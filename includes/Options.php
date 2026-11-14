@@ -24,11 +24,18 @@ class Options {
 	private static $options = array();
 
 	/**
+	 * Site option key for the main settings array.
+	 *
+	 * @var string
+	 */
+	public const OPTIONS_KEY = 'updatebee_options';
+
+	/**
 	 * Options key.
 	 *
 	 * @var string
 	 */
-	private static $options_key = 'updatebee_options';
+	private static $options_key = self::OPTIONS_KEY;
 
 	/**
 	 * Retrieve default options for the plugin.

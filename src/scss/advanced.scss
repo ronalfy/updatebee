@@ -26,6 +26,7 @@
 }
 
 @media (max-width: 782px) {
+
 	.updatebee-advanced-bento {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -128,11 +129,20 @@
 	gap: 8px;
 }
 
-.updatebee-advanced-reset-drawer-portal {
+.updatebee-advanced-reset-drawer-portal,
+.updatebee-advanced-deactivate-drawer-portal {
 	--wp-ui-drawer-z-index: 100000;
 }
 
+.updatebee-advanced-deactivate-footer {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
 .updatebee-advanced-footer {
+
 	.updatebee-snackbar {
 		position: fixed;
 		bottom: 24px;

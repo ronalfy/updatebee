@@ -11,6 +11,7 @@ use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Branding;
 use UpdateBee\Functions;
 use UpdateBee\Options;
+use UpdateBee\Uninstall;
 use UpdateBee\Updates\Upgrade_Notice_Keywords;
 
 /**
@@ -89,6 +90,8 @@ class Advanced {
 				'pluginName'                   => Functions::get_plugin_name(),
 				'saveNonce'                    => wp_create_nonce( 'updatebee-save-advanced-settings' ),
 				'resetNonce'                   => wp_create_nonce( 'updatebee-reset-options' ),
+				'canDeactivate'                => Uninstall::user_can_deactivate(),
+				'deactivateNonce'              => wp_create_nonce( 'updatebee-deactivate-plugin' ),
 				'delayUpdates'                 => absint( Options::get_options( 'delay_updates' ) ),
 				'blockUntestedUpdates'         => 'on' === Options::get_options( 'block_untested_updates' ),
 				'upgradeNoticeKeywords'        => (string) Options::get_options( 'upgrade_notice_keywords' ),
