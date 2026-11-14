@@ -7,7 +7,7 @@
  * Requires at least: 7.0
  * Requires PHP:      8.2
  * Author:            MediaRon LLC
- * Author URI:        https://updatebee.com
+ * Author URI:        https://mediaron.com
  * License:           GPL v3 or later
  * License URI:       https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:       updatebee
