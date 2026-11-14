@@ -1,0 +1,15 @@
+# Level 0 still enables built-in rules (requireOnce.fileNotFound on this tree).
+# customRulesetUsed loads only the service below.
+parameters:
+	customRulesetUsed: true
+	paths:
+		- updatebee.php
+		- includes
+	excludePaths:
+		- phpstan
+
+services:
+	-
+		class: UpdateBee\PHPStan\Rules\RequireAbspathGuardRule
+		tags:
+			- phpstan.rules.rule
