@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Emails;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Functions;
 use UpdateBee\Updates\Hide_Blocked_Updates;
 use UpdateBee\Updates\Skip_Version;

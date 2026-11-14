@@ -9,11 +9,12 @@
  * vendor/ and Composer
  * - `grunt` and `grunt release` run `composer install --no-dev`, add ABSPATH guards, zip with autoload, then
  *   `composer install` so local require-dev tools are restored.
+ * - Every zip task runs `php bin/add-asset-guards.php` first so build/*.asset.php exits on direct access.
  *
  * Tasks
  * - `grunt` or `grunt release` — production zip (Composer no-dev cycle + vendor autoload in archive).
- * - `grunt compress` — development zip only (shared runtime files, no vendor/autoload).
- * - `grunt compress-only` — composer_guard then development zip (no Composer install cycle).
+ * - `grunt compress` — development zip only (shared runtime files, no vendor/autoload). Asset PHP guards run first.
+ * - `grunt compress-only` — composer_guard, asset guards, then development zip (no Composer install cycle).
  */
 'use strict';
 
@@ -100,6 +101,7 @@ module.exports = function ( grunt ) {
 	const productionZip = [
 		'composer-install-no-dev',
 		'composer_guard',
+		'assets_guard',
 		'zip:production',
 		'composer-install',
 	];
@@ -129,15 +131,44 @@ module.exports = function ( grunt ) {
 		}
 	);
 
+	grunt.registerTask(
+		'assets_guard',
+		'Add ABSPATH guards to generated build/*.asset.php files.',
+		function () {
+			const done = this.async();
+			const { exec } = require( 'child_process' );
+			exec(
+				'php bin/add-asset-guards.php',
+				{ cwd: path.resolve( __dirname ) },
+				function ( error, stdout, stderr ) {
+					if ( error ) {
+						grunt.log.error( error );
+						if ( stderr ) {
+							grunt.log.error( stderr );
+						}
+						done( false );
+						return;
+					}
+					grunt.log.write( stdout );
+					done();
+				}
+			);
+		}
+	);
+
 	grunt.registerTask( 'default', productionZip );
 	grunt.registerTask( 'release', productionZip );
-	grunt.registerTask( 'compress-only', [ 'composer_guard', 'zip:dev' ] );
+	grunt.registerTask( 'compress-only', [
+		'composer_guard',
+		'assets_guard',
+		'zip:dev',
+	] );
 
 	grunt.loadNpmTasks( 'grunt-contrib-compress' );
 	grunt.renameTask( 'compress', 'zip' );
 	grunt.registerTask(
 		'compress',
 		'Zip shared runtime files without vendor/autoload.',
-		[ 'zip:dev' ]
+		[ 'assets_guard', 'zip:dev' ]
 	);
 };

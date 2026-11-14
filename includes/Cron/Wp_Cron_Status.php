@@ -9,6 +9,11 @@
 
 namespace UpdateBee\Cron;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Read-only status for the Schedules screen.
  */

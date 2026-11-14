@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Updates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Emails\Available_Updates;
 use UpdateBee\Functions;
 

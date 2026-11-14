@@ -7,6 +7,11 @@
 
 namespace UpdateBee;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Tables\Table_Logs;
 use UpdateBee\Updates\Version_Controlled;
 

@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Emails;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Functions;
 use UpdateBee\Slack\Slack_Available_Updates;
 

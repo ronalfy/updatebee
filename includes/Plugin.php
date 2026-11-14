@@ -7,6 +7,11 @@
 
 namespace UpdateBee;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Admin\Ajax;
 use UpdateBee\Admin\Command_Palette;

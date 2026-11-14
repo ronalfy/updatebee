@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Slack;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Group update rows by type for Slack sections.
  */

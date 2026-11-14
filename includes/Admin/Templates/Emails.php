@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin\Templates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Functions;
 use UpdateBee\Options;

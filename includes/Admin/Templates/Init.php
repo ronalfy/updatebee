@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin\Templates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Init all the classes and sub-tabs.
  */

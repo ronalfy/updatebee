@@ -1,8 +1,33 @@
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
+const { execFileSync } = require( 'child_process' );
 const path = require( 'path' );
+
+/**
+ * Re-apply ABSPATH guards after DependencyExtractionWebpackPlugin writes
+ * build/*.asset.php. Those files are emitted as `<?php return array(...);`,
+ * which wp-scripts would otherwise leave executable on a direct request.
+ */
+class AssetPhpAbspathGuardPlugin {
+	apply( compiler ) {
+		compiler.hooks.afterEmit.tap( 'AssetPhpAbspathGuardPlugin', () => {
+			execFileSync(
+				'php',
+				[ path.resolve( __dirname, 'bin/add-asset-guards.php' ) ],
+				{
+					cwd: __dirname,
+					stdio: 'inherit',
+				}
+			);
+		} );
+	}
+}
 
 module.exports = {
 	...defaultConfig,
+	plugins: [
+		...( defaultConfig.plugins || [] ),
+		new AssetPhpAbspathGuardPlugin(),
+	],
 	entry: {
 		common: path.resolve( process.cwd(), 'src/js/common.ts' ),
 		dashboard: path.resolve(

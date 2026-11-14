@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Admin\Templates\Init;
 use UpdateBee\Functions;
 

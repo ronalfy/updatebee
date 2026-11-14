@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Cron;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Cron schedule utilities (forked from Easy Updates Manager).
  */

@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin\Templates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Cron\Cron_Events;
 use UpdateBee\Cron\Wp_Cron_Status;
 use UpdateBee\Cron\Schedules;

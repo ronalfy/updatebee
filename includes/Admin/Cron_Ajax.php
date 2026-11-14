@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Cron\Cron_Events;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
