@@ -2,6 +2,11 @@
  * Upcoming plugin and theme updates.
  */
 import {
+	Tooltip,
+	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
+	__experimentalTruncate as Truncate,
+} from '@wordpress/components';
+import {
 	DataViews,
 	filterSortAndPaginate,
 	type Field,
@@ -299,7 +304,13 @@ const UpcomingUpdates = () => {
 				enableSorting: true,
 				getValue: ( { item } ) =>
 					`${ item.Name } ${ item.TypeLabel }`.trim(),
-				render: ( { item } ) => item.Name,
+				render: ( { item } ) => (
+					<Tooltip text={ item.Name }>
+						<Truncate ellipsizeMode="tail" limit={ 35 }>
+							{ item.Name }
+						</Truncate>
+					</Tooltip>
+				),
 			},
 			{
 				id: 'Version',
