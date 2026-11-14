@@ -11,7 +11,11 @@ import {
 } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { Button, Stack, useEnableWpCompatOverlaySlot } from '@wordpress/ui';
-import { Tooltip } from '@wordpress/components';
+import {
+	Tooltip,
+	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
+	__experimentalTruncate as Truncate,
+} from '@wordpress/components';
 import sendCommand from '../../../utils/SendCommand';
 import { DATAVIEWS_STORAGE_KEYS } from '../../../utils/dataviews-view-storage';
 import { ErrorFallback } from '../../components/ErrorBoundary';
@@ -213,8 +217,6 @@ type LogNameCellProps = {
 const LogNameCell = ( props: LogNameCellProps ) => {
 	const { name, slug, updateType } = props;
 
-	const displayName = name.length > 30 ? name.slice( 0, 30 ) + '…' : name;
-
 	return (
 		<span className="updatebee-log-name">
 			<svg
@@ -226,14 +228,22 @@ const LogNameCell = ( props: LogNameCellProps ) => {
 			</svg>
 			<span className="updatebee-log-name-text">
 				<Tooltip text={ name }>
-					<span className="updatebee-log-name-title">
-						{ displayName }
-					</span>
+					<Truncate
+						className="updatebee-log-name-title"
+						ellipsizeMode="tail"
+						limit={ 35 }
+					>
+						{ name }
+					</Truncate>
 				</Tooltip>
 				{ slug && (
-					<p className="description updatebee-log-name-slug">
-						{ slug }
-					</p>
+					<Tooltip text={ slug }>
+						<p className="description updatebee-log-name-slug">
+							<Truncate ellipsizeMode="tail" limit={ 35 }>
+								{ slug }
+							</Truncate>
+						</p>
+					</Tooltip>
 				) }
 			</span>
 		</span>
