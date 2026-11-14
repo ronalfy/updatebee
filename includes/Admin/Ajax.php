@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Branding;
 use UpdateBee\Cron\Clear_Logs;
 use UpdateBee\Emails\Available_Updates;

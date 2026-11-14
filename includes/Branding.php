@@ -7,6 +7,11 @@
 
 namespace UpdateBee;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Apply saved branding to plugin identity surfaces.
  */

@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Cron;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Options;
 use UpdateBee\Tables\Table_Logs;
 

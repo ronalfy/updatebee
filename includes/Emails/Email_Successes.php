@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Emails;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Automatic update success reports.
  */

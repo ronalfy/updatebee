@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Emails;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Cron\Schedules;
 use UpdateBee\Functions;
 use UpdateBee\Logs;

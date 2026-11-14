@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Hide the updates column on the appropriate screens.
  */

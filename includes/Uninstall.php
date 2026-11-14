@@ -7,6 +7,11 @@
 
 namespace UpdateBee;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Admin\Migrate\CompanionAutoUpdate;
 use UpdateBee\Admin\Migrate\EasyUpdatesManager;
 use UpdateBee\Cron\Clear_Logs;

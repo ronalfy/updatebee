@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Cron;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Filters auto_update_* when sub-daily or daily weekday rules apply.
  */

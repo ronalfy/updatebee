@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Slack;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Functions;
 
 /**

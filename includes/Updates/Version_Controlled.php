@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Updates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 /**
  * Detect Composer packages and plugin or theme checkouts.
  */

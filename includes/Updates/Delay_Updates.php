@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Updates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Functions;
 use UpdateBee\Options;
 use UpdateBee\Tables\Table_Plugins;

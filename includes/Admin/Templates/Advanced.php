@@ -7,6 +7,11 @@
 
 namespace UpdateBee\Admin\Templates;
 
+// Exit if accessed directly.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 use UpdateBee\Admin\Admin_Bar_Menu;
 use UpdateBee\Branding;
 use UpdateBee\Functions;

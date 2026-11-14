@@ -6,9 +6,10 @@
 	"license": "GPL-3.0-or-later",
 	"scripts": {
 		"composer:guard": "php bin/add-composer-guards.php",
+		"assets:guard": "php bin/add-asset-guards.php",
 		"release": "grunt release",
 		"compress": "grunt compress",
-		"build": "wp-scripts build && npm run composer:guard",
+		"build": "wp-scripts build && npm run assets:guard && npm run composer:guard",
 		"start": "wp-scripts start",
 		"lint:js": "wp-scripts lint-js src/js",
 		"lint:css": "wp-scripts lint-css src/scss",

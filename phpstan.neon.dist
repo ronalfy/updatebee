@@ -7,5 +7,13 @@ parameters:
 	paths:
 		- updatebee.php
 		- includes
+	excludePaths:
+		- phpstan
 	bootstrapFiles:
 		- tests/php/phpstan-bootstrap.php
+
+services:
+	-
+		class: UpdateBee\PHPStan\Rules\RequireAbspathGuardRule
+		tags:
+			- phpstan.rules.rule

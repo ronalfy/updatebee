@@ -23,6 +23,7 @@
 	},
 	"autoload-dev": {
 		"psr-4": {
+			"UpdateBee\\PHPStan\\Rules\\": "phpstan/rules/",
 			"UpdateBee\\Tests\\": "tests/php/"
 		}
 	},
@@ -30,7 +31,8 @@
 		"test": "phpunit",
 		"phpcs": "phpcs",
 		"phpcbf": "phpcbf",
-		"phpstan": "phpstan analyse --memory-limit=1G"
+		"phpstan": "phpstan analyse --memory-limit=1G",
+		"phpstan:abspath": "phpstan analyse -c phpstan-abspath.neon.dist --memory-limit=1G"
 	},
 	"config": {
 		"allow-plugins": {
