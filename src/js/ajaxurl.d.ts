@@ -99,10 +99,14 @@ interface UpdateBeeEmails {
 
 declare const updatebeeEmails: UpdateBeeEmails;
 
-interface UpdateBeeDisableWpCronState {
-	enabled: boolean;
+interface UpdateBeeWpCronStatus {
 	constantDefined: boolean;
 	constantValue: boolean | null;
+}
+
+interface UpdateBeeCronCommand {
+	label: string;
+	command: string;
 }
 
 interface UpdateBeeCron {
@@ -110,7 +114,8 @@ interface UpdateBeeCron {
 	eventsNonce: string;
 	initialSubtab: string;
 	settingsUrl: string;
-	disableWpCron: UpdateBeeDisableWpCronState;
+	wpCronStatus: UpdateBeeWpCronStatus;
+	systemCronCommands: UpdateBeeCronCommand[];
 }
 
 declare const updatebeeCron: UpdateBeeCron;

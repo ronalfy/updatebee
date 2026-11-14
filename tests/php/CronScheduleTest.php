@@ -223,6 +223,33 @@ class CronScheduleTest extends TestCase {
 	}
 
 	/**
+	 * Test the site-wide spawn lines run every five minutes.
+	 */
+	public function test_wp_cron_spawn_commands(): void {
+		$this->stub_home_url();
+
+		$commands = Schedules::get_wp_cron_spawn_commands();
+
+		$this->assertCount( 3, $commands );
+		$this->assertSame( 'WP-CLI (preferred)', $commands[0]['label'] );
+		$this->assertSame(
+			'*/5 * * * * cd /tmp/wordpress && wp cron event run --due-now >/dev/null 2>&1',
+			$commands[0]['command']
+		);
+		$this->assertSame(
+			'*/5 * * * * php -q /tmp/wordpress/wp-cron.php >/dev/null 2>&1',
+			$commands[1]['command']
+		);
+		$this->assertSame(
+			'*/5 * * * * curl -s "https://example.com/wp-cron.php?doing_wp_cron" >/dev/null 2>&1',
+			$commands[2]['command']
+		);
+		$this->assertStringContainsString( 'wp cron event run --due-now', $commands[0]['command'] );
+		$this->assertStringContainsString( 'wp-cron.php', $commands[1]['command'] );
+		$this->assertStringContainsString( 'https://example.com/wp-cron.php?doing_wp_cron', $commands[2]['command'] );
+	}
+
+	/**
 	 * Test twelve-hours crontab uses midnight and noon hours.
 	 */
 	public function test_crontab_equivalent_twelve_hours(): void {

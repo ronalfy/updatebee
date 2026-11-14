@@ -344,16 +344,15 @@ class Read {
 	}
 
 	/**
-	 * Next core update-check events and whether this plugin disables WP-Cron.
+	 * Next core update-check events and whether wp-config.php disables WP-Cron.
 	 *
 	 * @return array<string, mixed> Schedule snapshot.
 	 */
 	public static function get_update_schedule(): array {
-		$crons    = Updates_Init::get_update_crons();
-		$disabled = Options::get_options( 'disable_wp_cron' );
+		$crons = Updates_Init::get_update_crons();
 
 		return array(
-			'wp_cron_disabled' => self::bool_value( $disabled ),
+			'wp_cron_disabled' => defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON,
 			'events'           => array(
 				self::format_scheduled_event( 'wp_update_plugins', $crons['update_plugins'] ?? false ),
 				self::format_scheduled_event( 'wp_update_themes', $crons['update_themes'] ?? false ),

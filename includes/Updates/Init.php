@@ -145,16 +145,12 @@ class Init {
 	}
 
 	/**
-	 * Schedule plugin, theme, and core version checks to run immediately.
+	 * Queue plugin, theme, and core version checks for the next cron pass.
 	 *
 	 * Shared by the tools screen and the updatebee/schedule-update-checks ability.
+	 * The callbacks run later under real WP-Cron, which defines DOING_CRON itself.
 	 */
 	public static function schedule_update_checks(): void {
-		if ( ! defined( 'DOING_CRON' ) ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- WordPress core constant required to run update checks.
-			define( 'DOING_CRON', true );
-		}
-
 		wp_schedule_single_event( time(), 'wp_update_plugins' );
 		wp_schedule_single_event( time(), 'wp_update_themes' );
 		wp_schedule_single_event( time(), 'wp_version_check', array( array(), true ) );

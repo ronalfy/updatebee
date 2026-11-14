@@ -62,19 +62,10 @@
 	margin: 0 0 4px;
 }
 
-.updatebee-cron-disable-wp-cron {
+.updatebee-cron-wp-cron-status {
 	margin-top: 16px;
 	padding-top: 16px;
 	border-top: 1px solid #dcdcde;
-
-	.components-toggle-control {
-		margin-bottom: 0;
-	}
-
-	.components-base-control__help {
-		margin-top: 8px;
-		max-width: 52rem;
-	}
 
 	.components-notice {
 		margin: 0;
@@ -124,6 +115,11 @@
 	.components-panel__body-content {
 		padding: 0 16px 16px;
 	}
+}
+
+.updatebee-cron-wp-cron-status .updatebee-cron-advanced {
+	margin-top: 12px;
+	max-width: 52rem;
 }
 
 .updatebee-cron-crontab-commands {

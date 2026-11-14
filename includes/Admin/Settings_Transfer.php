@@ -1017,7 +1017,6 @@ class Settings_Transfer {
 			'upgrade_notice_keywords'          => 'keywords',
 			'upgrade_notice_keywords_enabled'  => 'bool',
 			'block_untested_updates'           => 'on_off',
-			'disable_wp_cron'                  => 'bool',
 			'fatal_error_detection'            => 'bool',
 			'fatal_email_recipients'           => 'email_list',
 			'fatal_notify_slack'               => 'bool',

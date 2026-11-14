@@ -67,7 +67,6 @@ class OptionsTest extends TestCase {
 		$this->assertSame( "security\nCSRF\nXSS\nCVE\nSSRF", $options['upgrade_notice_keywords'] );
 		$this->assertFalse( $options['upgrade_notice_keywords_enabled'] );
 		$this->assertSame( 'off', $options['block_untested_updates'] );
-		$this->assertFalse( $options['disable_wp_cron'] );
 		$this->assertTrue( $options['fatal_error_detection'] );
 		$this->assertSame( array(), $options['fatal_email_recipients'] );
 		$this->assertFalse( $options['fatal_notify_slack'] );
