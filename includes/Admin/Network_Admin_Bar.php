@@ -76,8 +76,11 @@ class Network_Admin_Bar {
 	/**
 	 * Move "Updates" directly below "Dashboard" in the Network Admin flyout.
 	 *
-	 * WP_Admin_Bar stores nodes in a protected array in insertion order.
-	 * We use reflection to reposition our node after core's Dashboard node.
+	 * Toolbar children render in registration order. Core adds every Network
+	 * Admin item in one callback, so hook priority cannot insert Updates
+	 * between Dashboard and Sites. When Updates is not already next to
+	 * Dashboard, remove the nodes registered after Dashboard and add Updates
+	 * back first through the public toolbar API.
 	 *
 	 * @param WP_Admin_Bar $wp_admin_bar Admin bar instance.
 	 */
@@ -86,26 +89,72 @@ class Network_Admin_Bar {
 			return;
 		}
 
-		$reflection = new \ReflectionClass( $wp_admin_bar );
-		$property   = $reflection->getProperty( 'nodes' );
-		$property->setAccessible( true );
-		$nodes = $property->getValue( $wp_admin_bar );
-
-		if ( ! isset( $nodes['updatebee-network-updates'], $nodes['network-admin-d'] ) ) {
+		$nodes = $wp_admin_bar->get_nodes();
+		if ( ! is_array( $nodes ) || ! isset( $nodes['updatebee-network-updates'], $nodes['network-admin-d'] ) ) {
 			return;
 		}
 
-		$node = $nodes['updatebee-network-updates'];
-		unset( $nodes['updatebee-network-updates'] );
-
-		$reordered = array();
-		foreach ( $nodes as $id => $n ) {
-			$reordered[ $id ] = $n;
-			if ( 'network-admin-d' === $id ) {
-				$reordered['updatebee-network-updates'] = $node;
-			}
+		$ids              = array_keys( $nodes );
+		$dashboard_index  = array_search( 'network-admin-d', $ids, true );
+		$updates_index    = array_search( 'updatebee-network-updates', $ids, true );
+		$already_in_place = is_int( $dashboard_index ) && $updates_index === $dashboard_index + 1;
+		if ( $already_in_place ) {
+			return;
 		}
 
-		$property->setValue( $wp_admin_bar, $reordered );
+		$updates_args = $this->node_to_args( $nodes['updatebee-network-updates'] );
+		if ( array() === $updates_args ) {
+			return;
+		}
+
+		$after            = array();
+		$passed_dashboard = false;
+		foreach ( $nodes as $id => $node ) {
+			if ( 'updatebee-network-updates' === $id ) {
+				continue;
+			}
+			if ( ! $passed_dashboard ) {
+				if ( 'network-admin-d' === $id ) {
+					$passed_dashboard = true;
+				}
+				continue;
+			}
+
+			$args = $this->node_to_args( $node );
+			if ( array() === $args ) {
+				return;
+			}
+			$after[ $id ] = $args;
+		}
+
+		$wp_admin_bar->remove_node( 'updatebee-network-updates' );
+		foreach ( array_keys( $after ) as $id ) {
+			$wp_admin_bar->remove_node( $id );
+		}
+
+		$wp_admin_bar->add_node( $updates_args );
+		foreach ( $after as $args ) {
+			$wp_admin_bar->add_node( $args );
+		}
+	}
+
+	/**
+	 * Normalize a toolbar node for add_node().
+	 *
+	 * Core's get_nodes() returns objects. The test double stores arrays.
+	 *
+	 * @param object|array<string, mixed> $node Toolbar node.
+	 * @return array<string, mixed> Arguments for add_node(), or an empty array when the node has no id.
+	 */
+	private function node_to_args( object|array $node ): array {
+		if ( is_object( $node ) ) {
+			$node = get_object_vars( $node );
+		}
+
+		if ( empty( $node['id'] ) ) {
+			return array();
+		}
+
+		return $node;
 	}
 }
