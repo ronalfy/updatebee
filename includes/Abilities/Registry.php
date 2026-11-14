@@ -177,7 +177,7 @@ class Registry {
 		self::register(
 			'get-update-schedule',
 			__( 'Get Update Schedule', 'updatebee' ),
-			__( 'Returns the next scheduled run for wp_update_plugins, wp_update_themes, and wp_version_check. wp_cron_disabled is true when UpdateBee is set to disable WP-Cron. This ability does not change that setting.', 'updatebee' ),
+			__( 'Returns the next scheduled run for wp_update_plugins, wp_update_themes, and wp_version_check. wp_cron_disabled is true when wp-config.php sets DISABLE_WP_CRON to true. This ability does not change that constant.', 'updatebee' ),
 			array( Read::class, 'get_update_schedule' ),
 			self::annotations( true, false, true ),
 			self::schedule_schema()
@@ -728,7 +728,7 @@ class Registry {
 	private static function schedule_schema(): array {
 		return self::object_schema(
 			array(
-				'wp_cron_disabled' => self::bool_property( __( 'Whether UpdateBee is set to disable WP-Cron.', 'updatebee' ) ),
+				'wp_cron_disabled' => self::bool_property( __( 'Whether wp-config.php sets DISABLE_WP_CRON to true.', 'updatebee' ) ),
 				'events'           => array(
 					'type'  => 'array',
 					'items' => self::object_schema(

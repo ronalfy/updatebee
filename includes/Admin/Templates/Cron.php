@@ -8,7 +8,8 @@
 namespace UpdateBee\Admin\Templates;
 
 use UpdateBee\Cron\Cron_Events;
-use UpdateBee\Cron\Disable_Wp_Cron;
+use UpdateBee\Cron\Wp_Cron_Status;
+use UpdateBee\Cron\Schedules;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Functions;
 
@@ -71,6 +72,8 @@ class Cron {
 			$style_deps[] = 'wp-dataviews';
 		}
 
+		$initial_sub_tab = Functions::get_admin_sub_tab();
+
 		wp_enqueue_script(
 			'updatebee-cron',
 			Functions::get_plugin_url( 'build/cron.js' ),
@@ -89,11 +92,12 @@ class Cron {
 			'updatebee-cron',
 			'updatebeeCron',
 			array(
-				'nonce'         => wp_create_nonce( Updates_Cron::NONCE_ACTION ),
-				'eventsNonce'   => wp_create_nonce( Cron_Events::EVENTS_NONCE_ACTION ),
-				'initialSubtab' => Functions::get_admin_sub_tab() ?: 'schedule',
-				'settingsUrl'   => esc_url_raw( Functions::get_settings_url( 'cron' ) ),
-				'disableWpCron' => Disable_Wp_Cron::get_admin_state(),
+				'nonce'              => wp_create_nonce( Updates_Cron::NONCE_ACTION ),
+				'eventsNonce'        => wp_create_nonce( Cron_Events::EVENTS_NONCE_ACTION ),
+				'initialSubtab'      => is_string( $initial_sub_tab ) && '' !== $initial_sub_tab ? $initial_sub_tab : 'schedule',
+				'settingsUrl'        => esc_url_raw( Functions::get_settings_url( 'cron' ) ),
+				'wpCronStatus'       => Wp_Cron_Status::get_admin_state(),
+				'systemCronCommands' => Schedules::get_wp_cron_spawn_commands(),
 			)
 		);
 

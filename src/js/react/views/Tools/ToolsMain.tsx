@@ -446,7 +446,7 @@ const ToolsMain = () => {
 				showSnackbar(
 					message ||
 						__(
-							"Settings have been imported. The Slack webhook was left unchanged.",
+							'Settings have been imported. The Slack webhook was left unchanged.',
 							'updatebee'
 						),
 					'success'
@@ -519,7 +519,7 @@ const ToolsMain = () => {
 					<Card.Content className="updatebee-tools-card-content">
 						<p className="updatebee-tools-card-description">
 							{ __(
-								'The update cron is difficult to trigger. This tool makes it easy to trigger the cron processes.',
+								'Schedules the plugin, theme, and core version checks for the next cron pass. This does not install updates.',
 								'updatebee'
 							) }
 						</p>
@@ -528,7 +528,7 @@ const ToolsMain = () => {
 								variant="solid"
 								loading={ 'triggerCron' === activeAction }
 								loadingAnnouncement={ __(
-									'Triggering cron…',
+									'Scheduling update checks…',
 									'updatebee'
 								) }
 								disabled={ isBusy }

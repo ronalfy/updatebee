@@ -748,6 +748,41 @@ class UpdatesRuntimeTest extends TestCase {
 	}
 
 	/**
+	 * Scheduling update checks queues the three core hooks and does not define DOING_CRON.
+	 */
+	public function test_schedule_update_checks_queues_events_without_defining_doing_cron(): void {
+		$this->assertFalse( defined( 'DOING_CRON' ) );
+
+		$scheduled = array();
+		MonkeyFunctions\when( 'wp_schedule_single_event' )->alias(
+			static function ( $timestamp, $hook, $args = array() ) use ( &$scheduled ) {
+				$scheduled[] = array(
+					'timestamp' => $timestamp,
+					'hook'      => $hook,
+					'args'      => $args,
+				);
+				return true;
+			}
+		);
+
+		$before = time();
+		Init::schedule_update_checks();
+
+		$this->assertFalse( defined( 'DOING_CRON' ) );
+		$this->assertSame(
+			array( 'wp_update_plugins', 'wp_update_themes', 'wp_version_check' ),
+			array_column( $scheduled, 'hook' )
+		);
+		$this->assertSame( array(), $scheduled[0]['args'] );
+		$this->assertSame( array(), $scheduled[1]['args'] );
+		$this->assertSame( array( array(), true ), $scheduled[2]['args'] );
+		foreach ( $scheduled as $event ) {
+			$this->assertGreaterThanOrEqual( $before, $event['timestamp'] );
+			$this->assertLessThanOrEqual( time(), $event['timestamp'] );
+		}
+	}
+
+	/**
 	 * Stub helpers used when an upgrade notice is inspected.
 	 */
 	private function stub_upgrade_notice_helpers(): void {

@@ -452,6 +452,36 @@ class Schedules {
 	}
 
 	/**
+	 * Server cron lines that run all of WP-Cron about every five minutes.
+	 *
+	 * @return array<int, array{label: string, command: string}>
+	 */
+	public static function get_wp_cron_spawn_commands(): array {
+		$wp_root  = self::get_wordpress_root_path();
+		$cd_path  = self::quote_crontab_path( $wp_root );
+		$php_path = self::quote_crontab_path( $wp_root . '/wp-cron.php' );
+		$cron_url = home_url( 'wp-cron.php?doing_wp_cron' );
+
+		return array(
+			array(
+				'label'   => __( 'WP-CLI (preferred)', 'updatebee' ),
+				'command' => sprintf(
+					'*/5 * * * * cd %s && wp cron event run --due-now >/dev/null 2>&1',
+					$cd_path
+				),
+			),
+			array(
+				'label'   => __( 'PHP (wp-cron.php)', 'updatebee' ),
+				'command' => sprintf( '*/5 * * * * php -q %s >/dev/null 2>&1', $php_path ),
+			),
+			array(
+				'label'   => __( 'curl', 'updatebee' ),
+				'command' => sprintf( '*/5 * * * * curl -s "%s" >/dev/null 2>&1', $cron_url ),
+			),
+		);
+	}
+
+	/**
 	 * Resolve the WordPress root filesystem path for crontab examples.
 	 */
 	private static function get_wordpress_root_path(): string {

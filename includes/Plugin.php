@@ -17,7 +17,6 @@ use UpdateBee\Admin\Hide_Updates_Column;
 use UpdateBee\Admin\Register_Options_Page;
 use UpdateBee\Admin\Settings_Transfer;
 use UpdateBee\Cron\Clear_Logs as Clear_Logs_Cron;
-use UpdateBee\Cron\Disable_Wp_Cron;
 use UpdateBee\Cron\Schedules as Cron_Schedules;
 use UpdateBee\Cron\Updates_Cron;
 use UpdateBee\Emails\Email_Failures;
@@ -211,9 +210,6 @@ class Plugin {
 	 * Class constructor.
 	 */
 	private function __construct() {
-		// Define DISABLE_WP_CRON before init / wp_cron when the network option is on.
-		Disable_Wp_Cron::bootstrap();
-
 		add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ), 20 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
