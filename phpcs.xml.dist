@@ -3,7 +3,6 @@
 	<description>PHP_CodeSniffer ruleset for UpdateBee.</description>
 
 	<file>updatebee.php</file>
-	<file>uninstall.php</file>
 	<file>includes</file>
 	<file>tests/php</file>
 

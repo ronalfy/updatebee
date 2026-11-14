@@ -28,8 +28,8 @@ class Uninstall {
 	/**
 	 * Remove stored plugin data.
 	 *
-	 * Safe to call from uninstall.php before the plugin bootstrap runs.
-	 * Does not deactivate or delete the plugin files.
+	 * Called from Advanced when the user chooses to remove all plugin data.
+	 * Does not deactivate or delete the plugin files. Deleting the plugin does not call this.
 	 */
 	public static function clear_data(): void {
 		self::delete_site_options();
