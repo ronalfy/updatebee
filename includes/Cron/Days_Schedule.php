@@ -63,7 +63,7 @@ class Days_Schedule {
 			return $update;
 		}
 
-		$options  = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
+		$options   = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
 		$days_list = $options['days_list'];
 
 		$current_day = (int) get_date_from_gmt( gmdate( 'Y-m-d H:i:s' ), 'w' ) + 1;

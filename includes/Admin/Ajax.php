@@ -664,6 +664,7 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-retrieve-themes', 'nonce' );
 
+		// Gather the installed themes and the per-theme settings stored by UpdateBee.
 		$installed_themes    = Functions::get_installed_themes();
 		$auto_updated_themes = Functions::get_auto_updates_themes();
 		if ( ! is_array( $auto_updated_themes ) ) {
@@ -676,11 +677,14 @@ class Ajax {
 		$current_stylesheet = get_stylesheet();
 		$all_themes         = array();
 
+		// First pass: describe each installed theme, with a nonce for every action the screen can take on it.
+
 		foreach ( $installed_themes as $slug => $theme ) {
 			if ( ! is_string( $slug ) || ! $theme instanceof \WP_Theme ) {
 				continue;
 			}
 
+			// Themes managed through version control (for example a git checkout) are never auto-updated.
 			$stylesheet         = $theme->get_stylesheet();
 			$version_control    = Version_Controlled::theme_reason( $stylesheet );
 			$version_controlled = null !== $version_control;
@@ -688,6 +692,7 @@ class Ajax {
 			$screenshot         = $theme->get_screenshot();
 			$style_css          = $theme->get_stylesheet_directory() . '/style.css';
 			$mtime              = file_exists( $style_css ) ? filemtime( $style_css ) : false;
+			// Use the modification time of style.css as the "last updated" date.
 			if ( false !== $mtime ) {
 				$date_format  = (string) get_option( 'date_format' );
 				$time_format  = (string) get_option( 'time_format' );
@@ -727,6 +732,8 @@ class Ajax {
 			);
 		}
 
+		// Second pass: add update offers and rollback details. Read the raw update data, because
+		// blocked updates are hidden from the filtered transient.
 		$theme_info = Hide_Blocked_Updates::unfiltered(
 			static function () {
 				return get_site_transient( 'update_themes' );
@@ -738,6 +745,7 @@ class Ajax {
 			}
 			$theme_data['Description'] = wp_trim_words( wp_strip_all_tags( $theme_data['Description'] ), 20, '...' );
 
+			// Prefer the pending update record. Fall back to the "no update" record for display details.
 			$extra = null;
 			if ( is_object( $theme_info ) ) {
 				if ( isset( $theme_info->response[ $stylesheet ] ) ) {
@@ -747,10 +755,11 @@ class Ajax {
 				}
 			}
 
-			$theme_data                  = $this->copy_update_display_fields( $theme_data, $extra );
-			$theme_data['Update']        = Available_Updates::theme_offer( $stylesheet );
-			$theme_directory_id          = isset( $theme_data['id'] ) && is_string( $theme_data['id'] ) ? $theme_data['id'] : '';
-			$theme_directory_url         = isset( $theme_data['url'] ) && is_string( $theme_data['url'] ) ? $theme_data['url'] : '';
+			$theme_data           = $this->copy_update_display_fields( $theme_data, $extra );
+			$theme_data['Update'] = Available_Updates::theme_offer( $stylesheet );
+			$theme_directory_id   = isset( $theme_data['id'] ) && is_string( $theme_data['id'] ) ? $theme_data['id'] : '';
+			$theme_directory_url  = isset( $theme_data['url'] ) && is_string( $theme_data['url'] ) ? $theme_data['url'] : '';
+			// Rollback needs the update_themes capability and a theme that can be fetched from the directory.
 			$can_rollback                = current_user_can( 'update_themes' ) && Rollback::theme_is_eligible(
 				$stylesheet,
 				! empty( $theme_data['VersionControlled'] ),
@@ -767,6 +776,7 @@ class Ajax {
 			$options = array();
 		}
 
+		// Summarize the global theme policy: blocked, custom (per-theme choices), enabled for all, or disabled.
 		$status = 'disabled';
 		if ( isset( $options['theme_updates_disabled'] ) && 'on' === $options['theme_updates_disabled'] ) {
 			$status = 'blocked';
@@ -1054,11 +1064,13 @@ class Ajax {
 		$page     = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
 		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 25;
 
+		// Sorting, search and filter inputs from the logs table.
 		$sort_field     = isset( $_POST['sort_field'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_field'] ) ) : 'id';
 		$sort_direction = isset( $_POST['sort_direction'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_direction'] ) ) : 'desc';
 
 		$search = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 
+		// Each filter arrives as a field/value pair. Keep only well-formed pairs, keyed by field.
 		$filters = array();
 		if ( isset( $_POST['filters'] ) && is_array( $_POST['filters'] ) ) {
 			$raw_filters = map_deep( wp_unslash( $_POST['filters'] ), 'sanitize_text_field' );
@@ -1072,6 +1084,7 @@ class Ajax {
 			}
 		}
 
+		// The React table uses PascalCase column names. Map them to the database column names.
 		$field_map = array(
 			'Name'         => 'name',
 			'User'         => 'user_id',
@@ -1107,6 +1120,7 @@ class Ajax {
 		$rows  = $result['logs'];
 		$total = $result['total'];
 
+		// Shape each database row into the camelCase payload the React table expects.
 		$logs = array();
 
 		foreach ( $rows as $row ) {
@@ -1114,6 +1128,7 @@ class Ajax {
 				continue;
 			}
 
+			// Show the user's nicename. Automatic updates have no user, so they show "None".
 			$user_id = isset( $row['user_id'] ) ? absint( $row['user_id'] ) : 0;
 			$user    = _x( 'None', 'No user found', 'updatebee' );
 			if ( $user_id > 0 ) {
@@ -1123,6 +1138,7 @@ class Ajax {
 				}
 			}
 
+			// The notes and stack trace are loaded on demand, so only report whether they exist.
 			$raw        = isset( $row['raw'] ) ? (string) $row['raw'] : '';
 			$stacktrace = isset( $row['stacktrace'] ) ? (string) $row['stacktrace'] : '';
 

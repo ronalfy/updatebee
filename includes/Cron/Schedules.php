@@ -250,15 +250,18 @@ class Schedules {
 		$schedule = isset( $options['schedule'] ) ? (string) $options['schedule'] : 'twelve-hours';
 		$time     = isset( $options['start_time'] ) ? (string) $options['start_time'] : '00:00';
 
+		// Fill in the default days list for this schedule. Days are numbered 1 (Sunday) to 7 (Saturday).
 		$options            = Updates_Cron::normalize_days_list_defaults( $schedule, $options );
 		$allowed_days       = $options['days_list'];
 		$use_selective_days = false;
 		$interval           = 0;
 
+		// The start time is entered in the site timezone, so subtract the offset to get a UTC timestamp.
 		$gmt_offset = HOUR_IN_SECONDS * (float) get_option( 'gmt_offset' );
 		$timestamp  = strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 		$timestamp  = (int) ( $timestamp - $gmt_offset );
 
+		// Pick the repeat interval for the schedule. Hourly and daily schedules also honor the days list.
 		switch ( $schedule ) {
 			case 'hourly':
 				$interval           = HOUR_IN_SECONDS;
@@ -281,6 +284,7 @@ class Schedules {
 				$use_selective_days = true;
 				break;
 			case 'daily':
+				// For the daily schedule the saved list holds the days to skip, so the allowed days are the rest.
 				$interval           = DAY_IN_SECONDS;
 				$allowed_days       = array_values(
 					array_diff(
@@ -291,12 +295,14 @@ class Schedules {
 				$use_selective_days = true;
 				break;
 			case 'weekly':
+				// Run on one weekday at the chosen time.
 				$day_of_week = ucfirst( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' );
 				$timestamp   = strtotime( "This {$day_of_week}, {$time}", strtotime( gmdate( 'Y-m-d' ) ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 				$timestamp   = (int) ( $timestamp - $gmt_offset );
 				$interval    = WEEK_IN_SECONDS;
 				break;
 			case 'two-weeks':
+				// Run every second week on the chosen weekday. The week setting picks which of the two weeks runs.
 				$user_week_number = absint( $options['week'] ?? 1 );
 				$day_of_week      = ucfirst( isset( $options['day'] ) ? (string) $options['day'] : 'sunday' );
 				$timestamp        = strtotime( "+{$user_week_number} weeks", strtotime( gmdate( 'Y-m-d' ) . ' ' . $time ) ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
@@ -305,25 +311,31 @@ class Schedules {
 				$interval         = DAY_IN_SECONDS * 14;
 				break;
 			case 'monthly':
+				// Run on one day of the month. The interval is the length of the following month.
 				$user_day_number = absint( $options['day_num'] ?? 1 );
 				$timestamp       = strtotime( gmdate( 'Y-m-' . $user_day_number ) . ' ' . $time ); // phpcs:ignore WordPress.DateTime.RestrictedFunctions.date_date
 				$timestamp       = (int) ( $timestamp - $gmt_offset );
 				$interval        = (int) ( strtotime( '+1 month', $timestamp ) - $timestamp );
 				break;
 			default:
+				// Unknown schedules are never scheduled.
 				return 0;
 		}
 
 		$now = time();
 		if ( $timestamp < $now ) {
+			// The start time has passed, so move it forward to the next slot that lines up with the interval.
 			if ( $interval > 0 ) {
 				$timestamp = $now + ( $interval - ( ( $now - $timestamp ) % $interval ) );
 			}
 		} elseif ( $interval > 0 ) {
+			// The start time is still ahead, so keep it no more than one interval away.
 			$timestamp = $now + ( ( $timestamp - $now ) % $interval );
 		}
 
 		if ( $use_selective_days ) {
+			// Step forward one interval at a time until the run lands on an allowed day.
+			// The guard stops the loop if no allowed day is ever reached.
 			$guard = 0;
 			while ( ! empty( $allowed_days ) && is_array( $allowed_days ) && array_intersect( $allowed_days, range( 1, 7 ) ) ) {
 				$timestamp_day_in_number = (int) get_date_from_gmt( gmdate( 'Y-m-d H:i', $timestamp ), 'w' ) + 1;
@@ -341,6 +353,8 @@ class Schedules {
 			}
 		}
 
+		// Weekly and two-week schedules move to the following period when the computed time is already past.
+		// The second week of a two-week schedule is offset by one extra week.
 		if ( 'weekly' === $schedule && $timestamp < $now ) {
 			$timestamp += WEEK_IN_SECONDS;
 		}

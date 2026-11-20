@@ -822,10 +822,12 @@ class Logs {
 	 * @param array<string,mixed> $hook_extra  Extra arguments passed to hooked filters.
 	 */
 	public function log_upgrader_updates( $wp_upgrader, $hook_extra ): void {
+		// Automatic updates are logged by their own handler, so only manual updates continue here.
 		if ( $this->is_auto_update ) {
 			return;
 		}
 
+		// Ignore installs and other upgrader actions. Only updates are logged.
 		if ( isset( $hook_extra['action'] ) && 'update' !== $hook_extra['action'] ) {
 			return;
 		}
@@ -837,8 +839,10 @@ class Logs {
 		$stacktrace = $this->capture_stacktrace();
 		$notes      = '';
 
+		// Each update type stores its pending log messages under a different key, so handle them separately.
 		switch ( $hook_extra['type'] ) {
 			case 'translation':
+				// Translation packs are keyed by slug, except core packs, which are keyed by language code.
 				if ( empty( $hook_extra['translations'] ) || ! is_array( $hook_extra['translations'] ) ) {
 					break;
 				}
@@ -868,11 +872,13 @@ class Logs {
 					);
 					unset( $this->log_messages['translation'][ $key ] );
 				}
+				// Drop the empty bucket so later checks can rely on isset().
 				if ( empty( $this->log_messages['translation'] ) ) {
 					unset( $this->log_messages['translation'] );
 				}
 				break;
 			case 'core':
+				// Core has a single pending entry that already carries its own notes.
 				if ( empty( $this->log_messages['core'] ) || ! is_array( $this->log_messages['core'] ) ) {
 					break;
 				}
@@ -895,6 +901,7 @@ class Logs {
 				}
 				break;
 			case 'plugin':
+				// A bulk update passes `plugins`, while a single update passes `plugin`.
 				$plugins = array();
 				if ( isset( $hook_extra['plugins'] ) && is_array( $hook_extra['plugins'] ) ) {
 					$plugins = $hook_extra['plugins'];
@@ -923,6 +930,7 @@ class Logs {
 				}
 				break;
 			case 'theme':
+				// A bulk update passes `themes`, while a single update passes `theme`.
 				$themes = array();
 				if ( isset( $hook_extra['themes'] ) && is_array( $hook_extra['themes'] ) ) {
 					$themes = $hook_extra['themes'];
@@ -952,6 +960,7 @@ class Logs {
 				break;
 		}
 
+		// Write any entries that were queued above.
 		$this->maybe_flush_log_messages();
 	}
 

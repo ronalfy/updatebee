@@ -29,6 +29,7 @@ class Emails {
 	 * @return string HTML email body.
 	 */
 	public static function get_update_report_email( array $updates, string $report_title, string $report_description, string $cron_hook ): string {
+		// Load the HTML email shell. Without the template there is nothing to send.
 		$template_path = __DIR__ . '/templates/update-report-blue.html';
 		if ( ! file_exists( $template_path ) ) {
 			return '';
@@ -41,11 +42,13 @@ class Emails {
 			return '';
 		}
 
+		// Fill in the header placeholders of the shell.
 		$report = str_replace( '{{email_title}}', $report_title, $report );
 		$report = str_replace( '{{site_url}}', esc_url( home_url( '/' ) ), $report );
 		$report = str_replace( '{{site_name}}', esc_html( get_bloginfo( 'name' ) ), $report );
 		$report = str_replace( '{{introduction}}', $report_description, $report );
 
+		// Markup for one report section (a heading plus the table of rows), repeated for each update type.
 		$item_table = '<table class="heading_block block-6" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
 		<tr>
 			<td class="pad" style="text-align:center;width:100%;">
@@ -61,6 +64,7 @@ class Emails {
 		</tr>
 	</table>';
 
+		// Group the log rows by update type (plugin, theme, core, and so on).
 		$update_items = array();
 		foreach ( $updates as $update ) {
 			$normalized = self::normalize_log_row( $update );
@@ -76,8 +80,10 @@ class Emails {
 		}
 		ksort( $update_items );
 
+		// Build one section per update type.
 		$output_html = '';
 		foreach ( $update_items as $update_type => $update_item ) {
+			// Only add the details column when at least one row has a link or a fatal message to show.
 			$has_details = false;
 			foreach ( $update_item as $normalized ) {
 				if ( '' !== $normalized['detail_url'] || '' !== $normalized['fatal_message'] ) {
@@ -102,6 +108,7 @@ class Emails {
 
 		$report = str_replace( '{{report}}', $output_html, $report );
 
+		// Tell the reader when the next report is due, or that none are scheduled.
 		$next_cron = wp_next_scheduled( $cron_hook );
 		if ( $next_cron ) {
 			$next_cron_text = __( 'Your next scheduled report will be sent on:', 'updatebee' ) . ' ' . get_date_from_gmt( gmdate( 'Y-m-d', $next_cron ), 'F j, Y' ) . ' ' . _x( 'at', 'at what time', 'updatebee' ) . ' ' . get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $next_cron ), 'g:i a' );
@@ -109,6 +116,7 @@ class Emails {
 			$next_cron_text = __( 'There are no scheduled email reports.', 'updatebee' );
 		}
 
+		// Link to the Emails settings so the schedule can be changed.
 		$change_link = Functions::get_settings_url( 'emails' );
 		$change_link = '<a href="' . esc_url( $change_link ) . '" target="_blank" style="text-decoration: underline; color: #e4af4b;" rel="noopener">' . esc_html__( 'Change', 'updatebee' ) . '</a>';
 

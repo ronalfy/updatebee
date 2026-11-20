@@ -108,12 +108,12 @@ class Cron_Events {
 	/**
 	 * Build a single event row for the admin UI.
 	 *
-	 * @param string               $hook      Hook name.
-	 * @param int                  $timestamp Next run (UTC).
-	 * @param string               $sig       Event signature.
-	 * @param array<int, mixed>    $args      Hook arguments.
-	 * @param false|string         $schedule  Recurrence slug or false.
-	 * @param int                  $interval  Interval in seconds.
+	 * @param string            $hook      Hook name.
+	 * @param int               $timestamp Next run (UTC).
+	 * @param string            $sig       Event signature.
+	 * @param array<int, mixed> $args      Hook arguments.
+	 * @param false|string      $schedule  Recurrence slug or false.
+	 * @param int               $interval  Interval in seconds.
 	 * @return array<string, mixed>
 	 */
 	public static function format_event_row(
@@ -130,21 +130,21 @@ class Cron_Events {
 		$schedule_slug = is_string( $schedule ) ? $schedule : '';
 
 		return array(
-			'id'              => $hook . '-' . $sig . '-' . $timestamp,
-			'hook'            => $hook,
-			'sig'             => $sig,
-			'timestamp'       => $timestamp,
-			'nextRunUtc'      => gmdate( 'Y-m-d H:i:s', $timestamp ),
-			'nextRunLocal'    => \get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $timestamp ) ),
-			'schedule'        => $schedule_slug,
-			'interval'        => $interval,
-			'scheduleLabel'   => self::get_schedule_label( $schedule_slug ),
-			'args'            => $args,
-			'argsDisplay'     => self::format_args_display( $args ),
+			'id'               => $hook . '-' . $sig . '-' . $timestamp,
+			'hook'             => $hook,
+			'sig'              => $sig,
+			'timestamp'        => $timestamp,
+			'nextRunUtc'       => gmdate( 'Y-m-d H:i:s', $timestamp ),
+			'nextRunLocal'     => \get_date_from_gmt( gmdate( 'Y-m-d H:i:s', $timestamp ) ),
+			'schedule'         => $schedule_slug,
+			'interval'         => $interval,
+			'scheduleLabel'    => self::get_schedule_label( $schedule_slug ),
+			'args'             => $args,
+			'argsDisplay'      => self::format_args_display( $args ),
 			'isPersistentCore' => $is_persistent,
-			'canDelete'       => ! $is_persistent,
-			'canRun'          => $has_callback,
-			'hasCallback'     => $has_callback,
+			'canDelete'        => ! $is_persistent,
+			'canRun'           => $has_callback,
+			'hasCallback'      => $has_callback,
 		);
 	}
 
@@ -169,18 +169,18 @@ class Cron_Events {
 
 		$labels = array(
 			'hourly'                 => \__( 'Once hourly', 'updatebee' ),
-			'twicedaily'               => \__( 'Twice daily', 'updatebee' ),
-			'daily'                    => \__( 'Once daily', 'updatebee' ),
-			'weekly'                   => \__( 'Once weekly', 'updatebee' ),
-			'updatebee-hourly'         => \__( 'Every hour', 'updatebee' ),
-			'updatebee-two-hours'      => \__( 'Every two hours', 'updatebee' ),
-			'updatebee-three-hours'    => \__( 'Every three hours', 'updatebee' ),
-			'updatebee-six-hours'      => \__( 'Every six hours', 'updatebee' ),
-			'updatebee-twelve-hours'   => \__( 'Every twelve hours', 'updatebee' ),
-			'updatebee-daily'          => \__( 'Once daily', 'updatebee' ),
-			'updatebee-weekly'         => \__( 'Every week', 'updatebee' ),
-			'updatebee-two-weeks'      => \__( 'Every two weeks', 'updatebee' ),
-			'updatebee-monthly'        => \__( 'Every month', 'updatebee' ),
+			'twicedaily'             => \__( 'Twice daily', 'updatebee' ),
+			'daily'                  => \__( 'Once daily', 'updatebee' ),
+			'weekly'                 => \__( 'Once weekly', 'updatebee' ),
+			'updatebee-hourly'       => \__( 'Every hour', 'updatebee' ),
+			'updatebee-two-hours'    => \__( 'Every two hours', 'updatebee' ),
+			'updatebee-three-hours'  => \__( 'Every three hours', 'updatebee' ),
+			'updatebee-six-hours'    => \__( 'Every six hours', 'updatebee' ),
+			'updatebee-twelve-hours' => \__( 'Every twelve hours', 'updatebee' ),
+			'updatebee-daily'        => \__( 'Once daily', 'updatebee' ),
+			'updatebee-weekly'       => \__( 'Every week', 'updatebee' ),
+			'updatebee-two-weeks'    => \__( 'Every two weeks', 'updatebee' ),
+			'updatebee-monthly'      => \__( 'Every month', 'updatebee' ),
 		);
 
 		return $labels[ $schedule ] ?? $schedule;
@@ -335,8 +335,8 @@ class Cron_Events {
 	/**
 	 * Schedule a single event at timestamp 1 without duplicate check.
 	 *
-	 * @param string              $hook Hook name.
-	 * @param array<int, mixed>   $args Arguments.
+	 * @param string            $hook Hook name.
+	 * @param array<int, mixed> $args Arguments.
 	 * @return true|\WP_Error
 	 */
 	public static function force_schedule_single_event( string $hook, array $args = array() ) {

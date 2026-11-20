@@ -496,12 +496,11 @@ class Functions {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $mode  active|inactive.
-	 * @param bool   $force Retrieve without caching.
+	 * @param string $mode active|inactive.
 	 *
 	 * @return array<string, mixed> Locale => translation data for the requested mode.
 	 */
-	public static function get_auto_updates_translations( $mode = 'active', $force = false ) {
+	public static function get_auto_updates_translations( $mode = 'active' ) {
 
 		$translations                       = self::get_available_translations();
 		$auto_updated_translations          = array();
@@ -555,12 +554,11 @@ class Functions {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $path Path to the asset.
-	 * @param string $type Type to check if it is activated or not.
+	 * @param string $path Plugin basename (for example `folder/plugin.php`).
 	 *
 	 * @return bool true if activated, false if not.
 	 */
-	public static function is_activated( $path, $type = 'plugin' ) {
+	public static function is_activated( $path ) {
 
 		// Gets all active plugins on the current site.
 		$active_plugins = self::is_multisite() ? get_site_option( 'active_sitewide_plugins' ) : get_option( 'active_plugins', array() );
