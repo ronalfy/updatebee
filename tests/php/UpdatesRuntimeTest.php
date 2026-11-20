@@ -52,10 +52,10 @@ class UpdatesRuntimeTest extends TestCase {
 	/**
 	 * Clear a Updates class singleton.
 	 *
-	 * @param class-string $class Class name.
+	 * @param class-string $class_name Class name.
 	 */
-	private function reset_updates_singleton( string $class ): void {
-		$reflection = new ReflectionClass( $class );
+	private function reset_updates_singleton( string $class_name ): void {
+		$reflection = new ReflectionClass( $class_name );
 		if ( ! $reflection->hasProperty( 'instance' ) ) {
 			return;
 		}
@@ -249,7 +249,7 @@ class UpdatesRuntimeTest extends TestCase {
 
 		$email_filters = array();
 		MonkeyFunctions\when( 'add_filter' )->alias(
-			static function ( $hook, $callback, $priority = 10, $accepted_args = 1 ) use ( &$email_filters ) {
+			static function ( $hook ) use ( &$email_filters ) {
 				if ( in_array(
 					$hook,
 					array(
@@ -291,7 +291,7 @@ class UpdatesRuntimeTest extends TestCase {
 
 		$registered = false;
 		MonkeyFunctions\when( 'add_action' )->alias(
-			static function ( $hook, $callback, $priority = 10, $accepted_args = 1 ) use ( &$registered ) {
+			static function ( $hook, $callback, $priority = 10 ) use ( &$registered ) {
 				if ( 'wp_update_plugins' === $hook && 20 === $priority ) {
 					$registered = true;
 				}

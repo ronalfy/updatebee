@@ -136,6 +136,7 @@ class UpcomingMenuTest extends TestCase {
 			}
 		);
 		MonkeyFunctions\when( 'apply_filters' )->returnArg( 2 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 
 		$item = Upcoming_Menu::menu_item();
 

@@ -192,7 +192,6 @@ class AdminBarMenuTest extends TestCase {
 				return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
 			}
 		);
-		MonkeyFunctions\when( '_x' )->returnArg( 1 );
 		MonkeyFunctions\when( 'admin_url' )->alias(
 			static function ( $path ) {
 				return 'https://example.com/wp-admin/' . ltrim( (string) $path, '/' );

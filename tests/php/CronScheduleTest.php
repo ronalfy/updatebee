@@ -22,11 +22,11 @@ class CronScheduleTest extends TestCase {
 	 */
 	private function stub_time_helpers(): void {
 		MonkeyFunctions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) {
+			static function ( $key, $fallback = false ) {
 				if ( 'gmt_offset' === $key ) {
 					return 0;
 				}
-				return $default;
+				return $fallback;
 			}
 		);
 		MonkeyFunctions\when( 'get_date_from_gmt' )->alias(

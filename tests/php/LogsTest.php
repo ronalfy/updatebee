@@ -33,6 +33,7 @@ class LogsTest extends TestCase {
 	 * @param object $wpdb Mock database object.
 	 */
 	private function set_mock_wpdb( object $wpdb ): void {
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test double for $wpdb.
 		$GLOBALS['wpdb'] = $wpdb;
 	}
 
@@ -538,6 +539,7 @@ class LogsTest extends TestCase {
 		MonkeyFunctions\when( 'get_current_user_id' )->justReturn( 42 );
 		MonkeyFunctions\when( 'maybe_serialize' )->alias(
 			static function ( $data ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Mirrors maybe_serialize() in the unit test double.
 				return serialize( $data );
 			}
 		);
@@ -742,6 +744,7 @@ class LogsTest extends TestCase {
 					return $data;
 				}
 
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Mirrors maybe_unserialize() in the unit test double.
 				$unserialized = @unserialize( $data );
 				if ( false !== $unserialized || 'b:0;' === $data ) {
 					return $unserialized;
@@ -784,6 +787,7 @@ class LogsTest extends TestCase {
 			),
 		);
 
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The log table stores stack traces as serialized data.
 		$formatted = Logs::format_stacktrace_for_display( serialize( $trace ) );
 
 		$this->assertStringContainsString( '#1 /plugins/updatebee/includes/Logs.php (42):', $formatted );
@@ -803,6 +807,7 @@ class LogsTest extends TestCase {
 			),
 		);
 
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- The log table stores stack traces as serialized data.
 		$formatted = Logs::format_stacktrace_for_display( serialize( $trace ) );
 
 		$this->assertStringContainsString( "do_action('upgrader_process_complete')", $formatted );

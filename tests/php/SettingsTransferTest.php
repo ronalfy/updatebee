@@ -49,7 +49,8 @@ class SettingsTransferTest extends TestCase {
 		);
 
 		$document = Settings_Transfer::build_document();
-		$encoded  = json_encode( $document );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Unit tests run without WordPress loaded.
+		$encoded = json_encode( $document );
 
 		$this->assertIsArray( $document['options'] );
 		$this->assertArrayNotHasKey( 'slack_webhook_url', $document['options'] );
@@ -71,6 +72,7 @@ class SettingsTransferTest extends TestCase {
 		);
 
 		$result = Settings_Transfer::import_json(
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Unit tests run without WordPress loaded.
 			(string) json_encode(
 				array(
 					'format'  => 'updatebee-settings',
@@ -89,6 +91,7 @@ class SettingsTransferTest extends TestCase {
 		$this->assertSame( self::WEBHOOK, $saved->value['slack_webhook_url'] );
 		$this->assertSame( 9, $saved->value['delay_updates'] );
 		$this->assertArrayNotHasKey( 'not_a_real_key', $saved->value );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Unit tests run without WordPress loaded.
 		$this->assertStringNotContainsString( 'evil', (string) json_encode( $saved->value ) );
 	}
 
@@ -169,11 +172,11 @@ class SettingsTransferTest extends TestCase {
 			}
 		);
 		MonkeyFunctions\when( 'get_site_option' )->alias(
-			static function ( $key, $default = array() ) use ( &$stored_options ) {
+			static function ( $key, $fallback = array() ) use ( &$stored_options ) {
 				if ( 'updatebee_options' === $key ) {
 					return $stored_options;
 				}
-				return $default;
+				return $fallback;
 			}
 		);
 		MonkeyFunctions\when( 'update_site_option' )->alias(
@@ -204,7 +207,7 @@ class SettingsTransferTest extends TestCase {
 		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'sanitize_textarea_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'get_site_option' )->alias(
-			static function ( $key, $default = array() ) use ( $stored ) {
+			static function ( $key, $fallback = array() ) use ( $stored ) {
 				if ( 'updatebee_options' === $key ) {
 					return $stored;
 				}
@@ -218,10 +221,11 @@ class SettingsTransferTest extends TestCase {
 						'days_list'  => array( 1, 2, 3, 4, 5, 6, 7 ),
 					);
 				}
-				return $default;
+				return $fallback;
 			}
 		);
 
+		// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Test double for $wpdb.
 		$GLOBALS['wpdb'] = new class() {
 			/**
 			 * Table prefix.

@@ -21,13 +21,13 @@ class EmailReportTest extends TestCase {
 	/**
 	 * Invoke protected filter_updates_for_report.
 	 *
-	 * @param class-string<Email_Report>       $class   Report class name.
-	 * @param array<int, array<string, mixed>> $updates Update rows.
-	 * @param array<string, mixed>             $options Report options.
+	 * @param string                           $class_name Report class name.
+	 * @param array<int, array<string, mixed>> $updates    Update rows.
+	 * @param array<string, mixed>             $options    Report options.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function filter_updates( string $class, array $updates, array $options ): array {
-		$reflection = new ReflectionClass( $class );
+	private function filter_updates( string $class_name, array $updates, array $options ): array {
+		$reflection = new ReflectionClass( $class_name );
 		$method     = $reflection->getMethod( 'filter_updates_for_report' );
 		$method->setAccessible( true );
 
