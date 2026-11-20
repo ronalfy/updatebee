@@ -75,6 +75,7 @@ class Themes {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-themes' );
 		wp_enqueue_style(
 			'updatebee-themes',
 			Functions::get_plugin_url( 'build/themes.css' ),

@@ -80,6 +80,7 @@ class Translations {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-translations' );
 		wp_enqueue_style(
 			'updatebee-translations',
 			Functions::get_plugin_url( 'build/translations.css' ),

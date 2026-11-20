@@ -78,6 +78,7 @@ class Plugins {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-plugins' );
 		wp_enqueue_style(
 			'updatebee-plugins',
 			Functions::get_plugin_url( 'build/plugins.css' ),

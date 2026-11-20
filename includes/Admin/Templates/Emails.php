@@ -82,6 +82,7 @@ class Emails {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-emails' );
 		wp_enqueue_style(
 			'updatebee-emails',
 			Functions::get_plugin_url( 'build/emails.css' ),

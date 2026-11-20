@@ -81,6 +81,7 @@ class License {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-license' );
 		wp_enqueue_style(
 			'updatebee-license',
 			Functions::get_plugin_url( 'build/license.css' ),

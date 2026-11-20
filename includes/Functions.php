@@ -1410,6 +1410,18 @@ class Functions {
 	}
 
 	/**
+	 * Load the JavaScript translations for an enqueued admin script.
+	 *
+	 * The script must already be registered or enqueued. Translation files are read
+	 * from the plugin languages directory.
+	 *
+	 * @param string $handle Script handle registered with wp_enqueue_script().
+	 */
+	public static function set_script_translations( string $handle ): void {
+		wp_set_script_translations( $handle, 'updatebee', self::get_plugin_dir( 'languages' ) );
+	}
+
+	/**
 	 * Get the plugin directory for a path.
 	 *
 	 * @param string $path The path to the file.

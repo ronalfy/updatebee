@@ -169,7 +169,7 @@ class Slack_Available_Updates {
 				'text' => array(
 					'type' => 'mrkdwn',
 					'text' => sprintf(
-						/* translators: %d: Number of updates omitted from the Slack message. */
+						/* translators: %d: Number of items omitted from the Slack message. */
 						_n( 'and %d more', 'and %d more', $hidden, 'updatebee' ),
 						$hidden
 					),

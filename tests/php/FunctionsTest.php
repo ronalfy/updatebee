@@ -89,4 +89,18 @@ class FunctionsTest extends TestCase {
 		$this->assertStringContainsString( 'wp-admin/network/settings.php?page=updatebee', $url );
 		$this->assertStringContainsString( 'tab=dashboard', $url );
 	}
+
+	/**
+	 * Script translations are loaded from the plugin languages directory.
+	 */
+	public function test_set_script_translations_uses_plugin_languages_directory() {
+		MonkeyFunctions\when( 'plugin_dir_path' )->justReturn( '/var/www/wp-content/plugins/updatebee/' );
+		MonkeyFunctions\expect( 'wp_set_script_translations' )
+			->once()
+			->with( 'updatebee-dashboard', 'updatebee', '/var/www/wp-content/plugins/updatebee/languages' );
+
+		Functions::set_script_translations( 'updatebee-dashboard' );
+
+		$this->assertTrue( true );
+	}
 }

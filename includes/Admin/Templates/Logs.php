@@ -81,6 +81,7 @@ class Logs {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-logs' );
 		wp_enqueue_style(
 			'updatebee-logs',
 			Functions::get_plugin_url( 'build/logs.css' ),

@@ -189,7 +189,7 @@ class PluginUpdater {
 		}
 
 		if ( ! $data ) {
-			return new \WP_Error( 'no_data', 'No data found for this plugin' );
+			return new \WP_Error( 'no_data', __( 'No data found for this plugin', 'updatebee' ) );
 		}
 
 		return $data;

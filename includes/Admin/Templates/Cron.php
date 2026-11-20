@@ -86,6 +86,7 @@ class Cron {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-cron' );
 		wp_enqueue_style(
 			'updatebee-cron',
 			Functions::get_plugin_url( 'build/cron.css' ),

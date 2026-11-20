@@ -87,7 +87,7 @@ class FluentLicensing {
 
 	public function activate( $licenseKey = '' ) {
 		if ( ! $licenseKey ) {
-			return new \WP_Error( 'license_key_missing', 'License key is required for activation.' );
+			return new \WP_Error( 'license_key_missing', __( 'License key is required for activation.', 'updatebee' ) );
 		}
 
 		$response = $this->apiRequest(
@@ -190,7 +190,11 @@ class FluentLicensing {
 
 		if ( $status === 'disabled' ) {
 			return array(
-				'message'         => 'The license for ' . $this->getConfig( 'plugin_title' ) . ' has been disabled. Please contact support for assistance.',
+				'message'         => sprintf(
+					/* translators: %s: plugin title. */
+					__( 'The license for %s has been disabled. Please contact support for assistance.', 'updatebee' ),
+					$this->getConfig( 'plugin_title' )
+				),
 				'type'            => 'global',
 				'license_details' => $licenseDetails,
 			);
@@ -199,9 +203,10 @@ class FluentLicensing {
 		if ( $status != 'valid' ) {
 			return array(
 				'message'         => \sprintf(
-					'The %1$s license needs to be activated. %2$s',
-					$this->getConfig( 'plugin_title' ),
-					'<a href="' . $this->getConfig( 'activate_url' ) . '">' . 'Click here to activate' . '</a>'
+					/* translators: 1: plugin title, 2: link to the activation screen. */
+					__( 'The %1$s license needs to be activated. %2$s', 'updatebee' ),
+					esc_html( $this->getConfig( 'plugin_title' ) ),
+					'<a href="' . esc_url( $this->getConfig( 'activate_url' ) ) . '">' . esc_html__( 'Click here to activate', 'updatebee' ) . '</a>'
 				),
 				'type'            => 'global',
 				'license_details' => $licenseDetails,
@@ -218,8 +223,16 @@ class FluentLicensing {
 			$renewUrl = $this->getRenewUrl();
 		}
 
-		return '<p>Your ' . $this->getConfig( 'plugin_title' ) . ' ' . __( 'license has been', 'fluent-community-pro' ) . ' <b>' . __( 'expired at', 'fluent-community-pro' ) . ' ' . gmdate( 'd M Y', strtotime( $licenseData['expires'] ) ) . '</b>, Please ' .
-			'<a href="' . $renewUrl . '"><b>' . __( 'Click Here to Renew Your License', 'fluent-community-pro' ) . '</b></a>' . '</p>';
+		$expiresAt = gmdate( 'd M Y', strtotime( $licenseData['expires'] ) );
+
+		// Every dynamic value is escaped because this message is rendered as HTML.
+		return '<p>' . sprintf(
+			/* translators: 1: plugin title, 2: license expiry date, 3: renewal link. */
+			esc_html__( 'Your %1$s license has expired at %2$s. Please %3$s.', 'updatebee' ),
+			esc_html( $this->getConfig( 'plugin_title' ) ),
+			'<b>' . esc_html( $expiresAt ) . '</b>',
+			'<a href="' . esc_url( $renewUrl ) . '"><b>' . esc_html__( 'Click Here to Renew Your License', 'updatebee' ) . '</b></a>'
+		) . '</p>';
 	}
 
 	/**
@@ -374,7 +387,11 @@ class FluentLicensing {
 
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			$errorData = wp_remote_retrieve_body( $response );
-			$message   = 'API request failed with status code: ' . wp_remote_retrieve_response_code( $response );
+			$message   = sprintf(
+				/* translators: %s: HTTP status code. */
+				__( 'API request failed with status code: %s', 'updatebee' ),
+				wp_remote_retrieve_response_code( $response )
+			);
 			if ( ! empty( $errorData ) ) {
 				$decodedData = json_decode( $errorData, true );
 				if ( $decodedData ) {
@@ -394,7 +411,7 @@ class FluentLicensing {
 			return $responseData;
 		}
 
-		return new \WP_Error( 'api_error', 'API request returned an empty or not JSON response.', array() );
+		return new \WP_Error( 'api_error', __( 'API request returned an empty or not JSON response.', 'updatebee' ), array() );
 	}
 
 	public function getRenewUrl() {

@@ -68,6 +68,7 @@ class Dashboard {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-dashboard' );
 		wp_enqueue_style(
 			'updatebee-dashboard',
 			Functions::get_plugin_url( 'build/dashboard.css' ),

@@ -81,6 +81,7 @@ class Advanced {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-advanced' );
 		wp_enqueue_style(
 			'updatebee-advanced',
 			Functions::get_plugin_url( 'build/advanced.css' ),

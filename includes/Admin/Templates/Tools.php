@@ -79,6 +79,7 @@ class Tools {
 			$deps['version'],
 			true
 		);
+		Functions::set_script_translations( 'updatebee-tools' );
 		wp_enqueue_style(
 			'updatebee-tools',
 			Functions::get_plugin_url( 'build/tools.css' ),

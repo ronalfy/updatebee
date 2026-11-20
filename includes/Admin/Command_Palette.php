@@ -81,6 +81,7 @@ class Command_Palette {
 			$version,
 			true
 		);
+		Functions::set_script_translations( self::SCRIPT_HANDLE );
 		wp_localize_script(
 			self::SCRIPT_HANDLE,
 			self::OBJECT_NAME,

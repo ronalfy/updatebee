@@ -86,6 +86,11 @@ class CommandPaletteTest extends TestCase {
 		$this->assertCount( 1, $captured['localized'] );
 		$this->assertSame( 'updatebee-commands', $captured['localized'][0][0] );
 		$this->assertSame( 'updatebeeCommands', $captured['localized'][0][1] );
+
+		// The command palette script loads its JavaScript translations from the plugin languages directory.
+		$this->assertCount( 1, $captured['translations'] );
+		$this->assertSame( 'updatebee-commands', $captured['translations'][0][0] );
+		$this->assertSame( 'updatebee', $captured['translations'][0][1] );
 		$this->assertSame(
 			array(
 				'forceUpdatesNonce'   => 'nonce-updatebee-force-updates',
@@ -187,6 +192,11 @@ class CommandPaletteTest extends TestCase {
 		MonkeyFunctions\when( 'wp_localize_script' )->alias(
 			static function () use ( &$captured ): void {
 				$captured['localized'][] = func_get_args();
+			}
+		);
+		MonkeyFunctions\when( 'wp_set_script_translations' )->alias(
+			static function () use ( &$captured ): void {
+				$captured['translations'][] = func_get_args();
 			}
 		);
 	}
