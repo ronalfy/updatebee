@@ -12,28 +12,25 @@ if ( ! defined( 'ABSPATH' ) && 'cli' !== PHP_SAPI ) {
 	exit; // Exit if accessed directly.
 }
 
-$vendor_dir   = __DIR__ . '/../vendor';
-$composer_dir = $vendor_dir . '/composer';
-$files        = array();
-
-if ( is_file( $vendor_dir . '/autoload.php' ) ) {
-	$files[] = $vendor_dir . '/autoload.php';
+/**
+ * Write one line to standard output.
+ *
+ * These scripts only run from the command line, so the text is never sent to a browser.
+ *
+ * @param string $message Message to print.
+ */
+function updatebee_cli_line( $message ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Build script that writes to the terminal.
+	fwrite( STDOUT, $message . "\n" );
 }
 
-if ( is_dir( $composer_dir ) ) {
-	$composer_files = glob( $composer_dir . '/*.php' );
-
-	if ( false !== $composer_files ) {
-		$files = array_merge( $files, $composer_files );
-	}
-}
-
-if ( empty( $files ) ) {
-	echo "No Composer files found in {$vendor_dir}\n";
-	exit( 1 );
-}
-
-$guard = <<<'GUARD'
+/**
+ * Get the guard block that is inserted into each file.
+ *
+ * @return string Guard block.
+ */
+function updatebee_get_guard_block() {
+	return <<<'GUARD'
 
 // Exit if accessed directly.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -41,6 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 GUARD;
+}
 
 /**
  * Insert the ABSPATH guard into a PHP string.
@@ -124,39 +122,77 @@ function updatebee_insert_abspath_guard( $contents, $guard ) {
 	return implode( "\n", $lines );
 }
 
-$updated = 0;
-$skipped = 0;
+/**
+ * Add the ABSPATH guard to the Composer autoload files.
+ *
+ * @return int Process exit code. 0 on success, 1 when no Composer files were found.
+ */
+function updatebee_add_composer_guards() {
+	$vendor_dir   = __DIR__ . '/../vendor';
+	$composer_dir = $vendor_dir . '/composer';
+	$files        = array();
 
-foreach ( $files as $file ) {
-	$contents = file_get_contents( $file );
-
-	if ( false === $contents ) {
-		echo "Failed to read {$file}\n";
-		continue;
+	if ( is_file( $vendor_dir . '/autoload.php' ) ) {
+		$files[] = $vendor_dir . '/autoload.php';
 	}
 
-	$new_contents = updatebee_insert_abspath_guard( $contents, $guard );
+	if ( is_dir( $composer_dir ) ) {
+		$composer_files = glob( $composer_dir . '/*.php' );
 
-	if ( false === $new_contents ) {
-		echo "Skipping {$file}: does not start with <?php\n";
-		++$skipped;
-		continue;
+		if ( false !== $composer_files ) {
+			$files = array_merge( $files, $composer_files );
+		}
 	}
 
-	if ( $new_contents === $contents ) {
-		++$skipped;
-		continue;
+	if ( empty( $files ) ) {
+		updatebee_cli_line( "No Composer files found in {$vendor_dir}" );
+		return 1;
 	}
 
-	$result = file_put_contents( $file, $new_contents, LOCK_EX );
+	$guard = updatebee_get_guard_block();
 
-	if ( false === $result ) {
-		echo "Failed to write {$file}\n";
-		continue;
+	$updated = 0;
+	$skipped = 0;
+
+	foreach ( $files as $file ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local build file; WordPress is not loaded.
+		$contents = file_get_contents( $file );
+
+		if ( false === $contents ) {
+			updatebee_cli_line( "Failed to read {$file}" );
+			continue;
+		}
+
+		$new_contents = updatebee_insert_abspath_guard( $contents, $guard );
+
+		if ( false === $new_contents ) {
+			updatebee_cli_line( "Skipping {$file}: does not start with <?php" );
+			++$skipped;
+			continue;
+		}
+
+		if ( $new_contents === $contents ) {
+			++$skipped;
+			continue;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a local build file; WordPress is not loaded.
+		$result = file_put_contents( $file, $new_contents, LOCK_EX );
+
+		if ( false === $result ) {
+			updatebee_cli_line( "Failed to write {$file}" );
+			continue;
+		}
+
+		updatebee_cli_line( "Guard added to {$file}" );
+		++$updated;
 	}
 
-	echo "Guard added to {$file}\n";
-	++$updated;
+	updatebee_cli_line( "Updated {$updated} file(s), skipped {$skipped} file(s)." );
+
+	return 0;
 }
 
-echo "Updated {$updated} file(s), skipped {$skipped} file(s).\n";
+if ( 0 !== updatebee_add_composer_guards() ) {
+	exit( 1 );
+}

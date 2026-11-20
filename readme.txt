@@ -8,7 +8,7 @@ Requires PHP: 8.2
 License: GPL v3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Schedule and manage all updates from WordPress Core, plugins, themes, and translations. Email, Log, and Slack reports let you know what's been updated.
+Control automatic updates for Core, plugins, themes, and translations. Schedule them and get email, log, and Slack reports.
 
 == Description ==
 

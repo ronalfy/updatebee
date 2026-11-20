@@ -2,7 +2,7 @@
 /**
  * Add ABSPATH exit guards to webpack-generated asset files.
  *
- * wp-scripts writes build/*.asset.php as `<?php return array(...);`.
+ * The wp-scripts build writes build/*.asset.php as `<?php return array(...);`.
  * WordPress loads those files with include, which must still return the
  * asset array when ABSPATH is defined. A direct request has no ABSPATH
  * and should exit before that return.
@@ -15,12 +15,16 @@ if ( ! defined( 'ABSPATH' ) && 'cli' !== PHP_SAPI ) {
 	exit; // Exit if accessed directly.
 }
 
-$build_dir = __DIR__ . '/../build';
-$files     = glob( $build_dir . '/*.asset.php' );
-
-if ( false === $files || array() === $files ) {
-	echo "No asset PHP files found in {$build_dir}\n";
-	exit( 0 );
+/**
+ * Write one line to standard output.
+ *
+ * These scripts only run from the command line, so the text is never sent to a browser.
+ *
+ * @param string $message Message to print.
+ */
+function updatebee_cli_line( $message ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Build script that writes to the terminal.
+	fwrite( STDOUT, $message . "\n" );
 }
 
 /**
@@ -63,47 +67,70 @@ function updatebee_guard_asset_php( $contents ) {
 	return $updated;
 }
 
-$updated = 0;
-$skipped = 0;
-$failed  = 0;
+/**
+ * Add the ABSPATH guard to every build/*.asset.php file.
+ *
+ * @return int Process exit code. 0 on success, 1 when a file could not be guarded.
+ */
+function updatebee_add_asset_guards() {
+	$build_dir = __DIR__ . '/../build';
+	$files     = glob( $build_dir . '/*.asset.php' );
 
-foreach ( $files as $file ) {
-	$contents = file_get_contents( $file );
-
-	if ( false === $contents ) {
-		echo "Failed to read {$file}\n";
-		++$failed;
-		continue;
+	if ( false === $files || array() === $files ) {
+		updatebee_cli_line( "No asset PHP files found in {$build_dir}" );
+		return 0;
 	}
 
-	$new_contents = updatebee_guard_asset_php( $contents );
+	$updated = 0;
+	$skipped = 0;
+	$failed  = 0;
 
-	if ( false === $new_contents ) {
-		echo "Skipping {$file}: expected <?php return array(...)\n";
-		++$failed;
-		continue;
+	foreach ( $files as $file ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads a local build file; WordPress is not loaded.
+		$contents = file_get_contents( $file );
+
+		if ( false === $contents ) {
+			updatebee_cli_line( "Failed to read {$file}" );
+			++$failed;
+			continue;
+		}
+
+		$new_contents = updatebee_guard_asset_php( $contents );
+
+		if ( false === $new_contents ) {
+			updatebee_cli_line( "Skipping {$file}: expected <?php return array(...)" );
+			++$failed;
+			continue;
+		}
+
+		if ( $new_contents === $contents ) {
+			++$skipped;
+			continue;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes a local build file; WordPress is not loaded.
+		$result = file_put_contents( $file, $new_contents, LOCK_EX );
+
+		if ( false === $result ) {
+			updatebee_cli_line( "Failed to write {$file}" );
+			++$failed;
+			continue;
+		}
+
+		updatebee_cli_line( "Guard added to {$file}" );
+		++$updated;
 	}
 
-	if ( $new_contents === $contents ) {
-		++$skipped;
-		continue;
+	updatebee_cli_line( "Updated {$updated} file(s), skipped {$skipped} file(s)." );
+
+	if ( $failed > 0 ) {
+		updatebee_cli_line( "Failed {$failed} file(s)." );
+		return 1;
 	}
 
-	$result = file_put_contents( $file, $new_contents, LOCK_EX );
-
-	if ( false === $result ) {
-		echo "Failed to write {$file}\n";
-		++$failed;
-		continue;
-	}
-
-	echo "Guard added to {$file}\n";
-	++$updated;
+	return 0;
 }
 
-echo "Updated {$updated} file(s), skipped {$skipped} file(s).\n";
-
-if ( $failed > 0 ) {
-	echo "Failed {$failed} file(s).\n";
+if ( 0 !== updatebee_add_asset_guards() ) {
 	exit( 1 );
 }
