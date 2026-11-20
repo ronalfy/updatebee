@@ -11,6 +11,13 @@
  *   `composer install` so local require-dev tools are restored.
  * - Every zip task runs `php bin/add-asset-guards.php` first so build/*.asset.php exits on direct access.
  *
+ * Translations
+ * - `grunt i18n` (run by every zip task) builds the translation catalogs from the built bundles in build/.
+ *   Strings are extracted from build/*.js, not src/js, so each reference is already the path of the script that
+ *   WordPress loads and no source map is needed. It writes languages/updatebee.pot, and compiles every committed
+ *   languages/*.po into .mo (PHP strings) and .json (one per script, JavaScript strings). The generated files are
+ *   git-ignored and only exist in the zip. Needs WP-CLI (set WP_CLI to its path if `wp` is not on PATH).
+ *
  * Tasks
  * - `grunt` or `grunt release` — production zip (Composer no-dev cycle + vendor autoload in archive).
  * - `grunt compress` — development zip only (shared runtime files, no vendor/autoload). Asset PHP guards run first.
@@ -102,6 +109,7 @@ module.exports = function ( grunt ) {
 		'composer-install-no-dev',
 		'composer_guard',
 		'assets_guard',
+		'i18n',
 		'zip:production',
 		'composer-install',
 	];
@@ -156,11 +164,78 @@ module.exports = function ( grunt ) {
 		}
 	);
 
+	grunt.registerTask(
+		'i18n',
+		'Build translation catalogs (.pot, .mo and per-script .json) from the built bundles.',
+		function () {
+			const root = path.resolve( __dirname );
+			const languages = path.join( root, 'languages' );
+			const wp = process.env.WP_CLI || 'wp';
+			const run = ( args ) =>
+				execSync( `${ wp } --skip-plugins --skip-themes ${ args }`, {
+					cwd: root,
+					stdio: 'inherit',
+				} );
+
+			if ( ! grunt.file.isDir( path.join( root, 'build' ) ) ) {
+				grunt.fail.fatal(
+					'build/ is missing. Run `npm run build` first. Strings are extracted from the built bundles.'
+				);
+			}
+
+			// Remove files from earlier runs first. A locale whose .po was deleted would otherwise keep its
+			// old .mo and .json files, and they would be shipped in the zip. Only generated files are removed.
+			grunt.file
+				.expand( [
+					path.join( languages, '*.pot' ),
+					path.join( languages, '*.mo' ),
+					path.join( languages, '*.json' ),
+				] )
+				.forEach( ( file ) => grunt.file.delete( file ) );
+
+			const poFiles = grunt.file.expand( path.join( languages, '*.po' ) );
+
+			let hasWpCli = true;
+			try {
+				execSync( `${ wp } --version`, { stdio: 'ignore' } );
+			} catch ( err ) {
+				hasWpCli = false;
+			}
+
+			if ( ! hasWpCli ) {
+				if ( poFiles.length > 0 ) {
+					grunt.fail.fatal(
+						'WP-CLI is required to compile languages/*.po. Install it, or set WP_CLI to its path.'
+					);
+				}
+				grunt.log.writeln(
+					'WP-CLI not found and there are no .po files, so no translation files were built.'
+				);
+				return;
+			}
+
+			// Template for translators. PHP strings come from the source, React strings from the built bundles.
+			run(
+				'i18n make-pot . languages/updatebee.pot --domain=updatebee --include=updatebee.php,includes,updater,build'
+			);
+
+			if ( poFiles.length === 0 ) {
+				grunt.log.writeln( 'No languages/*.po files, so only the .pot was built.' );
+				return;
+			}
+
+			// --no-purge keeps every string in the .po so make-mo still sees it.
+			run( 'i18n make-mo languages' );
+			run( 'i18n make-json languages --no-purge' );
+		}
+	);
+
 	grunt.registerTask( 'default', productionZip );
 	grunt.registerTask( 'release', productionZip );
 	grunt.registerTask( 'compress-only', [
 		'composer_guard',
 		'assets_guard',
+		'i18n',
 		'zip:dev',
 	] );
 
@@ -169,6 +244,6 @@ module.exports = function ( grunt ) {
 	grunt.registerTask(
 		'compress',
 		'Zip shared runtime files without vendor/autoload.',
-		[ 'assets_guard', 'zip:dev' ]
+		[ 'assets_guard', 'i18n', 'zip:dev' ]
 	);
 };

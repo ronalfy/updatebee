@@ -7,6 +7,7 @@
 	"scripts": {
 		"composer:guard": "php bin/add-composer-guards.php",
 		"assets:guard": "php bin/add-asset-guards.php",
+		"i18n": "grunt i18n",
 		"release": "grunt release",
 		"compress": "grunt compress",
 		"build": "wp-scripts build && npm run assets:guard && npm run composer:guard",

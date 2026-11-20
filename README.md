@@ -32,6 +32,19 @@ npm run build
 grunt
 ```
 
+## Translations
+
+Translation files are built at release time and are not committed. Only the translated `.po` files in `languages/` are tracked.
+
+```bash
+npm run build
+WP_CLI="php /path/to/wp-cli.phar" npm run i18n   # WP_CLI is optional when `wp` is on your PATH
+```
+
+`npm run i18n` (also run by `grunt`) writes `languages/updatebee.pot`, then compiles every `languages/*.po` into a `.mo` file for PHP strings and one `.json` file per script for JavaScript strings. React strings are extracted from `build/`, so run the build first.
+
+To add a language, copy `languages/updatebee.pot` to `languages/updatebee-<locale>.po` (for example `updatebee-de_DE.po`), translate it, and commit the `.po`.
+
 ## Quality checks
 
 ```bash
