@@ -70,9 +70,10 @@ class PluginUpdater {
 						return $links;
 					}
 
-					$checkUpdateUrl = esc_url( admin_url( 'plugins.php?' . $getParam . '=' . time() ) );
+					// The link changes state (it clears the cached update data), so it carries a nonce.
+					$checkUpdateUrl = esc_url( wp_nonce_url( admin_url( 'plugins.php?' . $getParam . '=' . time() ), $getParam ) );
 					$row_meta       = array(
-						'check_update' => '<a  style="color: #583fad;font-weight: 600;" href="' . $checkUpdateUrl . '" aria-label="Check Update">Check Update</a>',
+						'check_update' => '<a style="color: #583fad;font-weight: 600;" href="' . $checkUpdateUrl . '" aria-label="' . esc_attr__( 'Check Update', 'updatebee' ) . '">' . esc_html__( 'Check Update', 'updatebee' ) . '</a>',
 					);
 
 					return array_merge( $links, $row_meta );
@@ -81,11 +82,13 @@ class PluginUpdater {
 				2
 			);
 
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Presence check only; the nonce is verified inside the admin_init callback.
 			if ( isset( $_GET[ $getParam ] ) ) {
 				add_action(
 					'admin_init',
-					function () {
-						if ( current_user_can( 'update_plugins' ) ) {
+					function () use ( $getParam ) {
+						// Require both the capability and a valid nonce before touching the update data.
+						if ( current_user_can( 'update_plugins' ) && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), $getParam ) ) {
 							delete_transient( $this->cache_key );
 
 							add_filter(
@@ -110,7 +113,7 @@ class PluginUpdater {
 							// Restore our filter
 							add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'checkPluginUpdate' ) );
 
-							wp_redirect( admin_url( 'plugins.php?s=' . $this->config['slug'] . '&plugin_status=all' ) );
+							wp_safe_redirect( admin_url( 'plugins.php?s=' . $this->config['slug'] . '&plugin_status=all' ) );
 							exit();
 						}
 					}

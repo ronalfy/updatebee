@@ -59,6 +59,7 @@ class SlackFatalsTest extends TestCase {
 		MonkeyFunctions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
 		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg();
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg();
 		MonkeyFunctions\when( 'esc_html' )->returnArg();
 		MonkeyFunctions\when( 'esc_url_raw' )->returnArg();
 		MonkeyFunctions\when( 'wp_json_encode' )->alias(
@@ -88,7 +89,7 @@ class SlackFatalsTest extends TestCase {
 				return sprintf( $single, $number );
 			}
 		);
-		MonkeyFunctions\when( 'wp_remote_post' )->alias(
+		MonkeyFunctions\when( 'wp_safe_remote_post' )->alias(
 			function ( $url, $args = array() ) {
 				unset( $url );
 				$this->posted_bodies[] = isset( $args['body'] ) ? (string) $args['body'] : '';
@@ -206,7 +207,7 @@ class SlackFatalsTest extends TestCase {
 	 */
 	public function test_empty_webhook_skips_post(): void {
 		$this->stub_helpers( '' );
-		MonkeyFunctions\expect( 'wp_remote_post' )->never();
+		MonkeyFunctions\expect( 'wp_safe_remote_post' )->never();
 
 		$slack = new Slack_Fatals();
 		$slack->send_report( $this->sample_fatal_rows() );

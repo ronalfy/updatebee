@@ -38,6 +38,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 	public function test_build_rows_skips_core_with_no_version_change(): void {
 		MonkeyFunctions\when( 'current_time' )->justReturn( '2026-01-01 12:00:00' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 
 		$core = (object) array(
 			'version_checked' => '6.8.1',
@@ -70,6 +71,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 	public function test_build_rows_includes_core_update(): void {
 		MonkeyFunctions\when( 'current_time' )->justReturn( '2026-01-01 12:00:00' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 
 		$core = (object) array(
 			'version_checked' => '6.8',
@@ -111,6 +113,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 			}
 		);
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 		MonkeyFunctions\when( 'esc_html' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_next_scheduled' )->justReturn( false );
 		MonkeyFunctions\when( 'is_multisite' )->justReturn( false );
@@ -166,6 +169,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'get_bloginfo' )->justReturn( 'Example' );
 		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 		MonkeyFunctions\when( 'esc_html' )->returnArg( 1 );
 		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 		MonkeyFunctions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/update-core.php' );
@@ -175,7 +179,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'add_query_arg' )->returnArg( 2 );
 		MonkeyFunctions\when( 'sanitize_title' )->returnArg( 1 );
 
-		MonkeyFunctions\expect( 'wp_remote_post' )->once();
+		MonkeyFunctions\expect( 'wp_safe_remote_post' )->once();
 
 		$slack = new Slack_Available_Updates();
 		$slack->send_report(
@@ -206,6 +210,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 			}
 		);
 		MonkeyFunctions\when( 'get_site_option' )->justReturn( array() );
+		MonkeyFunctions\when( 'sanitize_text_field' )->returnArg( 1 );
 		MonkeyFunctions\when( 'wp_send_json_error' )->alias(
 			static function (): void {
 				throw new \RuntimeException( 'json-error' );
@@ -247,6 +252,7 @@ class AvailableUpdatesEmailTest extends TestCase {
 		MonkeyFunctions\when( 'get_bloginfo' )->justReturn( 'Example' );
 		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg( 1 );
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 		MonkeyFunctions\when( 'esc_html' )->returnArg( 1 );
 		MonkeyFunctions\when( 'esc_url_raw' )->returnArg( 1 );
 		MonkeyFunctions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/update-core.php' );

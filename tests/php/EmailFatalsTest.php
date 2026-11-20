@@ -68,6 +68,7 @@ class EmailFatalsTest extends TestCase {
 		MonkeyFunctions\when( 'get_bloginfo' )->justReturn( 'Example Site' );
 		MonkeyFunctions\when( 'home_url' )->justReturn( 'https://example.com/' );
 		MonkeyFunctions\when( 'esc_url' )->returnArg();
+		MonkeyFunctions\when( 'esc_url_raw' )->returnArg();
 		MonkeyFunctions\when( 'esc_html' )->returnArg();
 		MonkeyFunctions\when( 'esc_url_raw' )->returnArg();
 		MonkeyFunctions\when( 'wp_json_encode' )->alias(
@@ -97,7 +98,7 @@ class EmailFatalsTest extends TestCase {
 				return sprintf( $single, $number );
 			}
 		);
-		MonkeyFunctions\when( 'wp_remote_post' )->alias(
+		MonkeyFunctions\when( 'wp_safe_remote_post' )->alias(
 			function ( $url, $args = array() ) {
 				unset( $url );
 				$this->posted_bodies[] = isset( $args['body'] ) ? (string) $args['body'] : '';
@@ -212,7 +213,7 @@ class EmailFatalsTest extends TestCase {
 			)
 		);
 		MonkeyFunctions\expect( 'wp_mail' )->never();
-		MonkeyFunctions\expect( 'wp_remote_post' )->never();
+		MonkeyFunctions\expect( 'wp_safe_remote_post' )->never();
 
 		$emails = new Email_Fatals();
 		$emails->maybe_send_fatal_report( $this->sample_fatal_updates() );
@@ -259,7 +260,7 @@ class EmailFatalsTest extends TestCase {
 			)
 		);
 		MonkeyFunctions\expect( 'wp_mail' )->never();
-		MonkeyFunctions\expect( 'wp_remote_post' )->never();
+		MonkeyFunctions\expect( 'wp_safe_remote_post' )->never();
 
 		$emails = new Email_Fatals();
 		$emails->maybe_send_fatal_report( $this->sample_fatal_updates() );

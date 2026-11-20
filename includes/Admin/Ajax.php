@@ -1051,8 +1051,10 @@ class Ajax {
 
 		check_ajax_referer( 'updatebee-retrieve-logs', 'nonce' );
 
-		$page     = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
-		$per_page = isset( $_POST['per_page'] ) ? absint( wp_unslash( $_POST['per_page'] ) ) : 25;
+		$page = isset( $_POST['page'] ) ? absint( wp_unslash( $_POST['page'] ) ) : 1;
+
+		// Keep the page size between 1 and 200 rows. A zero would divide by zero when counting pages below.
+		$per_page = isset( $_POST['per_page'] ) ? min( 200, max( 1, absint( wp_unslash( $_POST['per_page'] ) ) ) ) : 25;
 
 		$sort_field     = isset( $_POST['sort_field'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_field'] ) ) : 'id';
 		$sort_direction = isset( $_POST['sort_direction'] ) ? sanitize_text_field( wp_unslash( $_POST['sort_direction'] ) ) : 'desc';

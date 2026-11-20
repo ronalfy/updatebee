@@ -22,11 +22,15 @@ class Slack_Webhook {
 	/**
 	 * Whether a valid Slack webhook URL is stored.
 	 *
+	 * Only HTTPS URLs are accepted so the webhook payload is never sent in clear text.
+	 *
 	 * @return bool
 	 */
 	public static function is_configured(): bool {
 		$webhook = Options::get_options( 'slack_webhook_url' );
-		return is_string( $webhook ) && '' !== $webhook && false !== filter_var( $webhook, FILTER_VALIDATE_URL );
+		return is_string( $webhook )
+			&& str_starts_with( $webhook, 'https://' )
+			&& false !== filter_var( $webhook, FILTER_VALIDATE_URL );
 	}
 
 	/**
@@ -41,11 +45,14 @@ class Slack_Webhook {
 
 		$webhook = Options::get_options( 'slack_webhook_url' );
 
-		wp_remote_post(
-			esc_url( $webhook ),
+		// The safe variant rejects loopback and private-network hosts, so an admin-supplied URL cannot reach internal services (SSRF).
+		wp_safe_remote_post(
+			esc_url_raw( $webhook ),
 			array(
-				'body'    => wp_json_encode( $message ),
-				'headers' => array(
+				'body'        => wp_json_encode( $message ),
+				// Do not follow redirects: a redirect could point at an http:// URL and send the report in clear text.
+				'redirection' => 0,
+				'headers'     => array(
 					'Content-Type' => 'application/json; charset=utf-8',
 				),
 			)
