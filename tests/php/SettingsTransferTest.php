@@ -125,6 +125,8 @@ class SettingsTransferTest extends TestCase {
 	 * A valid file updates an allowlisted option and leaves the webhook unchanged.
 	 */
 	public function test_import_updates_allowlisted_option_and_preserves_webhook(): void {
+		MonkeyFunctions\when( 'sanitize_key' )->returnArg( 1 );
+
 		$saved = $this->stub_option_store(
 			array(
 				'slack_webhook_url' => self::WEBHOOK,
@@ -140,6 +142,7 @@ class SettingsTransferTest extends TestCase {
 					'version' => 1,
 					'options' => array(
 						'delay_updates'     => 9,
+						'hidden_features'   => array( 'upcoming', 'webhooks', 'tools' ),
 						'slack_webhook_url' => 'https://hooks.slack.com/services/T00/B00/evil',
 						'not_a_real_key'    => true,
 					),
@@ -151,6 +154,7 @@ class SettingsTransferTest extends TestCase {
 		$this->assertIsArray( $saved->value );
 		$this->assertSame( self::WEBHOOK, $saved->value['slack_webhook_url'] );
 		$this->assertSame( 9, $saved->value['delay_updates'] );
+		$this->assertSame( array( 'upcoming', 'webhooks', 'tools' ), $saved->value['hidden_features'] );
 		$this->assertArrayNotHasKey( 'not_a_real_key', $saved->value );
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Unit tests run without WordPress loaded.
 		$this->assertStringNotContainsString( 'evil', (string) json_encode( $saved->value ) );

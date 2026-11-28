@@ -66,7 +66,7 @@ class Network_Admin_Bar {
 		}
 
 		// --- "Upcoming Updates" directly under Updates once the flyout is reordered ---
-		if ( Functions::can_access_options() ) {
+		if ( Functions::can_access_options() && ! Feature_Visibility::is_hidden( 'upcoming' ) ) {
 			$wp_admin_bar->add_node(
 				array(
 					'id'     => 'updatebee-network-upcoming',

@@ -82,6 +82,7 @@ class OptionsTest extends TestCase {
 		$this->assertTrue( $options['admin_bar_show_admin'] );
 		$this->assertTrue( $options['admin_bar_show_frontend'] );
 		$this->assertFalse( $options['automatic_updater_disabled_override'] );
+		$this->assertSame( array(), $options['hidden_features'] );
 	}
 
 	/**
@@ -129,6 +130,35 @@ class OptionsTest extends TestCase {
 	}
 
 	/**
+	 * Test clearing an array option with an empty list.
+	 */
+	public function test_update_options_clears_hidden_features(): void {
+		$this->stub_option_helpers();
+		$stored = array(
+			'hidden_features' => array( 'upcoming', 'tools' ),
+		);
+		MonkeyFunctions\when( 'get_site_option' )->alias(
+			static function () use ( &$stored ) {
+				return $stored;
+			}
+		);
+		MonkeyFunctions\when( 'update_site_option' )->alias(
+			static function ( $key, $value ) use ( &$stored ) {
+				unset( $key );
+				$stored = $value;
+
+				return true;
+			}
+		);
+
+		$updated = Options::update_options( 'hidden_features', array() );
+
+		$this->assertIsArray( $updated );
+		$this->assertSame( array(), $updated['hidden_features'] );
+		$this->assertSame( array(), $stored['hidden_features'] );
+	}
+
+	/**
 	 * Test resetting options to defaults.
 	 */
 	public function test_reset_options_restores_defaults() {
@@ -139,10 +169,11 @@ class OptionsTest extends TestCase {
 			->andReturn(
 				array(
 					'major_auto_updates' => 'on',
+					'hidden_features'    => array( 'tools', 'translations' ),
 				)
 			);
 		MonkeyFunctions\expect( 'update_site_option' )
-			->twice()
+			->times( 3 )
 			->andReturn( true );
 		MonkeyFunctions\expect( 'delete_site_option' )
 			->once()
@@ -156,6 +187,7 @@ class OptionsTest extends TestCase {
 		Options::reset_options();
 
 		$this->assertSame( 'off', Options::get_options( 'major_auto_updates' ) );
+		$this->assertSame( array(), Options::get_options( 'hidden_features' ) );
 	}
 
 	/**

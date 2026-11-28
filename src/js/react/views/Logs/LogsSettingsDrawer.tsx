@@ -189,10 +189,15 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 				</Drawer.Header>
 				<Drawer.Content>
 					<Drawer.Description>
-						{ __(
-							'Choose how long logs are kept, whether finished updates are sent to Slack or Discord, and whether those messages include delayed updates.',
-							'updatebee'
-						) }
+						{ updatebeeLogs.showWebhooks
+							? __(
+									'Choose how long logs are kept, whether finished updates are sent to Slack or Discord, and whether those messages include delayed updates.',
+									'updatebee'
+								)
+							: __(
+									'Choose how long logs are kept.',
+									'updatebee'
+								) }
 					</Drawer.Description>
 					<div className="updatebee-logs-settings-fields">
 						<TextControl
@@ -212,97 +217,110 @@ const LogsSettingsDrawer = ( props: LogsSettingsDrawerProps ) => {
 							) }
 							disabled={ isSaving }
 						/>
-						<ToggleControl
-							label={ __(
-								'Enable Slack notifications',
-								'updatebee'
-							) }
-							checked={ draftSettings.slackEnabled }
-							disabled={
-								isSaving ||
-								! updatebeeLogs.slackWebhookConfigured
-							}
-							onChange={ ( checked: boolean ) => {
-								setDraftSettings( ( current ) => ( {
-									...current,
-									slackEnabled: checked,
-								} ) );
-							} }
-							help={
-								updatebeeLogs.slackWebhookConfigured
-									? __(
-											'Post a summary to Slack when automatic or manual updates finish.',
-											'updatebee'
-										)
-									: __(
-											'Add a Slack webhook URL in Advanced settings to enable this.',
-											'updatebee'
-										)
-							}
-						/>
-						<ToggleControl
-							label={ __( 'Skip delayed updates', 'updatebee' ) }
-							checked={ draftSettings.slackSkipDelayed }
-							disabled={
-								isSaving ||
-								! updatebeeLogs.slackWebhookConfigured ||
-								! draftSettings.slackEnabled
-							}
-							onChange={ ( checked: boolean ) => {
-								setDraftSettings( ( current ) => ( {
-									...current,
-									slackSkipDelayed: checked,
-								} ) );
-							} }
-							help={ __(
-								'Delayed updates stay in the logs and are left out of Slack messages if enabled.',
-								'updatebee'
-							) }
-						/>
-						<ToggleControl
-							label={ __( 'Send to Discord', 'updatebee' ) }
-							checked={ draftSettings.discordEnabled }
-							disabled={
-								isSaving ||
-								! updatebeeLogs.discordWebhookConfigured
-							}
-							onChange={ ( checked: boolean ) => {
-								setDraftSettings( ( current ) => ( {
-									...current,
-									discordEnabled: checked,
-								} ) );
-							} }
-							help={
-								updatebeeLogs.discordWebhookConfigured
-									? __(
-											'Post a summary to Discord when automatic or manual updates finish.',
-											'updatebee'
-										)
-									: __(
-											'Add a Discord webhook URL in Advanced settings to enable this.',
-											'updatebee'
-										)
-							}
-						/>
-						<ToggleControl
-							label={ __( 'Skip delayed updates', 'updatebee' ) }
-							checked={ draftSettings.discordSkipDelayed }
-							disabled={
-								isSaving ||
-								! updatebeeLogs.discordWebhookConfigured ||
-								! draftSettings.discordEnabled
-							}
-							onChange={ ( checked: boolean ) => {
-								setDraftSettings( ( current ) => ( {
-									...current,
-									discordSkipDelayed: checked,
-								} ) );
-							} }
-							help={ __(
-								'Delayed updates stay in the logs and are left out of Discord messages if enabled.',
-								'updatebee'
-							) }
-						/>
+						{ updatebeeLogs.showWebhooks && (
+							<>
+								<ToggleControl
+									label={ __(
+										'Enable Slack notifications',
+										'updatebee'
+									) }
+									checked={ draftSettings.slackEnabled }
+									disabled={
+										isSaving ||
+										! updatebeeLogs.slackWebhookConfigured
+									}
+									onChange={ ( checked: boolean ) => {
+										setDraftSettings( ( current ) => ( {
+											...current,
+											slackEnabled: checked,
+										} ) );
+									} }
+									help={
+										updatebeeLogs.slackWebhookConfigured
+											? __(
+													'Post a summary to Slack when automatic or manual updates finish.',
+													'updatebee'
+												)
+											: __(
+													'Add a Slack webhook URL in Advanced settings to enable this.',
+													'updatebee'
+												)
+									}
+								/>
+								<ToggleControl
+									label={ __(
+										'Skip delayed updates',
+										'updatebee'
+									) }
+									checked={ draftSettings.slackSkipDelayed }
+									disabled={
+										isSaving ||
+										! updatebeeLogs.slackWebhookConfigured ||
+										! draftSettings.slackEnabled
+									}
+									onChange={ ( checked: boolean ) => {
+										setDraftSettings( ( current ) => ( {
+											...current,
+											slackSkipDelayed: checked,
+										} ) );
+									} }
+									help={ __(
+										'Delayed updates stay in the logs and are left out of Slack messages if enabled.',
+										'updatebee'
+									) }
+								/>
+								<ToggleControl
+									label={ __(
+										'Send to Discord',
+										'updatebee'
+									) }
+									checked={ draftSettings.discordEnabled }
+									disabled={
+										isSaving ||
+										! updatebeeLogs.discordWebhookConfigured
+									}
+									onChange={ ( checked: boolean ) => {
+										setDraftSettings( ( current ) => ( {
+											...current,
+											discordEnabled: checked,
+										} ) );
+									} }
+									help={
+										updatebeeLogs.discordWebhookConfigured
+											? __(
+													'Post a summary to Discord when automatic or manual updates finish.',
+													'updatebee'
+												)
+											: __(
+													'Add a Discord webhook URL in Advanced settings to enable this.',
+													'updatebee'
+												)
+									}
+								/>
+								<ToggleControl
+									label={ __(
+										'Skip delayed updates',
+										'updatebee'
+									) }
+									checked={ draftSettings.discordSkipDelayed }
+									disabled={
+										isSaving ||
+										! updatebeeLogs.discordWebhookConfigured ||
+										! draftSettings.discordEnabled
+									}
+									onChange={ ( checked: boolean ) => {
+										setDraftSettings( ( current ) => ( {
+											...current,
+											discordSkipDelayed: checked,
+										} ) );
+									} }
+									help={ __(
+										'Delayed updates stay in the logs and are left out of Discord messages if enabled.',
+										'updatebee'
+									) }
+								/>
+							</>
+						) }
 					</div>
 				</Drawer.Content>
 				<Drawer.Footer className="updatebee-logs-settings-footer">

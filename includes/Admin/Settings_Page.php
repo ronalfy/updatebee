@@ -23,7 +23,7 @@ use UpdateBee\Updates\Automatic_Updater_Override;
 class Settings_Page {
 
 	/**
-	 * Send retired screen URLs to their current tabs.
+	 * Send removed and hidden tabs to visible settings screens.
 	 *
 	 * The old Branding tab is gone. A hidden License tab has no screen, so that URL comes here too.
 	 * Upcoming used to be a Settings sub-tab.
@@ -46,7 +46,13 @@ class Settings_Page {
 		}
 
 		if ( 'dashboard' === $tab && 'upcoming' === Functions::get_admin_sub_tab() ) {
-			wp_safe_redirect( Functions::get_settings_url( 'upcoming' ) );
+			$target_tab = Feature_Visibility::is_hidden( 'upcoming' ) ? 'dashboard' : 'upcoming';
+			wp_safe_redirect( Functions::get_settings_url( $target_tab ) );
+			exit;
+		}
+
+		if ( is_string( $tab ) && Feature_Visibility::is_tab_hidden( $tab ) ) {
+			wp_safe_redirect( Functions::get_settings_url( 'dashboard' ) );
 			exit;
 		}
 	}

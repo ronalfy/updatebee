@@ -105,6 +105,7 @@ class Options {
 			'admin_bar_show_admin'                => true,
 			'admin_bar_show_frontend'             => true,
 			'automatic_updater_disabled_override' => false,
+			'hidden_features'                     => array(),
 		);
 
 		/**
@@ -204,7 +205,7 @@ class Options {
 	/**
 	 * Write options, treating an unchanged stored value as success.
 	 *
-	 * update_site_option() returns false both when the value is unchanged and when the write fails.
+	 * The update_site_option() function returns false both when the value is unchanged and when the write fails.
 	 * A failed write leaves the previous cache in place.
 	 *
 	 * @param array<string, mixed> $options Options to store.
@@ -294,6 +295,7 @@ class Options {
 	 */
 	public static function reset_options(): void {
 		self::update_options( '', self::get_defaults() );
+		self::update_options( 'hidden_features', array() );
 		// Branding lives in its own option. A locked license keeps that option.
 		if ( ! Branding::is_locked() ) {
 			Branding::reset_stored();

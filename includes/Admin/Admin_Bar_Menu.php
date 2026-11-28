@@ -148,6 +148,10 @@ class Admin_Bar_Menu {
 
 		$nodes = array();
 		foreach ( $items as $item ) {
+			if ( Feature_Visibility::is_tab_hidden( $item['tab'] ) ) {
+				continue;
+			}
+
 			$nodes[] = array(
 				'id'     => $item['id'],
 				'parent' => 'updatebee',

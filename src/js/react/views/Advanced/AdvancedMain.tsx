@@ -27,7 +27,17 @@ type AdvancedMessagePayload = {
 	admin_bar_enabled?: boolean;
 	admin_bar_show_admin?: boolean;
 	admin_bar_show_frontend?: boolean;
+	hidden_features?: string[];
 };
+
+const HIDDEN_FEATURE_OPTIONS = [
+	{ key: 'upcoming', label: __( 'Hide Upcoming', 'updatebee' ) },
+	{ key: 'webhooks', label: __( 'Hide Webhooks', 'updatebee' ) },
+	{ key: 'translations', label: __( 'Hide Translations', 'updatebee' ) },
+	{ key: 'emails', label: __( 'Hide Emails', 'updatebee' ) },
+	{ key: 'scheduling', label: __( 'Hide Scheduling', 'updatebee' ) },
+	{ key: 'tools', label: __( 'Hide Tools', 'updatebee' ) },
+] as const;
 
 /**
  * Normalize a delay-days value.
@@ -59,6 +69,7 @@ const AdvancedMain = () => {
 	const [ isSavingBranding, setIsSavingBranding ] = useState( false );
 	const [ isSavingSlack, setIsSavingSlack ] = useState( false );
 	const [ isSavingDiscord, setIsSavingDiscord ] = useState( false );
+	const [ isSavingFeatures, setIsSavingFeatures ] = useState( false );
 	const [ isResetting, setIsResetting ] = useState( false );
 	const [ isDeactivating, setIsDeactivating ] = useState( false );
 	const [ snackbar, setSnackbar ] = useState< SnackbarState >( {
@@ -76,6 +87,11 @@ const AdvancedMain = () => {
 			? updatebeeAdvanced.discordWebhookUrl
 			: ''
 	);
+	const [ hiddenFeatures, setHiddenFeatures ] = useState< string[] >( () =>
+		Array.isArray( updatebeeAdvanced.hiddenFeatures )
+			? updatebeeAdvanced.hiddenFeatures
+			: []
+	);
 
 	const isBusy =
 		isSaving ||
@@ -85,6 +101,7 @@ const AdvancedMain = () => {
 		isSavingBranding ||
 		isSavingSlack ||
 		isSavingDiscord ||
+		isSavingFeatures ||
 		isResetting ||
 		isDeactivating;
 
@@ -235,6 +252,44 @@ const AdvancedMain = () => {
 				setIsSavingSlack( false );
 			} );
 	}, [ slackWebhookUrl, isBusy, showSnackbar ] );
+
+	const handleSaveFeatures = useCallback( () => {
+		if ( isBusy ) {
+			return;
+		}
+
+		setIsSavingFeatures( true );
+		sendCommand< AdvancedMessagePayload >(
+			'updatebee_save_advanced_settings',
+			{
+				nonce: updatebeeAdvanced.saveNonce,
+				hidden_features: JSON.stringify( hiddenFeatures ),
+			}
+		)
+			.then( ( response ) => {
+				const savedFeatures = response.data.data.hidden_features;
+				if ( Array.isArray( savedFeatures ) ) {
+					setHiddenFeatures( savedFeatures );
+				}
+				showSnackbar(
+					response.data.data.message ||
+						__(
+							'Features to hide have been saved. Reload the page to update the navigation.',
+							'updatebee'
+						),
+					'success'
+				);
+			} )
+			.catch( () => {
+				showSnackbar(
+					__( 'Features to hide could not be saved.', 'updatebee' ),
+					'error'
+				);
+			} )
+			.finally( () => {
+				setIsSavingFeatures( false );
+			} );
+	}, [ hiddenFeatures, isBusy, showSnackbar ] );
 
 	/**
 	 * Persist the Discord webhook URL.
@@ -448,6 +503,65 @@ const AdvancedMain = () => {
 				<Card.Root className="updatebee-advanced-card">
 					<Card.Header>
 						<Card.Title>
+							{ __( 'Hide Features', 'updatebee' ) }
+						</Card.Title>
+					</Card.Header>
+					<Card.Content className="updatebee-advanced-card-content">
+						<p className="updatebee-advanced-card-description">
+							{ __(
+								'Choose which screens and cards to hide from the UpdateBee admin area. Settings, Logs, Plugins, Themes, and Advanced are always available.',
+								'updatebee'
+							) }
+						</p>
+						<div className="updatebee-advanced-card-field">
+							{ HIDDEN_FEATURE_OPTIONS.map( ( feature ) => (
+								<ToggleControl
+									key={ feature.key }
+									label={ feature.label }
+									checked={ hiddenFeatures.includes(
+										feature.key
+									) }
+									disabled={ isBusy }
+									onChange={ ( checked: boolean ) => {
+										setHiddenFeatures( ( current ) =>
+											checked
+												? [
+														...current.filter(
+															( key ) =>
+																key !==
+																feature.key
+														),
+														feature.key,
+													]
+												: current.filter(
+														( key ) =>
+															key !== feature.key
+													)
+										);
+									} }
+								/>
+							) ) }
+						</div>
+						<p className="updatebee-advanced-card-actions">
+							<Button
+								variant="solid"
+								loading={ isSavingFeatures }
+								loadingAnnouncement={ __(
+									'Saving hidden features…',
+									'updatebee'
+								) }
+								disabled={ isBusy }
+								onClick={ handleSaveFeatures }
+							>
+								{ __( 'Save features', 'updatebee' ) }
+							</Button>
+						</p>
+					</Card.Content>
+				</Card.Root>
+
+				<Card.Root className="updatebee-advanced-card">
+					<Card.Header>
+						<Card.Title>
 							{ __( 'Block Untested Updates', 'updatebee' ) }
 						</Card.Title>
 					</Card.Header>
@@ -492,98 +606,105 @@ const AdvancedMain = () => {
 					</Card.Content>
 				</Card.Root>
 
-				<Card.Root className="updatebee-advanced-card">
-					<Card.Header>
-						<Card.Title>
-							{ __( 'Slack Notifications', 'updatebee' ) }
-						</Card.Title>
-					</Card.Header>
-					<Card.Content className="updatebee-advanced-card-content">
-						<p className="updatebee-advanced-card-description">
-							{ __(
-								'Incoming webhook URL for Slack. Used by update completion reports and optional email digests.',
-								'updatebee'
-							) }
-						</p>
-						<div className="updatebee-advanced-card-field">
-							<TextControl
-								label={ __( 'Slack webhook URL', 'updatebee' ) }
-								type="url"
-								value={ slackWebhookUrl }
-								onChange={ ( value ) => {
-									setSlackWebhookUrl( value );
-								} }
-								help={ __(
-									'Save an incoming webhook URL to enable Slack notifications across the plugin.',
+				{ ! hiddenFeatures.includes( 'webhooks' ) && (
+					<Card.Root className="updatebee-advanced-card">
+						<Card.Header>
+							<Card.Title>
+								{ __( 'Slack Notifications', 'updatebee' ) }
+							</Card.Title>
+						</Card.Header>
+						<Card.Content className="updatebee-advanced-card-content">
+							<p className="updatebee-advanced-card-description">
+								{ __(
+									'Incoming webhook URL for Slack. Used by update completion reports and optional email digests.',
 									'updatebee'
 								) }
-								disabled={ isBusy }
-							/>
-						</div>
-						<p className="updatebee-advanced-card-actions">
-							<Button
-								variant="solid"
-								loading={ isSavingSlack }
-								loadingAnnouncement={ __(
-									'Saving Slack webhook…',
-									'updatebee'
-								) }
-								disabled={ isBusy }
-								onClick={ handleSaveSlack }
-							>
-								{ __( 'Save webhook', 'updatebee' ) }
-							</Button>
-						</p>
-					</Card.Content>
-				</Card.Root>
+							</p>
+							<div className="updatebee-advanced-card-field">
+								<TextControl
+									label={ __(
+										'Slack webhook URL',
+										'updatebee'
+									) }
+									type="url"
+									value={ slackWebhookUrl }
+									onChange={ ( value ) => {
+										setSlackWebhookUrl( value );
+									} }
+									help={ __(
+										'Save an incoming webhook URL to enable Slack notifications across the plugin.',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+								/>
+							</div>
+							<p className="updatebee-advanced-card-actions">
+								<Button
+									variant="solid"
+									loading={ isSavingSlack }
+									loadingAnnouncement={ __(
+										'Saving Slack webhook…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ handleSaveSlack }
+								>
+									{ __( 'Save webhook', 'updatebee' ) }
+								</Button>
+							</p>
+						</Card.Content>
+					</Card.Root>
+				) }
 
-				<Card.Root className="updatebee-advanced-card">
-					<Card.Header>
-						<Card.Title>
-							{ __( 'Discord Notifications', 'updatebee' ) }
-						</Card.Title>
-					</Card.Header>
-					<Card.Content className="updatebee-advanced-card-content">
-						<p className="updatebee-advanced-card-description">
-							{ __(
-								'Incoming webhook URL for Discord. Used by update completion reports and optional email digests.',
-								'updatebee'
-							) }
-						</p>
-						<div className="updatebee-advanced-card-field">
-							<TextControl
-								label={ __(
-									'Discord webhook URL',
+				{ ! hiddenFeatures.includes( 'webhooks' ) && (
+					<Card.Root className="updatebee-advanced-card">
+						<Card.Header>
+							<Card.Title>
+								{ __( 'Discord Notifications', 'updatebee' ) }
+							</Card.Title>
+						</Card.Header>
+						<Card.Content className="updatebee-advanced-card-content">
+							<p className="updatebee-advanced-card-description">
+								{ __(
+									'Incoming webhook URL for Discord. Used by update completion reports and optional email digests.',
 									'updatebee'
 								) }
-								type="url"
-								value={ discordWebhookUrl }
-								onChange={ ( value ) => {
-									setDiscordWebhookUrl( value );
-								} }
-								help={ __(
-									'Save an incoming webhook URL to enable Discord notifications across the plugin.',
-									'updatebee'
-								) }
-								disabled={ isBusy }
-							/>
-						</div>
-						<p className="updatebee-advanced-card-actions">
-							<Button
-								variant="solid"
-								loading={ isSavingDiscord }
-								loadingAnnouncement={ __(
-									'Saving Discord webhook…',
-									'updatebee'
-								) }
-								disabled={ isBusy }
-								onClick={ handleSaveDiscord }
-							>
-								{ __( 'Save webhook', 'updatebee' ) }
-							</Button>
-						</p>
-					</Card.Content>
-				</Card.Root>
+							</p>
+							<div className="updatebee-advanced-card-field">
+								<TextControl
+									label={ __(
+										'Discord webhook URL',
+										'updatebee'
+									) }
+									type="url"
+									value={ discordWebhookUrl }
+									onChange={ ( value ) => {
+										setDiscordWebhookUrl( value );
+									} }
+									help={ __(
+										'Save an incoming webhook URL to enable Discord notifications across the plugin.',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+								/>
+							</div>
+							<p className="updatebee-advanced-card-actions">
+								<Button
+									variant="solid"
+									loading={ isSavingDiscord }
+									loadingAnnouncement={ __(
+										'Saving Discord webhook…',
+										'updatebee'
+									) }
+									disabled={ isBusy }
+									onClick={ handleSaveDiscord }
+								>
+									{ __( 'Save webhook', 'updatebee' ) }
+								</Button>
+							</p>
+						</Card.Content>
+					</Card.Root>
+				) }
 
 				<UpgradeNoticeKeywordsDrawer
 					disabled={
@@ -591,6 +712,7 @@ const AdvancedMain = () => {
 						isSavingUntested ||
 						isSavingSlack ||
 						isSavingDiscord ||
+						isSavingFeatures ||
 						isSavingAdminBar ||
 						isSavingBranding ||
 						isResetting ||
@@ -607,6 +729,7 @@ const AdvancedMain = () => {
 						isSavingKeywords ||
 						isSavingSlack ||
 						isSavingDiscord ||
+						isSavingFeatures ||
 						isSavingBranding ||
 						isResetting ||
 						isDeactivating
@@ -624,6 +747,7 @@ const AdvancedMain = () => {
 							isSavingAdminBar ||
 							isSavingSlack ||
 							isSavingDiscord ||
+							isSavingFeatures ||
 							isResetting ||
 							isDeactivating
 						}

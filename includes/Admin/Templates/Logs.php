@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use UpdateBee\Admin\Feature_Visibility;
 use UpdateBee\Functions;
 use UpdateBee\Options;
 
@@ -106,6 +107,7 @@ class Logs {
 				'discordEnabled'           => (bool) Options::get_options( 'discord_enabled' ),
 				'discordSkipDelayed'       => (bool) Options::get_options( 'discord_skip_delayed' ),
 				'discordWebhookConfigured' => \UpdateBee\Discord\Discord_Webhook::is_configured(),
+				'showWebhooks'             => ! Feature_Visibility::is_hidden( 'webhooks' ),
 			)
 		);
 

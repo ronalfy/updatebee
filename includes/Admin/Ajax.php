@@ -2806,6 +2806,29 @@ class Ajax {
 			$to_save['discord_webhook_url'] = $validated;
 		}
 
+		if ( isset( $_POST['hidden_features'] ) ) {
+			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is decoded and allowlisted below.
+			$raw_hidden_features = wp_unslash( $_POST['hidden_features'] );
+			if ( ! is_string( $raw_hidden_features ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Features to hide could not be saved.', 'updatebee' ),
+					)
+				);
+			}
+
+			$hidden_features = json_decode( $raw_hidden_features );
+			if ( ! is_array( $hidden_features ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Features to hide could not be saved.', 'updatebee' ),
+					)
+				);
+			}
+
+			$to_save['hidden_features'] = Feature_Visibility::sanitize_hidden_features( $hidden_features );
+		}
+
 		$admin_bar_keys = array(
 			Admin_Bar_Menu::OPTION_ENABLED,
 			Admin_Bar_Menu::OPTION_SHOW_ADMIN,
@@ -2833,7 +2856,19 @@ class Ajax {
 			);
 		}
 
-		$updated = Options::update_options( '', $to_save );
+		$hidden_features_to_save = null;
+		if ( array_key_exists( 'hidden_features', $to_save ) ) {
+			$hidden_features_to_save = $to_save['hidden_features'];
+			unset( $to_save['hidden_features'] );
+		}
+
+		$updated = empty( $to_save ) ? array() : Options::update_options( '', $to_save );
+
+		if ( null !== $updated && null !== $hidden_features_to_save ) {
+			$updated                    = Options::update_options( 'hidden_features', $hidden_features_to_save );
+			$to_save['hidden_features'] = $hidden_features_to_save;
+		}
+
 		if ( null === $updated ) {
 			wp_send_json_error(
 				array(
@@ -2870,6 +2905,8 @@ class Ajax {
 			$message = __( 'Slack webhook has been saved.', 'updatebee' );
 		} elseif ( isset( $to_save['discord_webhook_url'] ) && ! isset( $to_save['delay_updates'] ) && ! isset( $to_save['block_untested_updates'] ) && ! isset( $to_save['upgrade_notice_keywords'] ) && ! isset( $to_save['upgrade_notice_keywords_enabled'] ) && ! isset( $to_save['slack_webhook_url'] ) ) {
 			$message = __( 'Discord webhook has been saved.', 'updatebee' );
+		} elseif ( isset( $to_save['hidden_features'] ) ) {
+			$message = __( 'Features to hide have been saved. Reload the page to update the navigation.', 'updatebee' );
 		} else {
 			$message = __( 'Update delay has been saved.', 'updatebee' );
 		}
@@ -2900,6 +2937,10 @@ class Ajax {
 
 		if ( isset( $to_save['discord_webhook_url'] ) ) {
 			$response['discord_webhook_url'] = $to_save['discord_webhook_url'];
+		}
+
+		if ( isset( $to_save['hidden_features'] ) ) {
+			$response['hidden_features'] = $to_save['hidden_features'];
 		}
 
 		foreach ( $admin_bar_keys as $admin_bar_key ) {

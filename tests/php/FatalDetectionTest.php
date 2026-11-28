@@ -174,7 +174,7 @@ class FatalDetectionTest extends TestCase {
 	public function test_map_error_file_to_plugin(): void {
 		$this->define_content_dirs();
 		$mapped = Fatal_Detection::map_error_file_to_extension(
-			'wp-content/plugins/hello-dolly/includes/foo.php',
+			WP_PLUGIN_DIR . '/hello-dolly/includes/foo.php',
 			array(
 				'plugin' => array( $this->plugin_result() ),
 			)
@@ -323,7 +323,7 @@ class FatalDetectionTest extends TestCase {
 					array(
 						'type'    => E_ERROR,
 						'message' => 'Call to undefined function foo()',
-						'file'    => 'wp-content/plugins/hello-dolly/hello.php',
+						'file'    => WP_PLUGIN_DIR . '/hello-dolly/hello.php',
 						'line'    => 4,
 					)
 				),

@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use UpdateBee\Admin\Feature_Visibility;
 use UpdateBee\Functions;
 
 /**
@@ -75,9 +76,10 @@ class Dashboard {
 			'updatebee-dashboard',
 			'updatebeeDashboard',
 			array(
-				'retrieveNonce' => wp_create_nonce( 'updatebee-retrieve-dashboard-settings' ),
-				'saveNonce'     => wp_create_nonce( 'updatebee-save-dashboard-settings' ),
-				'resetNonce'    => wp_create_nonce( 'updatebee-reset-dashboard-settings' ),
+				'retrieveNonce'    => wp_create_nonce( 'updatebee-retrieve-dashboard-settings' ),
+				'saveNonce'        => wp_create_nonce( 'updatebee-save-dashboard-settings' ),
+				'resetNonce'       => wp_create_nonce( 'updatebee-reset-dashboard-settings' ),
+				'showTranslations' => ! Feature_Visibility::is_hidden( 'translations' ),
 			)
 		);
 

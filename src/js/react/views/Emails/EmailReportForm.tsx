@@ -443,64 +443,66 @@ const EmailReportFormFields = ( props: EmailReportFormFieldsProps ) => {
 					} );
 				} }
 			/>
-			{ 'updates-available' === reportKind && (
-				<CheckboxControl
-					label={ __(
-						'Notify Slack when this report runs',
-						'updatebee'
-					) }
-					checked={ watch( 'notifySlack' ) }
-					disabled={ ! updatebeeEmails.slackWebhookConfigured }
-					onChange={ ( checked ) => {
-						setValue( 'notifySlack', checked, {
-							shouldDirty: true,
-						} );
-					} }
-					help={
-						updatebeeEmails.slackWebhookConfigured
-							? __(
-									'Uses the Slack webhook saved under Advanced settings. Applies to scheduled runs and Send now.',
-									'updatebee'
-								)
-							: __(
-									'Add a Slack webhook URL in Advanced settings to enable this.',
-									'updatebee'
-								)
-					}
-				/>
-			) }
-			{ 'updates-available' === reportKind && (
-				<CheckboxControl
-					label={ __( 'Send to Discord', 'updatebee' ) }
-					checked={ notifyDiscord }
-					disabled={
-						! updatebeeEmails.discordWebhookConfigured &&
-						! notifyDiscord
-					}
-					onChange={ ( checked ) => {
-						if (
-							checked &&
-							! updatebeeEmails.discordWebhookConfigured
-						) {
-							return;
+			{ 'updates-available' === reportKind &&
+				updatebeeEmails.showWebhooks && (
+					<CheckboxControl
+						label={ __(
+							'Notify Slack when this report runs',
+							'updatebee'
+						) }
+						checked={ watch( 'notifySlack' ) }
+						disabled={ ! updatebeeEmails.slackWebhookConfigured }
+						onChange={ ( checked ) => {
+							setValue( 'notifySlack', checked, {
+								shouldDirty: true,
+							} );
+						} }
+						help={
+							updatebeeEmails.slackWebhookConfigured
+								? __(
+										'Uses the Slack webhook saved under Advanced settings. Applies to scheduled runs and Send now.',
+										'updatebee'
+									)
+								: __(
+										'Add a Slack webhook URL in Advanced settings to enable this.',
+										'updatebee'
+									)
 						}
-						setValue( 'notifyDiscord', checked, {
-							shouldDirty: true,
-						} );
-					} }
-					help={
-						updatebeeEmails.discordWebhookConfigured
-							? __(
-									'Uses the Discord webhook saved under Advanced settings. Applies to scheduled runs and Send now.',
-									'updatebee'
-								)
-							: __(
-									'Add a Discord webhook URL in Advanced settings to enable this.',
-									'updatebee'
-								)
-					}
-				/>
-			) }
+					/>
+				) }
+			{ 'updates-available' === reportKind &&
+				updatebeeEmails.showWebhooks && (
+					<CheckboxControl
+						label={ __( 'Send to Discord', 'updatebee' ) }
+						checked={ notifyDiscord }
+						disabled={
+							! updatebeeEmails.discordWebhookConfigured &&
+							! notifyDiscord
+						}
+						onChange={ ( checked ) => {
+							if (
+								checked &&
+								! updatebeeEmails.discordWebhookConfigured
+							) {
+								return;
+							}
+							setValue( 'notifyDiscord', checked, {
+								shouldDirty: true,
+							} );
+						} }
+						help={
+							updatebeeEmails.discordWebhookConfigured
+								? __(
+										'Uses the Discord webhook saved under Advanced settings. Applies to scheduled runs and Send now.',
+										'updatebee'
+									)
+								: __(
+										'Add a Discord webhook URL in Advanced settings to enable this.',
+										'updatebee'
+									)
+						}
+					/>
+				) }
 			{ 'custom' === sendSchedule && (
 				<EmailScheduleFields
 					value={ scheduleOptions }

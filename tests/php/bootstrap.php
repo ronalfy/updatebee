@@ -175,22 +175,6 @@ if ( ! function_exists( 'is_email' ) ) {
 	}
 }
 
-if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
-	/**
-	 * Test stub for wp_remote_retrieve_response_code().
-	 *
-	 * @param array<string, mixed>|\WP_Error $response HTTP response.
-	 * @return int|string Response code, or an empty string when it is missing.
-	 */
-	function wp_remote_retrieve_response_code( $response ) {
-		if ( is_wp_error( $response ) || ! isset( $response['response']['code'] ) ) {
-			return '';
-		}
-
-		return $response['response']['code'];
-	}
-}
-
 if ( ! function_exists( 'is_wp_error' ) ) {
 	/**
 	 * Test stub for is_wp_error().

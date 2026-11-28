@@ -511,16 +511,18 @@ const UpcomingUpdates = () => {
 					</p>
 					<div className="updatebee-upcoming-next-run">
 						<p className="description">{ nextRunLabel }</p>
-						<Button
-							variant="outline"
-							onClick={ () => {
-								window.location.assign(
-									updatebeeUpcoming.schedulesUrl
-								);
-							} }
-						>
-							{ __( 'Change', 'updatebee' ) }
-						</Button>
+						{ updatebeeUpcoming.showSchedules && (
+							<Button
+								variant="outline"
+								onClick={ () => {
+									window.location.assign(
+										updatebeeUpcoming.schedulesUrl
+									);
+								} }
+							>
+								{ __( 'Change', 'updatebee' ) }
+							</Button>
+						) }
 					</div>
 				</div>
 				<div className="updatebee-upcoming-toolbar-actions">

@@ -231,47 +231,51 @@ const FatalEmailsCard = ( props: FatalEmailsCardProps ) => {
 								{ recipientError }
 							</p>
 						) }
-						<CheckboxControl
-							label={ __(
-								'Notify Slack when a fatal error is detected',
-								'updatebee'
-							) }
-							checked={ notifySlack }
-							disabled={
-								! updatebeeEmails.slackWebhookConfigured
-							}
-							onChange={ setNotifySlack }
-							help={
-								updatebeeEmails.slackWebhookConfigured
-									? __(
-											'Uses the Slack webhook saved under Advanced settings.',
-											'updatebee'
-										)
-									: __(
-											'Add a Slack webhook URL in Advanced settings to enable this.',
-											'updatebee'
-										)
-							}
-						/>
-						<CheckboxControl
-							label={ __( 'Send to Discord', 'updatebee' ) }
-							checked={ notifyDiscord }
-							disabled={
-								! updatebeeEmails.discordWebhookConfigured
-							}
-							onChange={ setNotifyDiscord }
-							help={
-								updatebeeEmails.discordWebhookConfigured
-									? __(
-											'Uses the Discord webhook saved under Advanced settings.',
-											'updatebee'
-										)
-									: __(
-											'Add a Discord webhook URL in Advanced settings to enable this.',
-											'updatebee'
-										)
-							}
-						/>
+						{ updatebeeEmails.showWebhooks && (
+							<CheckboxControl
+								label={ __(
+									'Notify Slack when a fatal error is detected',
+									'updatebee'
+								) }
+								checked={ notifySlack }
+								disabled={
+									! updatebeeEmails.slackWebhookConfigured
+								}
+								onChange={ setNotifySlack }
+								help={
+									updatebeeEmails.slackWebhookConfigured
+										? __(
+												'Uses the Slack webhook saved under Advanced settings.',
+												'updatebee'
+											)
+										: __(
+												'Add a Slack webhook URL in Advanced settings to enable this.',
+												'updatebee'
+											)
+								}
+							/>
+						) }
+						{ updatebeeEmails.showWebhooks && (
+							<CheckboxControl
+								label={ __( 'Send to Discord', 'updatebee' ) }
+								checked={ notifyDiscord }
+								disabled={
+									! updatebeeEmails.discordWebhookConfigured
+								}
+								onChange={ setNotifyDiscord }
+								help={
+									updatebeeEmails.discordWebhookConfigured
+										? __(
+												'Uses the Discord webhook saved under Advanced settings.',
+												'updatebee'
+											)
+										: __(
+												'Add a Discord webhook URL in Advanced settings to enable this.',
+												'updatebee'
+											)
+								}
+							/>
+						) }
 					</>
 				) }
 				<div className="updatebee-emails-actions">

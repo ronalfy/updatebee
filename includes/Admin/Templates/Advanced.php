@@ -13,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 use UpdateBee\Admin\Admin_Bar_Menu;
+use UpdateBee\Admin\Feature_Visibility;
 use UpdateBee\Branding;
 use UpdateBee\Functions;
 use UpdateBee\Options;
@@ -103,6 +104,7 @@ class Advanced {
 			'adminBarEnabled'              => (bool) Options::get_options( Admin_Bar_Menu::OPTION_ENABLED ),
 			'adminBarShowAdmin'            => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_ADMIN ),
 			'adminBarShowFrontend'         => (bool) Options::get_options( Admin_Bar_Menu::OPTION_SHOW_FRONTEND ),
+			'hiddenFeatures'               => Feature_Visibility::get_hidden_features(),
 			'brandingLocked'               => Branding::is_locked(),
 		);
 

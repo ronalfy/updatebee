@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use UpdateBee\Admin\Feature_Visibility;
 use UpdateBee\Functions;
 
 /**
@@ -108,6 +109,7 @@ class Upcoming {
 				'saveDelayNonce'        => wp_create_nonce( 'updatebee-save-upcoming-delay' ),
 				'refreshNonce'          => wp_create_nonce( 'updatebee-refresh-updates' ),
 				'schedulesUrl'          => esc_url_raw( Functions::get_settings_url( 'cron' ) ),
+				'showSchedules'         => ! Feature_Visibility::is_hidden( 'scheduling' ),
 			)
 		);
 

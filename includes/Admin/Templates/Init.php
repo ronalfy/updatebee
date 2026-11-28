@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use UpdateBee\Admin\Feature_Visibility;
+
 /**
  * Init all the classes and sub-tabs.
  */
@@ -21,6 +23,9 @@ class Init {
 	 * Class runner.
 	 */
 	public function run(): void {
+		$feature_visibility = new Feature_Visibility();
+		$feature_visibility->run();
+
 		new Dashboard();
 		new Upcoming();
 		new Plugins();

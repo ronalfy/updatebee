@@ -31,7 +31,7 @@ class Upcoming_Menu {
 	 * Insert the shortcut under Updates.
 	 */
 	public function register_shortcut(): void {
-		if ( ! Functions::can_access_options() ) {
+		if ( ! Functions::can_access_options() || Feature_Visibility::is_hidden( 'upcoming' ) ) {
 			return;
 		}
 

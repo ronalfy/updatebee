@@ -705,6 +705,8 @@ class Settings_Transfer {
 				return self::parse_theme_list( $value );
 			case 'translation_list':
 				return self::parse_translation_list( $value );
+			case 'feature_list':
+				return self::parse_feature_list( $value );
 			case 'email_list':
 				return self::parse_email_list( $value );
 			case 'plugin_version_map':
@@ -1064,6 +1066,7 @@ class Settings_Transfer {
 			'skipped_theme_versions'           => 'theme_version_map',
 			'auto_update_translations'         => 'translation_list',
 			'blocked_translations'             => 'translation_list',
+			'hidden_features'                  => 'feature_list',
 			'enable_core_emails'               => 'bool',
 			'core_email_recipients'            => 'email_list',
 			'clear_logs_days'                  => 'days',
@@ -1346,6 +1349,27 @@ class Settings_Transfer {
 	 */
 	private static function parse_translation_list( $value ) {
 		return self::parse_identifier_list( $value, 'translation' );
+	}
+
+	/**
+	 * Validate a list of hidden feature keys.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return array<int, string>|\WP_Error Feature keys.
+	 */
+	private static function parse_feature_list( $value ) {
+		$allowed = Feature_Visibility::FEATURE_KEYS;
+		if ( ! is_array( $value ) || ( array() !== $value && array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) || count( $value ) > count( $allowed ) ) {
+			return self::rejected();
+		}
+
+		foreach ( $value as $feature ) {
+			if ( ! is_string( $feature ) || ! in_array( $feature, $allowed, true ) ) {
+				return self::rejected();
+			}
+		}
+
+		return Feature_Visibility::sanitize_hidden_features( $value );
 	}
 
 	/**

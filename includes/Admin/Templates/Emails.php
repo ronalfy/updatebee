@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use UpdateBee\Admin\Feature_Visibility;
 use UpdateBee\Emails\Email_Fatals;
 use UpdateBee\Functions;
 use UpdateBee\Options;
@@ -124,6 +125,7 @@ class Emails {
 				'updatesAvailableSendNowNonce'  => wp_create_nonce( 'updatebee-send-email-updates-available-now' ),
 				'slackWebhookConfigured'        => \UpdateBee\Slack\Slack_Webhook::is_configured(),
 				'discordWebhookConfigured'      => \UpdateBee\Discord\Discord_Webhook::is_configured(),
+				'showWebhooks'                  => ! Feature_Visibility::is_hidden( 'webhooks' ),
 			)
 		);
 

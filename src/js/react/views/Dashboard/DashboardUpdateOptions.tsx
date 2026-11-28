@@ -427,41 +427,46 @@ const DashboardUpdateOptions = () => {
 					</div>
 					<AssetUpdateConfigure kind="theme" />
 				</div>
-				<div className="updatebee-panel-row">
-					<h4>
-						{ __( 'WordPress Translation Updates', 'updatebee' ) }
-					</h4>
-					<p className="description">
-						{ __(
-							'You ideally should keep your translations up-to-date. You can configure per translation which should be updated.',
-							'updatebee'
-						) }
-					</p>
-					<div className="updatebee-dashboard-update-toggle">
-						<Controller
-							name="translationAutoUpdates"
-							control={ control }
-							render={ ( { field: { value } } ) => (
-								<ToggleControl
-									checked={ value }
-									onChange={ ( checked ) => {
-										applyAssetAutoUpdatesEnabled(
-											'translation',
-											setValue,
-											getValues,
-											checked
-										);
-									} }
-									label={ __(
-										'Enable translation auto-updates',
-										'updatebee'
-									) }
-								/>
+				{ updatebeeDashboard.showTranslations && (
+					<div className="updatebee-panel-row">
+						<h4>
+							{ __(
+								'WordPress Translation Updates',
+								'updatebee'
 							) }
-						/>
+						</h4>
+						<p className="description">
+							{ __(
+								'You ideally should keep your translations up-to-date. You can configure per translation which should be updated.',
+								'updatebee'
+							) }
+						</p>
+						<div className="updatebee-dashboard-update-toggle">
+							<Controller
+								name="translationAutoUpdates"
+								control={ control }
+								render={ ( { field: { value } } ) => (
+									<ToggleControl
+										checked={ value }
+										onChange={ ( checked ) => {
+											applyAssetAutoUpdatesEnabled(
+												'translation',
+												setValue,
+												getValues,
+												checked
+											);
+										} }
+										label={ __(
+											'Enable translation auto-updates',
+											'updatebee'
+										) }
+									/>
+								) }
+							/>
+						</div>
+						<AssetUpdateConfigure kind="translation" />
 					</div>
-					<AssetUpdateConfigure kind="translation" />
-				</div>
+				) }
 			</div>
 		</div>
 	);
